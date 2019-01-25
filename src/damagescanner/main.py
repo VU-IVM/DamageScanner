@@ -23,7 +23,7 @@ import rasterio
 import numpy
 import pandas 
 
-def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=25,save=False,**kwargs):
+def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
     Raster-based implementation of a direct damage assessment.
     
@@ -40,7 +40,6 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=25,save=F
                        land-use classes.% 
      maxdam_path       Vector with the maximum damages per land-use class (in
                        euro/m2)
-     cellsize
 
     # OUTPUT PARAMETERS:
      damagebin         Table with the land-use class numbers (1st) and the damage
@@ -70,6 +69,9 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=25,save=F
     if landuse.shape != inundation.shape:
         print('ERROR: landuse and inundation maps are not the same shape. Fix this first')
         return None
+
+    # set cellsize:
+    cellsize = src.res[0]*src.res[1]
 
     # Load curves
     if isinstance(curve_path, pandas.DataFrame):

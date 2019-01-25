@@ -48,7 +48,12 @@ setup(
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
         'fiona>=1.7.13',
         'shapely>=1.6',
-        'geopandas==0.4.0',
+        'geopandas>=0.4.0',
+		'pandas>=0.23.4'
+		'rasterio>=1.08',
+		'numpy>=1.15.2',
+		'matplotlib>=3.0.0',
+	
     ],
     extras_require={
         # eg:
