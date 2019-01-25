@@ -18,42 +18,46 @@
 #
 
 # Get all the needed modules
+import os
 import rasterio
 import numpy
 import pandas 
 
-def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=100,save=False,**kwargs):
+def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=25,save=False,**kwargs):
     """
     Raster-based implementation of a direct damage assessment.
     
     # INPUT PARAMETERS:
-    # LANDUSE           Land-use map. Make sure the land-use categories
-    #                   correspond with the curves and maximum damages (see
-    #                   below). Furthermore, the resolution and extend of the
-    #                   land-use map has to be exactly the same as the
-    #                   inundation map
-    # INUNDATION        Map with inundation depth per grid cell. Make sure that
-    #                   the unit of the inundation map corresponds with the unit of the first
-    #                   column of the curves file
-    # CURVES            File with the stage-damage curves of the different
-    #                   land-use classes.% 
-    # MAXDAM            Vector with the maximum damages per land-use class (in
-    #                   euro/m2)
+     landuse_map       Land-use map. Make sure the land-use categories
+                       correspond with the curves and maximum damages (see
+                       below). Furthermore, the resolution and extend of the
+                       land-use map has to be exactly the same as the
+                       inundation map
+     inun_map          Map with inundation depth per grid cell. Make sure that
+                       the unit of the inundation map corresponds with the unit of the first
+                       column of the curves file
+     curve_path        File with the stage-damage curves of the different
+                       land-use classes.% 
+     maxdam_path       Vector with the maximum damages per land-use class (in
+                       euro/m2)
+     cellsize
 
     # OUTPUT PARAMETERS:
-    # DAMAGEBIN         Table with the land-use class numbers (1st), the damage
-    #                   for that land-use class (2nd) and the amount of cells of that given
-    #                   land-use class in the inundated area (3rd)
-    # DAMAGEMAP         Map displaying the damage per grid cell of the area
-    #
-    """   
+     damagebin         Table with the land-use class numbers (1st) and the damage
+                       for that land-use class (2nd) 
+     damagemap         Map displaying the damage per grid cell of the area
+    
+    """      
         
     # load land-use map
     if landuse_map.endswith('.tif'):
         with rasterio.open(landuse_map) as src:
             landuse = src.read()[0,:,:]
+            transform = src.transform
     else:
         landuse = landuse_map.copy()
+    
+    landuse_in = landuse.copy()
     
     # Load inundation map
     if inun_map.endswith('.tif'):
@@ -71,7 +75,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=100,save=
     if isinstance(curve_path, pandas.DataFrame):
         curves = curve_path.values    
     elif curve_path.endswith('.csv'):
-        curves = pandas.read_csv(curve_path,index_col=0).values
+        curves = pandas.read_csv(curve_path).values
 
     #Load maximum damages
     if isinstance(maxdam_path, pandas.DataFrame):
@@ -81,6 +85,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=100,save=
     
     
     # Speed up calculation by only considering feasible points
+    inundation[inundation>10] = 0
     inun = inundation * (inundation>=0) + 0
     inun[inun>=curves[:,0].max()] = curves[:,0].max()
     area = inun > 0
@@ -100,7 +105,6 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=100,save=
         damagebin[i,1] = sum(damage)
         alldamage[landuse==n] = damage
 
-
     # create the damagemap
     damagemap = numpy.zeros((area.shape[0],area.shape[1]), dtype='int32')
     damagemap[area] = alldamage
@@ -108,8 +112,29 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,cellsize=100,save=
     # create pandas dataframe with output
     loss_df = pandas.DataFrame(damagebin.astype(int),columns=['landuse','losses']).groupby('landuse').sum()
     
+    if save:
+        # requires adding output_path and scenario_name to function call
+        if 'output_path' in kwargs:
+            output_path = kwargs['output_path']
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
+        if 'scenario_name' in kwargs:
+            scenario_name = kwargs['scenario_name']
+        if 'crs' in kwargs:
+            crs = kwargs['crs']
+        loss_df.to_csv(os.path.join(output_path,'{}_losses.csv'.format(scenario_name)))
+
+        with rasterio.open(os.path.join(output_path,'{}_damagemap.tif'.format(scenario_name)), 'w', 
+                                        driver='GTiff', height=damagemap.shape[0],
+           width=damagemap.shape[1], count=1, dtype=damagemap.dtype, crs=crs, transform=transform,compress="LZW",) as dst:
+                           dst.write(damagemap, 1)
+                
+    if 'in_millions' in kwargs:
+        loss_df = loss_df/1e6
+    
     # return output
-    return loss_df,damagemap
+    return loss_df,damagemap,landuse_in,inundation 
+
 
 def VectorScanner(LANDUSE,INUNDATION,CURVES,MAXDAM,CELLSIZE,BASEMAP,SCEN_FLOOD,ADAPTATION,RETURN_PERIOD):
     """
