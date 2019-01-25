@@ -49,7 +49,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
     """      
         
     # load land-use map
-    if landuse_map.endswith('.tif'):
+    if isinstance(landuse_map,str):
         with rasterio.open(landuse_map) as src:
             landuse = src.read()[0,:,:]
             transform = src.transform
@@ -59,7 +59,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
     landuse_in = landuse.copy()
     
     # Load inundation map
-    if inun_map.endswith('.tif'):
+    if isinstance(inun_map,str):
         with rasterio.open(inun_map) as src:
             inundation = src.read()[0,:,:]
     else:

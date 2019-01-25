@@ -6,11 +6,18 @@ from pandas.testing import assert_frame_equal
 from pytest import fixture
 from shapely.geometry import Point, LineString, MultiPoint
 
-#import damagescanner
-#from damagescanner import RasterScanner
+import os
 
-def inc(x):
-    return x + 1
+#import damagescanner
+from damagescanner import RasterScanner
+
+data_path = '..'
 
 def test_answer():
-    assert inc(3) == 4
+    inun_map = os.path.join(data_path,'data','inundation','inundation_map.tif')
+    landuse_map = os.path.join(data_path,'data','landuse','landuse_map.tif')
+    
+    curve_path = os.path.join(data_path,'data','curves','curves.csv')
+    maxdam_path = os.path.join(data_path,'data','curves','maxdam.csv')
+    
+    assert RasterScanner(landuse_map,inun_map,curve_path,maxdam_path)[0].sum().values[0] == 3550789426
