@@ -75,13 +75,17 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
 
     # Load curves
     if isinstance(curve_path, pandas.DataFrame):
-        curves = curve_path.values    
+        curves = curve_path.values   
+    elif isinstance(curve_path, numpy.ndarray):
+        curves = curve_path
     elif curve_path.endswith('.csv'):
         curves = pandas.read_csv(curve_path).values
 
     #Load maximum damages
     if isinstance(maxdam_path, pandas.DataFrame):
         maxdam = maxdam_path.values #dict(zip(maxdam['landuse'],maxdam['damage']))
+    elif isinstance(maxdam_path, numpy.ndarray):
+        maxdam = maxdam_path
     elif maxdam_path.endswith('.csv'):
         maxdam = pandas.read_csv(maxdam_path,skiprows=1).values#dict(zip(pd.read_csv(maxdam_path)['landuse'],pd.read_csv(maxdam_path)['damage']))
     
@@ -138,7 +142,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
     return loss_df,damagemap,landuse_in,inundation 
 
 
-def VectorScanner(LANDUSE,INUNDATION,CURVES,MAXDAM,CELLSIZE,BASEMAP,SCEN_FLOOD,ADAPTATION,RETURN_PERIOD):
+def VectorScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
     Vector based implementation of a direct damage assessment
     """
