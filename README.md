@@ -1,3 +1,3 @@
 # DamageScanner
 
-Python implementation of direct damage assessment for natural disasters
+Python toolkit of direct damage assessment for natural disasters
