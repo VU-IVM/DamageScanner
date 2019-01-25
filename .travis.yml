@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+  # - "3.7" not available on travis as OpenSSL 1.0.2+ is not available on Ubuntu Trusty
+
+before_install:
+  - sudo apt-get install -y libspatialindex-dev libgeos-dev gdal-bin
+
+install:
+  - pip install -r dev-requirements.txt
+  - python setup.py install
+  - pip freeze
+
+script:
+  - python -m pytest tests

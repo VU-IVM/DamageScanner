@@ -4,7 +4,7 @@ import pkg_resources
 
 # Define what is accessible directly on snkit, when a client writes::
 #   from snkit import Network
-from damagescanner.main import DamageScanner
+from damagescanner.main import RasterScanner
 
 __author__ = "Elco Koks"
 __copyright__ = "Elco Koks"
@@ -19,4 +19,4 @@ except pkg_resources.DistributionNotFound:
 
 # Define what should be imported as * when a client writes::
 #   from snkit import *
-__all__ = ['DamageScanner']
+__all__ = ['RasterScanner']
