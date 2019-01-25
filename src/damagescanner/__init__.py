@@ -8,7 +8,7 @@ from damagescanner.main import RasterScanner
 
 __author__ = "Elco Koks"
 __copyright__ = "Elco Koks"
-__license__ = "GNU"
+__license__ = "MIT"
 
 
 try:
