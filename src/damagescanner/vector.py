@@ -1,10 +1,29 @@
 import geopandas
+import ogr
 import numpy 
-import rasterio
-from rasterio.mask import mask
-from shapely.geometry import mapping
-from rasterio.features import shapes
 
+from shapely.wkt import loads
+
+def fetch_landuse(osm_path):
+    driver=ogr.GetDriverByName('OSM')
+    data = driver.Open(osm_path)
+                       
+    sql_lyr = data.ExecuteSQL("SELECT osm_id,landuse from multipolygons where landuse is not null")
+
+    osm_data = []
+    for feature in sql_lyr:
+            if feature.GetField('landuse') is not None:
+                shapely_geo = loads(feature.geometry().ExportToWkt()) 
+                if shapely_geo is None:
+                    continue
+                data_type=feature.GetField('landuse')
+                osm_id = feature.GetField('osm_id')
+
+                osm_data.append([osm_id,data_type,shapely_geo])
+                       
+    return geopandas.GeoDataFrame(osm_data,columns=['osm_id','landuse','geometry'],
+                            crs={'init': 'epsg:4326'})
+    
 
 def intersect(x,landuse,lu_sindex,landuse_col):
     try:
@@ -15,28 +34,3 @@ def intersect(x,landuse,lu_sindex,landuse_col):
 def get_losses(x,damage_curves,damage_values,**kwargs):
     return numpy.interp(x.raster_val/100,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
     
-def get_exposure_losses(inun_file,landuse,lu_sindex,damage_curves,damage_values,**kwargs):
-
-    geoms = [mapping(geom) for geom in landuse.geometry]
-
-    with rasterio.open(inun_file) as src:
-        out_image, out_transform = mask(src, geoms, crop=True)
-        out_image[out_image == 999] = -1
-        out_image[out_image <= 0] = -1
-
-        results = (
-            {'properties': {'raster_val': v}, 'geometry': s}
-            for i, (s, v)
-            in enumerate(
-            shapes(out_image[0,:,:], mask=None, transform=out_transform)))
-
-        gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
-        gdf = gdf.loc[gdf.raster_val > 0]
-        gdf = gdf.loc[gdf.raster_val < 5000]
-
-        gdf['landuse'] = gdf.apply(lambda x : intersect(x,landuse,lu_sindex),axis=1)
-        gdf['area_m2'] = gdf.area
-        
-        gdf['damaged'] = gdf.apply(lambda x : get_losses(x,damage_curves,damage_values),axis=1)
-        
-        return gdf.groupby('landuse').sum()

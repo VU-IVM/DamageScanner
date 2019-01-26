@@ -7,6 +7,7 @@ rasterio>=1.0.8
 numpy>=1.15.2
 matplotlib>=3.0.0
 rtree>=0.8
+tqdm>=4.30.0
 
 # test/lint
 attrs>=17.4  # to fix pytest compatibility on python 3.6

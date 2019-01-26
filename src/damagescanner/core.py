@@ -22,6 +22,13 @@ import os
 import rasterio
 import numpy
 import pandas 
+import geopandas
+from tqdm import tqdm
+from rasterio.mask import mask
+from shapely.geometry import mapping
+from rasterio.features import shapes
+
+from vector import get_losses,intersect
 
 def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
@@ -144,9 +151,69 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
     return loss_df,damagemap,landuse_in,inundation 
 
 
-def VectorScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
+def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse',**kwargs):
     """
     Vector based implementation of a direct damage assessment
     """
+    # load land-use map
+    if isinstance(landuse,str):
+        landuse = geopandas.from_file(landuse)
+    elif isinstance(landuse, geopandas.GeoDataFrame):
+        landuse = landuse.copy()
+    elif isinstance(landuse, pandas.DataFrame):
+        landuse = geopandas.GeoDataFrame(landuse,geometry='geometry')
+    else:
+        print('ERROR: landuse should either be a shapefile, a GeoDataFrame or a pandas Dataframe with a geometry column')
+    
+ 
+    geoms = [mapping(geom) for geom in landuse.geometry]
+    if isinstance(inun_file,str):
+        with rasterio.open(inun_file) as src:
+            if src.crs.to_dict() != landuse.crs:
+                landuse = landuse.to_crs(epsg=src.crs.to_epsg())
+                geoms = [mapping(geom) for geom in landuse.geometry]
+    
+            out_image, out_transform = mask(src, geoms, crop=True)
+            out_image[out_image > 10] = -1
+            out_image[out_image <= 0] = -1
+    else:
+        print('ERROR: inundation file should be a GeoTiff, or any other georeferenced format that Rasterio can read')
+
+    # Load curves
+    if isinstance(curve_path, pandas.DataFrame):
+        curves = curve_path.copy()   
+    elif isinstance(curve_path, numpy.ndarray):
+       print('ERROR: for the vector-based approach we use a pandas DataFrame, not a Numpy Array')
+    elif curve_path.endswith('.csv'):
+        curves = pandas.read_csv(curve_path,index_col=[0])
+
+    #Load maximum damages
+    if isinstance(maxdam_path, pandas.DataFrame):
+        maxdam = dict(zip(maxdam_path['landuse'],maxdam_path['damage']))
+    elif isinstance(maxdam_path, numpy.ndarray):
+        maxdam = dict(zip(maxdam_path[:,0],maxdam_path[:,1]))
+    elif isinstance(maxdam_path, dict):
+        maxdam = maxdam_path
+    elif maxdam_path.endswith('.csv'):
+        maxdam = dict(zip(pandas.read_csv(maxdam_path)['landuse'],pandas.read_csv(maxdam_path)['damage']))
 
 
+    results = (
+        {'properties': {'raster_val': v}, 'geometry': s}
+        for i, (s, v)
+        in enumerate(
+        shapes(out_image[0,:,:], mask=None, transform=out_transform)))
+
+    gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
+    gdf = gdf.loc[gdf.raster_val > 0]
+    gdf = gdf.loc[gdf.raster_val < 15]
+
+    tqdm.pandas()
+    # extract land-use type from landuse dataframe
+    gdf[landuse_col] = gdf.progress_apply(lambda x : intersect(x,landuse,landuse.sindex,landuse_col),axis=1)
+    gdf['area_m2'] = gdf.area
+
+    # estimate total damages
+    gdf['damaged'] = gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
+
+    return gdf.groupby(landuse_col).sum()[['area_m2','damaged']]
