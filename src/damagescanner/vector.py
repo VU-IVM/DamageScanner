@@ -12,10 +12,10 @@ def intersect(x,landuse,lu_sindex,landuse_col):
     except:
         return None
 
-def get_losses(x,damage_curves,damage_values):
-    return np.interp(x.raster_val/100,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
+def get_losses(x,damage_curves,damage_values,**kwargs):
+    return numpy.interp(x.raster_val/100,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
     
-def get_exposure_losses(inun_file,landuse,lu_sindex,damage_curves,damage_values):
+def get_exposure_losses(inun_file,landuse,lu_sindex,damage_curves,damage_values,**kwargs):
 
     geoms = [mapping(geom) for geom in landuse.geometry]
 
@@ -30,7 +30,7 @@ def get_exposure_losses(inun_file,landuse,lu_sindex,damage_curves,damage_values)
             in enumerate(
             shapes(out_image[0,:,:], mask=None, transform=out_transform)))
 
-        gdf = geopandas.GeoDataFrame.from_features(list(results),crs='epsg:28992')
+        gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
         gdf = gdf.loc[gdf.raster_val > 0]
         gdf = gdf.loc[gdf.raster_val < 5000]
 

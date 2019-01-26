@@ -44,4 +44,4 @@ def test_RasterScanner():
         [2.5,0.8,0.8,0.8,0.8],
         [3,1,1,1,1]])         
     
-    assert RasterScanner(landuse,inundation,curves,maxdam)[0].sum().values[0] == 59500
+    assert RasterScanner(landuse,inundation,curves,maxdam,cellsize=100)[0].sum().values[0] == 59500

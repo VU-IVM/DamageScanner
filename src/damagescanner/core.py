@@ -71,10 +71,10 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
         return None
 
     # set cellsize:
-    try:
+    if isinstance(landuse_map,str) & isinstance(inun_map,str):
+        cellsize = kwargs['cellsize']
+    else:
         cellsize = src.res[0]*src.res[1]
-    except:
-        cellsize = 100
 
     # Load curves
     if isinstance(curve_path, pandas.DataFrame):
