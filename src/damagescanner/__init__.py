@@ -4,7 +4,7 @@ import pkg_resources
 
 # Define what is accessible directly on snkit, when a client writes::
 #   from snkit import Network
-from damagescanner.main import RasterScanner
+from damagescanner.core import RasterScanner
 
 __author__ = "Elco Koks"
 __copyright__ = "Elco Koks"
