@@ -1,11 +1,11 @@
 import geopandas
-import ogr
+#import ogr
 import numpy 
 
 from shapely.wkt import loads
 
 def fetch_landuse(osm_path):
-    driver=ogr.GetDriverByName('OSM')
+#    driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
                        
     sql_lyr = data.ExecuteSQL("SELECT osm_id,landuse from multipolygons where landuse is not null")
