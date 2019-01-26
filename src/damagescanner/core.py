@@ -28,7 +28,7 @@ from rasterio.mask import mask
 from shapely.geometry import mapping
 from rasterio.features import shapes
 
-from vector import get_losses,intersect
+from damagescanner.vector import get_losses,intersect
 
 def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
