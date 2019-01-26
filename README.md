@@ -8,6 +8,6 @@ Python toolkit for direct damage assessments for natural disasters
 
 * Add a working vector-based damage assessment
 * Add plot capabilities
-* Allow damage assessments using openstreetmap data
+* Develop damage assessments using OpenStreetMap data
 
 
