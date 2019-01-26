@@ -7,6 +7,9 @@ python:
 before_install:
   - sudo apt-get install -y libspatialindex-dev libgeos-dev libgdal-dev gdal-bin 
 
+env
+  - export CPLUS_INCLUDE_PATH=/usr/include/gdal
+  - export C_INCLUDE_PATH=/usr/include/gdal
   
 install:
   - pip install -r dev-requirements.txt
