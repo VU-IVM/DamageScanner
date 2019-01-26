@@ -72,9 +72,9 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
 
     # set cellsize:
     if isinstance(landuse_map,str) & isinstance(inun_map,str):
-        cellsize = kwargs['cellsize']
-    else:
         cellsize = src.res[0]*src.res[1]
+    else:
+        cellsize = kwargs['cellsize']
 
     # Load curves
     if isinstance(curve_path, pandas.DataFrame):
@@ -91,8 +91,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
         maxdam = maxdam_path
     elif maxdam_path.endswith('.csv'):
         maxdam = pandas.read_csv(maxdam_path,skiprows=1).values#dict(zip(pd.read_csv(maxdam_path)['landuse'],pd.read_csv(maxdam_path)['damage']))
-    
-    
+        
     # Speed up calculation by only considering feasible points
     inundation[inundation>10] = 0
     inun = inundation * (inundation>=0) + 0
