@@ -15,6 +15,7 @@
 import os
 import sys
 import inspect
+import mock
 
 
 __location__ = os.path.join(os.getcwd(), os.path.dirname(
