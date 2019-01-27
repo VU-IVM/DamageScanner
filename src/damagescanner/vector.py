@@ -8,7 +8,16 @@ from shapely.wkt import loads
 def fetch_landuse(osm_path):
     """
     Function to extract land-use polygons from OpenStreetMap
+    
+    Arguments:
+        *osm_path* : file path to the .osm.pbf file of the region 
+        for which we want to do the analysis.
+        
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
+    
     """
+    
     driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
                        
@@ -30,7 +39,14 @@ def fetch_landuse(osm_path):
     
 def remove_overlap_openstreetmap(gdf):
     """
-    Function to remove overlap in polygons in from OpenStreetMap
+    Function to remove overlap in polygons in from OpenStreetMap.
+    
+    Arguments:
+        *gdf* : a geopandas GeoDataFrame with all unique land-use polygons
+        
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with (almost) non-overlapping polygons.
+    
     """
     
     gdf['sq_area'] = gdf.area
@@ -52,6 +68,15 @@ def remove_overlap_openstreetmap(gdf):
 def extract_value_other_gdf(x,gdf,col_name):
     """
     Function to extract value from column from other GeoDataFrame
+    
+    Arguments:
+        *x* : row of main GeoDataFrame.
+        
+        *gdf* : geopandas GeoDataFrame from which we want to extract values.
+        
+        *col_name* : the column name from which we want to get the value.
+        
+    
     """
     try:
         return gdf.loc[list(gdf.sindex.intersection(x.geometry.bounds))][col_name].values[0]
@@ -59,6 +84,21 @@ def extract_value_other_gdf(x,gdf,col_name):
         return None
 
 def get_losses(x,damage_curves,damage_values):
+    """
+    Function to estimate the damages.
+    
+    Arguments:
+        *x* : row of main GeoDataFrame
+        
+        *damage_curves*: pandas DataFrame of curves. Inundation depths should be the index.
+        
+        *damage_values*: dictionary with maximum damage values.
+        
+    Returns:
+        
+        Total damage for the given land-use object.
+    
+    """
     
     return numpy.interp(x.raster_val,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
     
