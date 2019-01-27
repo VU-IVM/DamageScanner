@@ -165,9 +165,7 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     else:
         print('ERROR: landuse should either be a shapefile, a GeoDataFrame or a pandas Dataframe with a geometry column')
     
- 
-    geoms = [mapping(geom) for geom in landuse.geometry]
-    if isinstance(inun_file,str):
+     if isinstance(inun_file,str):
         with rasterio.open(inun_file) as src:
             if src.crs.to_dict() != landuse.crs:
                 landuse = landuse.to_crs(epsg=src.crs.to_epsg())
