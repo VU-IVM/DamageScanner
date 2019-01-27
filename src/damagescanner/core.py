@@ -3,8 +3,8 @@
 
 # DIRECT PHYSICAL DAMAGE MODULE
 
-# Created by: Hans de Moel & Elco Koks
-# Date: Januari 2013
+# Created by: Elco Koks & Hans de Moel
+# Date: Januari 2019
 #
 # DESCRIPTION:
 # Script of the DamageScanner in Python. The damagescanner calculates
