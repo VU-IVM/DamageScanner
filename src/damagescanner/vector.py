@@ -1,12 +1,15 @@
 import geopandas
 import pandas
-#import ogr
+import ogr
 import numpy 
 from tqdm import tqdm
 from shapely.wkt import loads
 
 def fetch_landuse(osm_path):
-#    driver=ogr.GetDriverByName('OSM')
+    """
+    Function to extract land-use polygons from OpenStreetMap
+    """
+    driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
                        
     sql_lyr = data.ExecuteSQL("SELECT osm_id,landuse from multipolygons where landuse is not null")
@@ -26,6 +29,9 @@ def fetch_landuse(osm_path):
                             crs={'init': 'epsg:4326'})
     
 def remove_overlap_openstreetmap(gdf):
+    """
+    Function to remove overlap in polygons in from OpenStreetMap
+    """
     
     gdf['sq_area'] = gdf.area
 
@@ -43,12 +49,16 @@ def remove_overlap_openstreetmap(gdf):
     return new_gdf
 
 
-def intersect(x,landuse,lu_sindex,landuse_col):
+def extract_value_other_gdf(x,gdf,col_name):
+    """
+    Function to extract value from column from other GeoDataFrame
+    """
     try:
-        return landuse.loc[list(lu_sindex.intersection(x.geometry.bounds))][landuse_col].values[0]
+        return gdf.loc[list(gdf.sindex.intersection(x.geometry.bounds))][col_name].values[0]
     except:
         return None
 
-def get_losses(x,damage_curves,damage_values,**kwargs):
-    return numpy.interp(x.raster_val/100,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
+def get_losses(x,damage_curves,damage_values):
+    
+    return numpy.interp(x.raster_val,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
     
