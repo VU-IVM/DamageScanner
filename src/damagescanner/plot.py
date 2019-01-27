@@ -3,5 +3,5 @@
 Plot results of DamageScanner
 """
 
-import pandas as pd
-import matplotlib.pyplot as plt
+import pandas
+import matplotlib.pyplot

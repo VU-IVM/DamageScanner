@@ -12,6 +12,7 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import mock
 import os
 import sys
 import inspect
@@ -25,6 +26,14 @@ __location__ = os.path.join(os.getcwd(), os.path.dirname(
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.join(__location__, '../../src'))
 module_dir = os.path.join(__location__, "../src/damagescanner")
+
+# add list of modules used
+
+MOCK_MODULES = ['numpy','pandas','geopandas','vector','utils','damagescanner','matplotlib.pyplot','SALib.sample',
+                'SALib.analyze','tqdm','rasterio','shapely.wkt','rasterio.mask','rasterio.features','shapely.geometry']
+				
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
 
 
 # -- Project information -----------------------------------------------------
