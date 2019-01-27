@@ -1,7 +1,8 @@
 import geopandas
+import pandas
 #import ogr
 import numpy 
-
+from tqdm import tqdm
 from shapely.wkt import loads
 
 def fetch_landuse(osm_path):
@@ -24,6 +25,23 @@ def fetch_landuse(osm_path):
     return geopandas.GeoDataFrame(osm_data,columns=['osm_id','landuse','geometry'],
                             crs={'init': 'epsg:4326'})
     
+def remove_overlap_openstreetmap(gdf):
+    
+    gdf['sq_area'] = gdf.area
+
+    new_landuse = []
+    for use in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):
+        use_geom = use.geometry
+        matches = gdf.loc[list(gdf.sindex.intersection(use.geometry.bounds))]
+        for match in matches.itertuples(index=False):
+            if use.sq_area > match.sq_area:
+                use_geom = use_geom.difference(match.geometry)
+        new_landuse.append([use.osm_id,use.landuse,use_geom])
+
+    new_gdf  =  geopandas.GeoDataFrame(pandas.DataFrame(new_landuse,columns=['osm_id','landuse','geometry'])) 
+    new_gdf.crs = {'init' : 'epsg:4326'}
+    return new_gdf
+
 
 def intersect(x,landuse,lu_sindex,landuse_col):
     try:

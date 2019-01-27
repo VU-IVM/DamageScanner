@@ -28,9 +28,9 @@ from rasterio.mask import mask
 from shapely.geometry import mapping
 from rasterio.features import shapes
 
-from damagescanner.vector import get_losses,intersect
+from damagescanner.vector import get_losses
 
-def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
+def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,save=False,**kwargs):
     """
     Raster-based implementation of a direct damage assessment.
     
@@ -100,7 +100,10 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
         maxdam = pandas.read_csv(maxdam_path,skiprows=1).values#dict(zip(pd.read_csv(maxdam_path)['landuse'],pd.read_csv(maxdam_path)['damage']))
         
     # Speed up calculation by only considering feasible points
-    inundation[inundation>10] = 0
+    if centimeters:
+        inundation[inundation>1000] = 0
+    else:
+        inundation[inundation>10] = 0
     inun = inundation * (inundation>=0) + 0
     inun[inun>=curves[:,0].max()] = curves[:,0].max()
     area = inun > 0
@@ -151,7 +154,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwarg
     return loss_df,damagemap,landuse_in,inundation 
 
 
-def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse',**kwargs):
+def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse',centimeters=False,**kwargs):
     """
     Vector based implementation of a direct damage assessment
     """
@@ -165,14 +168,18 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     else:
         print('ERROR: landuse should either be a shapefile, a GeoDataFrame or a pandas Dataframe with a geometry column')
     
-     if isinstance(inun_file,str):
-        with rasterio.open(inun_file) as src:
+    if isinstance(inun_file,str):
+         with rasterio.open(inun_file) as src:
             if src.crs.to_dict() != landuse.crs:
                 landuse = landuse.to_crs(epsg=src.crs.to_epsg())
                 geoms = [mapping(geom) for geom in landuse.geometry]
     
             out_image, out_transform = mask(src, geoms, crop=True)
-            out_image[out_image > 10] = -1
+            
+            # if inundation map is not in centimeters (and assumed to be in meters), multiple by 100
+            if not centimeters:
+                out_image = out_image*100
+            out_image[out_image > 1000] = -1
             out_image[out_image <= 0] = -1
     else:
         print('ERROR: inundation file should be a GeoTiff, or any other georeferenced format that Rasterio can read')
@@ -195,7 +202,7 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     elif maxdam_path.endswith('.csv'):
         maxdam = dict(zip(pandas.read_csv(maxdam_path)['landuse'],pandas.read_csv(maxdam_path)['damage']))
 
-
+    # convert raster to polygon
     results = (
         {'properties': {'raster_val': v}, 'geometry': s}
         for i, (s, v)
@@ -204,14 +211,33 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
 
     gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
     gdf = gdf.loc[gdf.raster_val > 0]
-    gdf = gdf.loc[gdf.raster_val < 15]
+    if centimeters:
+        gdf = gdf.loc[gdf.raster_val < 1000]
+    else:
+        gdf = gdf.loc[gdf.raster_val < 10]
+        
+    # Split GeoDataFrame to make sure we have a unique shape per land use and inundation depth
+    unique_df = []
+    for row in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):
+        matches = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
+        for match in matches.itertuples(index=False):
+            if match.geometry.intersects(row.geometry):
+                unique_df.append([row.raster_val,match.landuse,
+                                 row.geometry.buffer(0).intersection(match.geometry)])
 
-    tqdm.pandas()
-    # extract land-use type from landuse dataframe
-    gdf[landuse_col] = gdf.progress_apply(lambda x : intersect(x,landuse,landuse.sindex,landuse_col),axis=1)
-    gdf['area_m2'] = gdf.area
+    # Create new dataframe
+    new_gdf  = geopandas.GeoDataFrame(pandas.DataFrame(unique_df,columns=['depth',
+                                                                          'landuse','geometry']))
+    
+    # And remove empty geometries where there was no intersection in the end
+    new_gdf = new_gdf.loc[new_gdf.geometry.geom_type != 'GeometryCollection']
 
-    # estimate total damages
-    gdf['damaged'] = gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
+    # Get area of shape
+    new_gdf['area_m2'] = new_gdf.area
+    
+    # And estimate the losses
+    tqdm.pandas(desc='Estimate damages')
+    new_gdf['damaged'] = new_gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
 
+    # And return the GeoDataFrame with all unique shapes
     return gdf.groupby(landuse_col).sum()[['area_m2','damaged']]
