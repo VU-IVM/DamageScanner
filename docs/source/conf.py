@@ -30,7 +30,7 @@ module_dir = os.path.join(__location__, "../src/damagescanner")
 # add list of modules used
 
 MOCK_MODULES = ['numpy','pandas','geopandas','matplotlib.pyplot','SALib.sample',
-                'SALib.analyze','tqdm','rasterio','shapely.wkt','rasterio.mask','rasterio.features','shapely.geometry']
+                'SALib.analyze.morris','tqdm','rasterio','shapely.wkt','rasterio.mask','rasterio.features','shapely.geometry']
 				
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
