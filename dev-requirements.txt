@@ -1,4 +1,5 @@
 # requirements
+rtree
 fiona>=1.7.13
 shapely>=1.6
 geopandas>=0.4.0
