@@ -99,7 +99,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
         return None
 
     # set cellsize:
-    if isinstance(landuse_map,str) & isinstance(inun_map,str):
+    if isinstance(landuse_map,str) | isinstance(inun_map,str):
         cellsize = src.res[0]*src.res[1]
     else:
         cellsize = kwargs['cellsize']
@@ -114,11 +114,11 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
 
     #Load maximum damages
     if isinstance(maxdam_path, pandas.DataFrame):
-        maxdam = maxdam_path.values #dict(zip(maxdam['landuse'],maxdam['damage']))
+        maxdam = maxdam_path.values 
     elif isinstance(maxdam_path, numpy.ndarray):
         maxdam = maxdam_path
     elif maxdam_path.endswith('.csv'):
-        maxdam = pandas.read_csv(maxdam_path,skiprows=1).values#dict(zip(pd.read_csv(maxdam_path)['landuse'],pd.read_csv(maxdam_path)['damage']))
+        maxdam = pandas.read_csv(maxdam_path,skiprows=1).values
         
     # Speed up calculation by only considering feasible points
     if centimeters:
