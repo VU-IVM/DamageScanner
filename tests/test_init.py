@@ -9,7 +9,7 @@ from shapely.geometry import Point, LineString, MultiPoint
 import os
 import numpy
 #import damagescanner
-from damagescanner import RasterScanner
+from damagescanner.core import RasterScanner
 
 data_path = '..'
 
