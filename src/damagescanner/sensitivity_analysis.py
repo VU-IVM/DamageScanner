@@ -19,21 +19,25 @@ from damagescanner.core import RasterScanner
 
 def run(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
-    Perform sensitivity analysis of the results
+    Perform sensitivity analysis of the results. Currently only works with the RasterScanner.
     
-    # INPUT PARAMETERS:
-     landuse_map       Land-use map. Make sure the land-use categories
-                       correspond with the curves and maximum damages (see
-                       below). Furthermore, the resolution and extend of the
-                       land-use map has to be exactly the same as the
-                       inundation map
-     inun_map          Map with inundation depth per grid cell. Make sure that
-                       the unit of the inundation map corresponds with the unit of the first
-                       column of the curves file
-     curve_path        File with the stage-damage curves of the different
-                       land-use classes.% 
-     maxdam_path       Vector with the maximum damages per land-use class (in
-                       euro/m2)
+     Arguments:
+        *landuse_map* : Shapefile, Pandas DataFrame or Geopandas GeoDataFrame 
+        with land-use information of the area.
+     
+        *inun_map* : GeoTiff with inundation depth per grid cell. Make sure 
+        that the unit of the inundation map corresponds with the unit of the 
+        first column of the curves file. 
+     
+        *curve_path* : File with the stage-damage curves of the different 
+        land-use classes. Can also be a pandas DataFrame (but not a numpy Array).
+     
+        *maxdam_path* : File with the maximum damages per land-use class 
+        (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
+        
+    Returns:
+        *Figure* : Functions returns a figure with the spread in losses and 
+        a spyder plot with the influence of each parameter.
 
     """
     
