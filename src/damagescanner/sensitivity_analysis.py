@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 import rasterio
 
-from damagescanner import RasterScanner
+from damagescanner.core import RasterScanner
 
 def run(landuse_map,inun_map,curve_path,maxdam_path,save=False,**kwargs):
     """
