@@ -14,10 +14,10 @@ Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this 
 4. Now you can import the package like any other package!
 
 ## To-do:
-* Improve ReadtheDocs
-* Add plot capabilities
-* Add examples
-* Develop autoamted damage assessments using OpenStreetMap data
+* Improve ReadtheDocs.
+* Add plot capabilities.
+* Add examples.
+* Develop automated damage assessments using OpenStreetMap data.
 
 
 ### License
