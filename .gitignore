@@ -6,6 +6,7 @@ __pycache__/
 # Development folder
 development
 
+
 # C extensions
 *.so
 
@@ -66,6 +67,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/build/
 docs/api/*
 
 # PyBuilder

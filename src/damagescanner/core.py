@@ -34,25 +34,46 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
     """
     Raster-based implementation of a direct damage assessment.
     
-    # INPUT PARAMETERS:
-     landuse_map       Land-use map. Make sure the land-use categories
-                       correspond with the curves and maximum damages (see
-                       below). Furthermore, the resolution and extend of the
-                       land-use map has to be exactly the same as the
-                       inundation map
-     inun_map          Map with inundation depth per grid cell. Make sure that
-                       the unit of the inundation map corresponds with the unit of the first
-                       column of the curves file
-     curve_path        File with the stage-damage curves of the different
-                       land-use classes.% 
-     maxdam_path       Vector with the maximum damages per land-use class (in
-                       euro/m2)
+    Arguments:
+        *landuse_map* : GeoTiff with land-use information per grid cell. Make sure 
+        the land-use categories correspond with the curves and maximum damages 
+        (see below). Furthermore, the resolution and extend of the land-use map 
+        has to be exactly the same as the inundation map.
+     
+        *inun_map* : GeoTiff with inundation depth per grid cell. Make sure 
+        that the unit of the inundation map corresponds with the unit of the 
+        first column of the curves file.
+     
+        *curve_path* : File with the stage-damage curves of the different 
+        land-use classes. Can also be a pandas DataFrame or numpy Array.
+     
+        *maxdam_path* : File with the maximum damages per land-use class 
+        (in euro/m2). Can also be a pandas DataFrame or numpy Array.
+     
+    Optional Arguments:
+        *centimeters* : Set to True if the inundation map and curves are in 
+        centimeters
+        
+        *save* : Set to True if you would like to save the output. Requires 
+        several **kwargs**
+        
+    kwargs:
+        *cell_size* : If both the landuse and inundation map are numpy arrays, 
+        manually set the cell size.
+        
+        *output_path* : Specify where files should be saved.
+        
+        *scenario_name*: Give a unique name for the files that are going to be saved.
+        
+        *in_millions*: Set to True if all values should be set in millions.
+        
 
-    # OUTPUT PARAMETERS:
-     damagebin         Table with the land-use class numbers (1st) and the damage
-                       for that land-use class (2nd) 
-     damagemap         Map displaying the damage per grid cell of the area
-    
+    Returns:    
+     *damagebin* : Table with the land-use class numbers (1st column) and the 
+     damage for that land-use class (2nd column).
+     
+     *damagemap* : Map displaying the damage per grid cell of the area.
+     
     """      
         
     # load land-use map
@@ -157,7 +178,44 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
 def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse',centimeters=False,**kwargs):
     """
     Vector based implementation of a direct damage assessment
-    """
+    
+    Arguments:
+        *landuse_map* : Shapefile, Pandas DataFrame or Geopandas GeoDataFrame 
+        with land-use information of the area.
+     
+        *inun_map* : GeoTiff with inundation depth per grid cell. Make sure 
+        that the unit of the inundation map corresponds with the unit of the 
+        first column of the curves file. 
+     
+        *curve_path* : File with the stage-damage curves of the different 
+        land-use classes. Can also be a pandas DataFrame (but not a numpy Array).
+     
+        *maxdam_path* : File with the maximum damages per land-use class 
+        (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
+        
+        *landuse_col* : Specify the column name of the unique landuse id's. 
+        Default is set to **landuse**.
+     
+    Optional Arguments:
+        *centimeters* : Set to True if the inundation map and curves are in 
+        centimeters
+        
+        *save* : Set to True if you would like to save the output. Requires 
+        several **kwargs**
+        
+    kwargs:
+        *output_path* : Specify where files should be saved.
+        
+        *scenario_name*: Give a unique name for the files that are going to be saved.
+        
+        *in_millions*: Set to True if all values should be set in millions.
+        
+
+    Returns:    
+     *damagebin* : Table with the land-use class names (1st column) and the 
+     damage for that land-use class (2nd column).
+     
+    """      
     # load land-use map
     if isinstance(landuse,str):
         landuse = geopandas.from_file(landuse)
