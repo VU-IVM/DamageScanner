@@ -9,6 +9,11 @@ Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this 
 **Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm) 
 
 ## Installation
+
+1. Open the python environment in your command prompt or bash in which you want to install this package.
+2. Type ``pip install damagescanner`` and it should install itself into your python environment.
+3. Now you can import the package like any other package!
+
 1. Clone the repository or download the package on your computer and extract the folder.
 2. Go to the DamageScanner folder in your command prompt or bash.
 3. Type ``python setup.py install`` and it should install itself into your python environment.
