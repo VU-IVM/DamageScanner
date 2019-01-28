@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.com/ElcoK/DamageScanner.svg?branch=master)](https://travis-ci.com/ElcoK/DamageScanner) [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.com/ElcoK/DamageScanner.svg?branch=master)](https://travis-ci.com/ElcoK/DamageScanner) [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2551016.svg)](https://doi.org/10.5281/zenodo.2551016)
+
 
 # DamageScanner
 Python toolkit for direct damage assessments for natural disasters.
