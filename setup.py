@@ -19,7 +19,7 @@ def readme():
 setup(
     name='damagescanner',
     version='0.2.0',
-    license='MIT',
+    license='MIT License',
     description='direct damage assessment for natural disasters',
     long_description=readme(),
     long_description_content_type="text/markdown",
@@ -35,7 +35,7 @@ setup(
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT',
+        'License :: OSI Approved :: MIT License',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: GIS',
@@ -46,7 +46,6 @@ setup(
     ],
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
-        'fiona>=1.7.13',
         'shapely>=1.6',
         'geopandas>=0.4.0',
 	'pandas>=0.23.4'
