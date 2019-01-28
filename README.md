@@ -35,7 +35,7 @@ OR:
 * Develop automated damage assessments using OpenStreetMap data.
 
 ## How to cite:
-If you use the **DamageScanner** for research, please cite the software directly:
+If you use the **DamageScanner** for research, please cite the package directly:
 
 * Koks. E.E. (2019). DamageScanner: Python tool for disaster damage assessments (Version v0.2.1). Zenodo. http://doi.org/10.5281/zenodo.2551016
 
