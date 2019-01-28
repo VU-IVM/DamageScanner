@@ -14,6 +14,8 @@ Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this 
 2. Type ``pip install damagescanner`` and it should install itself into your python environment.
 3. Now you can import the package like any other package!
 
+OR:
+
 1. Clone the repository or download the package on your computer and extract the folder.
 2. Go to the DamageScanner folder in your command prompt or bash.
 3. Type ``python setup.py install`` and it should install itself into your python environment.
