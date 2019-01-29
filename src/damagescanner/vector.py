@@ -1,6 +1,6 @@
 import geopandas
 import pandas
-#import ogr
+import ogr
 import numpy 
 from tqdm import tqdm
 from shapely.wkt import loads
