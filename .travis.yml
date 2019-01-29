@@ -48,6 +48,7 @@ install:
   # numpy may be automatically upgraded.
 
   - conda install --yes numpy shapely pandas geopandas rasterio matplotlib tqdm gdal attrs pylint pytest pip
+  - python setup.py install
 
 script:
   - python -m pytest tests
