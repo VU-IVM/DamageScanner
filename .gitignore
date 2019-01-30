@@ -6,7 +6,6 @@ __pycache__/
 # Development folder
 development
 
-
 # C extensions
 *.so
 

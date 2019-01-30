@@ -23,12 +23,14 @@ import rasterio
 import numpy
 import pandas 
 import geopandas
+from affine import Affine
 from tqdm import tqdm
 from rasterio.mask import mask
 from shapely.geometry import mapping
 from rasterio.features import shapes
 
 from damagescanner.vector import get_losses
+from damagescanner.raster import match
 
 def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,save=False,**kwargs):
     """
@@ -67,6 +69,8 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
         
         *in_millions*: Set to True if all values should be set in millions.
         
+        *crs*: Specify crs if you only read in two numpy array
+        
 
     Returns:    
      *damagebin* : Table with the land-use class numbers (1st column) and the 
@@ -95,8 +99,12 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
         
     # check if land-use and inundation map have the same shape. 
     if landuse.shape != inundation.shape:
-        print('ERROR: landuse and inundation maps are not the same shape. Fix this first')
-        return None
+        print("ERROR: landuse and inundation maps are not the same shape. Let's fix this first!")
+        
+        landuse,inundation,intersection = match(landuse_map,inun_map)
+        
+        # create the right affine for saving the output
+        transform = Affine(transform[0],transform[1],intersection[0],transform[3],transform[4],intersection[1])
 
     # set cellsize:
     if isinstance(landuse_map,str) | isinstance(inun_map,str):
@@ -134,7 +142,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
     # Calculate damage per land-use class for structures
     numberofclasses = len(maxdam)
     alldamage = numpy.zeros(landuse.shape[0])
-    damagebin = numpy.empty((numberofclasses, 2,)) * numpy.nan
+    damagebin = numpy.zeros((numberofclasses, 2,))
     for i in range(0,numberofclasses):
         n = maxdam[i,0]
         damagebin[i,0] = n
@@ -161,6 +169,8 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
             scenario_name = kwargs['scenario_name']
         if 'crs' in kwargs:
             crs = kwargs['crs']
+        else:
+            crs = src.crs
         loss_df.to_csv(os.path.join(output_path,'{}_losses.csv'.format(scenario_name)))
 
         with rasterio.open(os.path.join(output_path,'{}_damagemap.tif'.format(scenario_name)), 'w', 
@@ -277,11 +287,11 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     # Split GeoDataFrame to make sure we have a unique shape per land use and inundation depth
     unique_df = []
     for row in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):
-        matches = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
-        for match in matches.itertuples(index=False):
-            if match.geometry.intersects(row.geometry):
-                unique_df.append([row.raster_val,match.landuse,
-                                 row.geometry.buffer(0).intersection(match.geometry)])
+        hits = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
+        for hit in hits.itertuples(index=False):
+            if hit.geometry.intersects(row.geometry):
+                unique_df.append([row.raster_val,hit.landuse,
+                                 row.geometry.buffer(0).intersection(hit.geometry)])
 
     # Create new dataframe
     new_gdf  = geopandas.GeoDataFrame(pandas.DataFrame(unique_df,columns=['depth',

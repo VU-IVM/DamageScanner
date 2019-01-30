@@ -11,4 +11,4 @@ try:
 except Exception:
     __version__ = 'unknown'
     
-__all__ = ['core','plot','vector','sensitivity','utils']
+__all__ = ['core','plot','vector','raster','sensitivity','utils']
