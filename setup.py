@@ -51,8 +51,7 @@ setup(
 	'pandas>=0.23.4'
 	'rasterio>=1.08',
 	'numpy>=1.15.2',
-	'matplotlib>=3.0.0',
-	'gdal>=2.0.0'
+	'matplotlib>=3.0.0'
 	
     ],
     extras_require={
