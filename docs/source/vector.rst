@@ -7,6 +7,17 @@ Fetch landuse from OpenStreetMap .pbf file
 -------------------------------------------
 .. autofunction:: damagescanner.vector.fetch_landuse	
 
+Fetch buildings from OpenStreetMap .pbf file
+-------------------------------------------
+.. autofunction:: damagescanner.vector.fetch_buildings
+
+Fetch roads from OpenStreetMap .pbf file
+-------------------------------------------
+.. autofunction:: damagescanner.vector.fetch_roads	
+
+Fetch railway from OpenStreetMap .pbf file
+-------------------------------------------
+.. autofunction:: damagescanner.vector.fetch_railway	
 
 Remove overlap from OpenStreetMap land-use maps
 ------------------------------------------------
