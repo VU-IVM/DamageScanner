@@ -15,6 +15,10 @@ Plot inundation map
 -------------------------------------------
 .. autofunction:: damagescanner.plot.inundation_map
 
-Plot raster land-use map
+Plot vector damage map
 -------------------------------------------
 .. autofunction:: damagescanner.plot.damagemap_vector
+
+Plot raster damage map
+-------------------------------------------
+.. autofunction:: damagescanner.plot.damagemap_raster

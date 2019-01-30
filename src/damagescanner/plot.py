@@ -95,7 +95,7 @@ def landuse_vector(landuse,color_dict={},save=False,**kwargs):
 def landuse_raster(landuse,color_dict={},save=False,**kwargs):
     """
     Arguments:
-        *landuse_map* : GeoTiff with land-use information per grid cell. 
+        *landuse_map* : path to GeoTiff with land-use information per grid cell. 
 
     Optional Arguments:
         *color_dict* : Supply a dictionary with the land-use classes as keys 
@@ -212,7 +212,7 @@ def damagemap_vector(losses,bins=[],save=False,**kwargs):
         else:
             legend_elements.append(Patch(facecolor=color_scheme_map[iter_],label='> {} Euro'.format(int(bins[iter_]))))        
 
-    ax.legend(handles=legend_elements,edgecolor='black',facecolor='#fefdfd',prop={'size':12},loc=(1,0.4)) 
+    ax.legend(handles=legend_elements,edgecolor='black',facecolor='#fefdfd',prop={'size':12},loc=(1.02,0.4)) 
 
     if save:
         if 'output_path' in kwargs:
@@ -224,3 +224,62 @@ def damagemap_vector(losses,bins=[],save=False,**kwargs):
 
         fig.tight_layout()
         fig.savefig('Damagemap_{}.png'.format(scenario_name),dpi=350, bbox_inches='tight')
+        
+def damagemap_raster(damagemap,landuse,bins=[],save=False,**kwargs):
+    """
+    Arguments:
+        *damagemap* : Numpy array of loss output.
+
+        *landuse_map* : path to GeoTiff with land-use information per grid cell. 
+        
+
+    Optional Arguments:
+        *bins* : Supply list of bin values for the colorscheme. If empty, it will use a default list.
+        
+        *save* : Set to True if you would like to save the output. Requires 
+        several **kwargs**.
+        
+    kwargs:
+        *output_path* : Specify where files should be saved.
+        
+        *scenario_name*: Give a unique name for the files that are going to be saved.
+    """
+    
+    fig, ax = plt.subplots(1, 1,figsize=(12,10))
+    with rasterio.open(landuse) as src:
+        damagemap = numpy.array(damagemap,dtype=float)
+        damagemap[damagemap == 0] = numpy.nan
+
+        color_scheme_map =  ['white','#fee5d9','#fcae91','#fb6a4a','#de2d26','#a50f15']
+
+        cmap = LinearSegmentedColormap.from_list(name='damages',
+                                             colors=color_scheme_map) 
+        if len(bins) == 0:
+            bins = [0,1000,5000,10000,50000,100000]
+
+            show(damagemap,ax=ax,cmap=cmap,transform=src.transform,zorder=2)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_axis_off()
+
+        legend_elements = []
+        for iter_,item in enumerate(bins):
+            if iter_ < len(bins)-1:
+                legend_elements.append(Patch(facecolor=color_scheme_map[iter_],label='{}-{} Euro'.format(int(bins[iter_]),int(bins[iter_+1]))))        
+            else:
+                legend_elements.append(Patch(facecolor=color_scheme_map[iter_],label='> {} Euro'.format(int(bins[iter_]))))        
+
+        ax.legend(handles=legend_elements,edgecolor='black',facecolor='#fefdfd',prop={'size':12},loc=(1.02,0.4)) 
+                  
+
+    if save:
+        if 'output_path' in kwargs:
+            output_path = kwargs['output_path']
+            if not os.path.exists(output_path):
+                os.mkdir(output_path)
+        if 'scenario_name' in kwargs:
+            scenario_name = kwargs['scenario_name']
+
+        fig.tight_layout()
+        fig.savefig('Damagemap_{}.png'.format(scenario_name),dpi=350, bbox_inches='tight')
+        
