@@ -230,5 +230,5 @@ def get_losses(x,damage_curves,damage_values):
     
     """
     
-    return numpy.interp(x.depth,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]
+    return numpy.interp(x.depth,list(damage_curves.index),list(damage_curves[x.landuse]))*damage_values[x.landuse]*x.area_m2
     

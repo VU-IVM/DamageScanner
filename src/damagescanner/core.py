@@ -228,7 +228,7 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     """      
     # load land-use map
     if isinstance(landuse,str):
-        landuse = geopandas.from_file(landuse)
+        landuse = geopandas.read_file(landuse)
     elif isinstance(landuse, geopandas.GeoDataFrame):
         landuse = landuse.copy()
     elif isinstance(landuse, pandas.DataFrame):
@@ -307,8 +307,7 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     # And estimate the losses
     tqdm.pandas(desc='Estimate damages')
     new_gdf['damaged'] = new_gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
-    
-    
+        
     # Write the damages back to the original land-use shapes
     d_sindex = new_gdf.sindex
     
