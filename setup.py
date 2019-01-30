@@ -20,7 +20,7 @@ setup(
     name='damagescanner',
     version='0.2.0',
     license='MIT License',
-    description='direct damage assessment for natural disasters',
+    description='Damage assessment tool for natural disasters',
     long_description=readme(),
     long_description_content_type="text/markdown",
     author='Elco Koks',
