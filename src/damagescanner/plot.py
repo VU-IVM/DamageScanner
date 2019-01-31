@@ -290,6 +290,9 @@ def damagemap_raster(damagemap,landuse,lu_raster=False,bins=[],save=False,**kwar
         
 
     Optional Arguments:
+        *lu_raster* : Set to **True** if you would like to use the landuse raster 
+        as background.        
+        
         *bins* : Supply list of bin values for the colorscheme. If empty, it will use a default list.
         
         *save* : Set to True if you would like to save the output. Requires 

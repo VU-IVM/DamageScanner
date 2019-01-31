@@ -202,6 +202,10 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
      
         *maxdam_path* : File with the maximum damages per land-use class 
         (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
+
+    Optional Arguments:
+        *centimeters* : Set to True if the inundation map and curves are in 
+        centimeters
         
         *landuse_col* : Specify the column name of the unique landuse id's. 
         Default is set to **landuse**.
@@ -209,17 +213,13 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
         *save* : Set to True if you would like to save the output. Requires 
         several **kwargs**
      
-    Optional Arguments:
-        *centimeters* : Set to True if the inundation map and curves are in 
-        centimeters
-        
-        *save* : Set to True if you would like to save the output. Requires 
-        several **kwargs**
         
     kwargs:
         *output_path* : Specify where files should be saved.
         
         *scenario_name*: Give a unique name for the files that are going to be saved.
+        
+        *print_tqdm*: Set to **False** when progress output is undesired.
     
     Returns:    
      *damagebin* : Table with the land-use class names (1st column) and the 
@@ -296,15 +296,29 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     gdf = gdf.loc[gdf.raster_val > 0]
     gdf = gdf.loc[gdf.raster_val < 1000]
     
+    # Check if we need to turn off tqdm:
+    if 'print_tqdm' in kwargs:
+        tqdm_print = False
+    else:
+        tqdm_print = True
+    
     # Split GeoDataFrame to make sure we have a unique shape per land use and inundation depth
     unique_df = []
-    for row in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):
-        hits = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
-        for hit in hits.itertuples(index=False):
-            if hit.geometry.buffer(0).intersects(row.geometry.buffer(0)):
-                unique_df.append([row.raster_val,hit.landuse,
-                                 row.geometry.buffer(0).intersection(hit.geometry.buffer(0))])
-    
+    if tqdm_print:
+        for row in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):
+            hits = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
+            for hit in hits.itertuples(index=False):
+                if hit.geometry.buffer(0).intersects(row.geometry.buffer(0)):
+                    unique_df.append([row.raster_val,hit.landuse,
+                                     row.geometry.buffer(0).intersection(hit.geometry.buffer(0))])
+    else:    
+        for row in gdf.itertuples(index=False):
+            hits = landuse.loc[list(landuse.sindex.intersection(row.geometry.bounds))]
+            for hit in hits.itertuples(index=False):
+                if hit.geometry.buffer(0).intersects(row.geometry.buffer(0)):
+                    unique_df.append([row.raster_val,hit.landuse,
+                                     row.geometry.buffer(0).intersection(hit.geometry.buffer(0))])
+        
     # Create new dataframe
     new_gdf  = geopandas.GeoDataFrame(pandas.DataFrame(unique_df,columns=['depth',
                                                                           'landuse','geometry']))
@@ -316,8 +330,11 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     new_gdf['area_m2'] = new_gdf.area
     
     # And estimate the losses
-    tqdm.pandas(desc='Estimate damages')
-    new_gdf['damaged'] = new_gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
+    if tqdm_print:
+        tqdm.pandas(desc='Estimate damages')
+        new_gdf['damaged'] = new_gdf.progress_apply(lambda x : get_losses(x,curves,maxdam),axis=1)
+    else:
+        new_gdf['damaged'] = new_gdf.apply(lambda x : get_losses(x,curves,maxdam),axis=1)
         
     # Write the damages back to the original land-use shapes
     d_sindex = new_gdf.sindex
@@ -326,21 +343,39 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     landuse['area_m2'] = landuse.area
     
     loss_dict = {}
-    for x in tqdm(landuse.itertuples(),total=len(landuse),desc='Damage per object'):
-        hits = new_gdf.iloc[list(d_sindex.intersection(x.geometry.bounds))]
-        damage = 0
-        area_flooded = 0
-        inun_levels = []
-        for hit in hits.itertuples(index=False):
-            if (x.geometry.buffer(0).intersection(hit.geometry.buffer(0))).area/hit.geometry.buffer(0).area > 0.95 :
-                damage += hit.damaged
-                area_flooded += hit.area_m2
-                inun_levels.append(hit.depth)
+    if tqdm_print:
+        for x in tqdm(landuse.itertuples(),total=len(landuse),desc='Damage per object'):
+            hits = new_gdf.iloc[list(d_sindex.intersection(x.geometry.bounds))]
+            damage = 0
+            area_flooded = 0
+            inun_levels = []
+            for hit in hits.itertuples(index=False):
+                if (x.geometry.buffer(0).intersection(hit.geometry.buffer(0))).area/hit.geometry.buffer(0).area > 0.95 :
+                    damage += hit.damaged
+                    area_flooded += hit.area_m2
+                    inun_levels.append(hit.depth)
+        
+            if len(inun_levels) == 0:
+                loss_dict[x.Index] = 0,0,0,0,0
+            else:
+                loss_dict[x.Index] = damage,area_flooded,min(inun_levels),max(inun_levels),numpy.mean(inun_levels)    
     
-        if len(inun_levels) == 0:
-            loss_dict[x.Index] = 0,0,0,0,0
-        else:
-            loss_dict[x.Index] = damage,area_flooded,min(inun_levels),max(inun_levels),numpy.mean(inun_levels)    
+    else:
+       for x in landuse.itertuples():
+            hits = new_gdf.iloc[list(d_sindex.intersection(x.geometry.bounds))]
+            damage = 0
+            area_flooded = 0
+            inun_levels = []
+            for hit in hits.itertuples(index=False):
+                if (x.geometry.buffer(0).intersection(hit.geometry.buffer(0))).area/hit.geometry.buffer(0).area > 0.95 :
+                    damage += hit.damaged
+                    area_flooded += hit.area_m2
+                    inun_levels.append(hit.depth)
+        
+            if len(inun_levels) == 0:
+                loss_dict[x.Index] = 0,0,0,0,0
+            else:
+                loss_dict[x.Index] = damage,area_flooded,min(inun_levels),max(inun_levels),numpy.mean(inun_levels)    
     
     # If save is set to True, save original land-use map with damage values per shape.
     if save:

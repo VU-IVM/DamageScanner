@@ -5,6 +5,7 @@ __pycache__/
 
 # Development folder
 development
+data/inundation_maps
 
 # C extensions
 *.so
