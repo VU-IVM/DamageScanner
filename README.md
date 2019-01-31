@@ -29,9 +29,8 @@ OR:
 4. Now you can import the package like any other package!
 
 ## To-do:
-* Improve ReadtheDocs.
-* Add plot capabilities.
-* Add examples.
+* Make inputs for both the RasterScanner and VectorScanner more flexible. Catch common errors.
+* Make plotting functions more flexible.
 * Develop automated damage assessments using OpenStreetMap data.
 
 ## How to cite:
