@@ -18,7 +18,7 @@ def readme():
 
 setup(
     name='damagescanner',
-    version='0.2.2',
+    version='0.3.0',
     license='MIT License',
     description='Damage assessment tool for natural disasters',
     long_description=readme(),
@@ -51,7 +51,9 @@ setup(
 	'pandas>=0.23.4'
 	'rasterio>=1.08',
 	'numpy>=1.15.2',
-	'matplotlib>=3.0.0'
+	'matplotlib>=3.0.0',
+    'scipy>=1.0.0',
+    'tqdm>=4.30.0'
 	
     ],
     extras_require={
