@@ -38,7 +38,7 @@ OR:
 ## How to cite:
 If you use the **DamageScanner** for research, please cite the package directly:
 
-* Koks. E.E. (2019). DamageScanner: Python tool for disaster damage assessments (Version v0.2.1). Zenodo. http://doi.org/10.5281/zenodo.2551016
+* Koks. E.E. (2019). DamageScanner (v0.3): Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
 Here's an example BibTeX entry:
 
@@ -46,8 +46,8 @@ Here's an example BibTeX entry:
               author       = {Koks, E.E.},
               title        = {DamageScanner: Python tool for disaster damage assessments},
               year         = 2019,
-              doi          = {10.5281/zenodo.2551016},
-              url          = {http://doi.org/10.5281/zenodo.2551016}
+              doi          = {10.5281/zenodo.2551015},
+              url          = {http://doi.org/10.5281/zenodo.2551015}
         }
 
 ### License
