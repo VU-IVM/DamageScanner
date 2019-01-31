@@ -99,7 +99,7 @@ def RasterScanner(landuse_map,inun_map,curve_path,maxdam_path,centimeters=False,
         
     # check if land-use and inundation map have the same shape. 
     if landuse.shape != inundation.shape:
-        print("ERROR: landuse and inundation maps are not the same shape. Let's fix this first!")
+        print("WARNING: landuse and inundation maps are not the same shape. Let's fix this first!")
         
         landuse,inundation,intersection = match(landuse_map,inun_map)
         
