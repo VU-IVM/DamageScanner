@@ -265,9 +265,8 @@ def damagemap_vector(losses,bins=[],save=False,**kwargs):
     legend_elements = []
     for iter_,item in enumerate(bins):
         if iter_ < len(bins)-1:
-            legend_elements.append(Patch(facecolor=color_scheme_map[iter_],label='{}-{} Euro'.format(int(bins[iter_]),int(bins[iter_+1]))))        
-        else:
-            legend_elements.append(Patch(facecolor=color_scheme_map[iter_],label='> {} Euro'.format(int(bins[iter_]))))        
+            legend_elements.append(Patch(facecolor=color_scheme_map[iter_+1],label='{}-{} Euro'.format(int(bins[iter_]),int(bins[iter_+1]))))        
+       
 
     ax.legend(handles=legend_elements,edgecolor='black',facecolor='#fefdfd',prop={'size':12},loc=(1.02,0.4)) 
 

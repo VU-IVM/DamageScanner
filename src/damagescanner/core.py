@@ -237,22 +237,32 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
         print('ERROR: landuse should either be a shapefile, a GeoDataFrame or a pandas Dataframe with a geometry column')
     
     if isinstance(inun_file,str):
-         with rasterio.open(inun_file) as src:
-            if src.crs.to_dict() != landuse.crs:
-                landuse = landuse.to_crs(src.crs.to_dict())
-    
-            geoms = [mapping(geom) for geom in landuse.geometry]
-    
-            out_image, out_transform = mask(src, geoms, crop=True)
-            out_image = numpy.array(out_image,dtype=int)
-                                    
-            # if inundation map is not in centimeters (and assumed to be in meters), multiple by 100
-            if not centimeters:
-                out_image = out_image*100
-            out_image[out_image > 1000] = -1
-            out_image[out_image <= 0] = -1
+        # try to open it first as raster, if that doesnt work, we assume its a shapefile or GeoPackage that can be opened by geopandas
+        try:
+             with rasterio.open(inun_file) as src:
+                if src.crs.to_dict() != landuse.crs:
+                    landuse = landuse.to_crs(src.crs.to_dict())
+        
+                geoms = [mapping(geom) for geom in landuse.geometry]
+        
+                out_image, out_transform = mask(src, geoms, crop=True)
+                out_image = numpy.array(out_image,dtype=int)
+                                        
+                # if inundation map is not in centimeters (and assumed to be in meters), multiple by 100
+                if not centimeters:
+                    out_image = out_image*100
+                out_image[out_image > 1000] = -1
+                out_image[out_image <= 0] = -1
+        except:
+            gdf = geopandas.read_file(inun_file)
+            
+    elif isinstance(inun_file, geopandas.GeoDataFrame):
+        gdf = inun_file.copy()
+    elif isinstance(landuse, pandas.DataFrame):
+        gdf = geopandas.GeoDataFrame(landuse,geometry='geometry')
     else:
-        print('ERROR: inundation file should be a GeoTiff, or any other georeferenced format that Rasterio can read')
+        print('ERROR: inundation file should be a GeoTiff,  a shapefile, a GeoDataFrame \
+              or any other georeferenced format that can be read by rasterio or geopandas')
     
     # Load curves
     if isinstance(curve_path, pandas.DataFrame):
@@ -273,18 +283,19 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
         maxdam = dict(zip(pandas.read_csv(maxdam_path)['landuse'],pandas.read_csv(maxdam_path)['damage']))
     
     # convert raster to polygon
-    results = (
-        {'properties': {'raster_val': v}, 'geometry': s}
-        for i, (s, v)
-        in enumerate(
-        shapes(out_image[0,:,:], mask=None, transform=out_transform)))
-    
-    gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
-    
+    if 'out_image' in locals():
+        results = (
+            {'properties': {'raster_val': v}, 'geometry': s}
+            for i, (s, v)
+            in enumerate(
+            shapes(out_image[0,:,:], mask=None, transform=out_transform)))
+        
+        gdf = geopandas.GeoDataFrame.from_features(list(results),crs=src.crs)
+        
     # cut down to feasible area
     gdf = gdf.loc[gdf.raster_val > 0]
     gdf = gdf.loc[gdf.raster_val < 1000]
-        
+    
     # Split GeoDataFrame to make sure we have a unique shape per land use and inundation depth
     unique_df = []
     for row in tqdm(gdf.itertuples(index=False),total=len(gdf),desc='Get unique shapes'):

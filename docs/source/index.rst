@@ -37,11 +37,10 @@ OR
 4. Now you can import the package like any other package!
 
 
-To-do:
+Future work:
 ------
-* Improve ReadtheDocs.
-* Add plot capabilities.
-* Add examples.
+* Make inputs even more flexible. Catch common errors.
+* Make plotting more flexible.
 * Develop automated damage assessments using OpenStreetMap data.
 
 
