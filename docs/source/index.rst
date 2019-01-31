@@ -52,6 +52,7 @@ Future work:
    main
    vector
    raster
+   risk
    plot
    sensitivity
 
