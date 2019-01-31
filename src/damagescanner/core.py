@@ -274,13 +274,13 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
     
     #Load maximum damages
     if isinstance(maxdam_path, pandas.DataFrame):
-        maxdam = dict(zip(maxdam_path['landuse'],maxdam_path['damage']))
+        maxdam = dict(zip(maxdam_path[landuse_col],maxdam_path['damage']))
     elif isinstance(maxdam_path, numpy.ndarray):
         maxdam = dict(zip(maxdam_path[:,0],maxdam_path[:,1]))
     elif isinstance(maxdam_path, dict):
         maxdam = maxdam_path
     elif maxdam_path.endswith('.csv'):
-        maxdam = dict(zip(pandas.read_csv(maxdam_path)['landuse'],pandas.read_csv(maxdam_path)['damage']))
+        maxdam = dict(zip(pandas.read_csv(maxdam_path)[landuse_col],pandas.read_csv(maxdam_path)['damage']))
     
     # convert raster to polygon
     if 'out_image' in locals():
@@ -321,7 +321,7 @@ def VectorScanner(landuse,inun_file,curve_path,maxdam_path,landuse_col='landuse'
         
     # Create new dataframe
     new_gdf  = geopandas.GeoDataFrame(pandas.DataFrame(unique_df,columns=['depth',
-                                                                          'landuse','geometry']))
+                                                                          landuse_col,'geometry']))
     
     # And remove empty geometries where there was no intersection in the end
     new_gdf = new_gdf.loc[new_gdf.geometry.geom_type != 'GeometryCollection']

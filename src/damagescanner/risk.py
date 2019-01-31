@@ -5,8 +5,6 @@ Created on Thu Jan 31 11:54:09 2019
 @author: cenv0574
 """
 import os
-import numpy
-import rasterio
 import pandas
 from scipy import integrate
 from tqdm import tqdm
@@ -37,6 +35,9 @@ def RasterBased(landuse_ras,inundation_path,curve_path,maxdam_path,per_landuse=F
      
         *maxdam_path* : File with the maximum damages per land-use class 
         (in euro/m2). Can also be a pandas DataFrame or numpy Array.
+
+    Optional Arguments:
+        *per_landuse* : Set to **True** if you would like the output er land-use class.
 
     Returns:
         *total_risk* : Returns the total risk for the area
@@ -87,6 +88,8 @@ def VectorBased(landuse_vec,inundation_path,curve_path,maxdam_path,per_landuse=F
         (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
 
     Optional Arguments:
+        *per_landuse* : Set to **True** if you would like the output er land-use class.
+        
         *landuse_col* : Specify the column name of the unique landuse id's. 
         Default is set to **landuse**.
         
