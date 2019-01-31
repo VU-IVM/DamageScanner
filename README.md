@@ -44,7 +44,7 @@ Here's an example BibTeX entry:
 
         @misc{damagescannerPython,
               author       = {Koks, E.E.},
-              title        = {DamageScanner: Python tool for disaster damage assessments},
+              title        = {DamageScanner (v0.3): Python tool for disaster damage assessments},
               year         = 2019,
               doi          = {10.5281/zenodo.2551015},
               url          = {http://doi.org/10.5281/zenodo.2551015}
