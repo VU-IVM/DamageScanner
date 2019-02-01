@@ -1,4 +1,6 @@
 """DamageScanner - a directe damage assessment toolkit
+
+Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
 """
 import pkg_resources
 
