@@ -1,21 +1,7 @@
 """DamageScanner - a directe damage assessment toolkit
+
+Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
 """
-
-# DIRECT PHYSICAL DAMAGE MODULE
-
-# Created by: Elco Koks & Hans de Moel
-# Date: Januari 2019
-#
-# DESCRIPTION:
-# Script of the DamageScanner in Python. The damagescanner calculates
-# potential flood damages based on inundation depth and land use using
-# so-called stage-damage curves. The DamageScanner was originally developed
-# for the 'Netherlands Later' project (Klijn et al., 2007). 
-# The original land-use classes were based on the Land-Use Scanner in order 
-# to evaluate the effect of future land-use change on flood damages. The 
-# stage-damage relations and the maxiumun damages associated with these
-# land-use classes were derived from the HIS-SSM (Kok et al., 2005).
-#
 
 # Get all the needed modules
 import os
