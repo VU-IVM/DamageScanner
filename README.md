@@ -13,7 +13,7 @@ Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this 
 ## Background
 This package is (loosely) based on the original DamageScanner, which calculated potential flood damages based on inundation depth and land use using depth-damage curves in the Netherlands. The DamageScanner was originally developed for the 'Netherlands Later' project [(Klijn et al., 2007)](https://www.rivm.nl/bibliotheek/digitaaldepot/WL_rapport_Overstromingsrisicos_Nederland.pdf).  The original land-use classes were based on the Land-Use Scanner in order to evaluate the effect of future land-use change on flood damages. 
 
-This package aims to make this method widely available and for everyone to use. Next to a (generalized) function for estimating damages based on rasterdata, it also includes a damage assessment function using vector land-use data. 
+This package aims to make this method widely available and for everyone to use. Next to a (generalized) function for estimating damages based on raster data, it also includes a damage assessment function using vector land-use data. 
 
 Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a fragility curve (i.e. a one-dimensional relation). 
 
@@ -36,7 +36,7 @@ OR:
 * Develop automated damage assessments using OpenStreetMap data.
 
 ## How to cite:
-If you use the **DamageScanner** for research, please cite the package directly:
+If you use the **DamageScanner** in your work, please cite the package directly:
 
 * Koks. E.E. (2019). DamageScanner (v0.3): Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
