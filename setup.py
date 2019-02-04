@@ -49,7 +49,7 @@ setup(
         'shapely>=1.6',
         'geopandas>=0.4.0',
 	'pandas>=0.23.4'
-	'rasterio>=1.08',
+	'rasterio>=1.0.8',
 	'numpy>=1.15.2',
 	'matplotlib>=3.0.0',
     'scipy>=1.0.0',
