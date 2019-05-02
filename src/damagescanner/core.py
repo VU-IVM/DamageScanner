@@ -333,17 +333,15 @@ def VectorScanner(landuse,
         curves = pd.read_csv(curve_path, index_col=[0])
 
     # Load maximum damages
+    if isinstance(maxdam_path, str) and maxdam_path.endswith('.csv'):
+        maxdam_path = pd.read_csv(maxdam_path)
+
     if isinstance(maxdam_path, pd.DataFrame):
         maxdam = dict(zip(maxdam_path[landuse_col], maxdam_path['damage']))
     elif isinstance(maxdam_path, np.ndarray):
         maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))
     elif isinstance(maxdam_path, dict):
         maxdam = maxdam_path
-    elif maxdam_path.endswith('.csv'):
-        maxdam = dict(
-            zip(
-                pd.read_csv(maxdam_path)[landuse_col],
-                pd.read_csv(maxdam_path)['damage']))
 
     # convert raster to polygon
     if out_image:
