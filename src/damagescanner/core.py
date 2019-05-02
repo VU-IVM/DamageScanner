@@ -314,8 +314,8 @@ def VectorScanner(landuse,
 
     elif isinstance(inun_file, gpd.GeoDataFrame):
         gdf = inun_file.copy()
-    elif isinstance(landuse, pd.DataFrame):
-        gdf = gpd.GeoDataFrame(landuse, geometry='geometry')
+    elif isinstance(inun_file, pd.DataFrame):
+        gdf = gpd.GeoDataFrame(inun_file, geometry='geometry')
     else:
         raise ValueError(
             'ERROR: inundation file should be a GeoTiff,  a shapefile, a GeoDataFrame \
