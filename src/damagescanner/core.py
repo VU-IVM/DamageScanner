@@ -344,7 +344,7 @@ def VectorScanner(landuse,
         maxdam = maxdam_path
 
     # convert raster to polygon
-    if out_image:
+    if isinstance(out_image,np.ndarray):
         results = ({
             'properties': {
                 'raster_val': v
@@ -409,7 +409,7 @@ def VectorScanner(landuse,
     for x in tqdm(landuse.itertuples(),
                   total=len(landuse),
                   desc='Damage per object',
-                  disable=not print_tqdm):
+                  disable=not tqdm_print):
         hits = new_gdf.iloc[list(d_sindex.intersection(x.geometry.bounds))]
         damage = 0
         area_flooded = 0
