@@ -234,6 +234,7 @@ def VectorScanner(landuse,
                   curve_path,
                   maxdam_path,
                   landuse_col='landuse',
+                  inun_col='inun_val',
                   centimeters=False,
                   save=False,
                   **kwargs):
@@ -260,6 +261,9 @@ def VectorScanner(landuse,
         
         *landuse_col* : Specify the column name of the unique landuse id's. 
         Default is set to **landuse**.
+        
+        *inun_col* : Specify the column name of the inundation depth 
+        Default is set to **inun_val**.       
         
         *save* : Set to True if you would like to save the output. Requires 
         several **kwargs**
@@ -308,6 +312,7 @@ def VectorScanner(landuse,
                     out_image = out_image * 100
                 out_image[out_image > 1000] = -1
                 out_image[out_image <= 0] = -1
+                gdf = None
         except:
             gdf = gpd.read_file(inun_file)
             out_image = None
@@ -321,6 +326,13 @@ def VectorScanner(landuse,
             'ERROR: inundation file should be a GeoTiff,  a shapefile, a GeoDataFrame \
               or any other georeferenced format that can be read by rasterio or geopandas'
         )
+
+    # rename inundation colum, set values to centimeters if required and to integers
+    if isinstance(gdf, gpd.GeoDataFrame):
+        gdf = gdf.rename(columns={inun_col:'inun_val'})
+        if not centimeters:
+            gdf['inun_val'] = gdf.inun_val*100
+            gdf['inun_val'] = gdf.inun_val.astype(int)
 
     # Load curves
     if isinstance(curve_path, pd.DataFrame):
@@ -347,7 +359,7 @@ def VectorScanner(landuse,
     if isinstance(out_image,np.ndarray):
         results = ({
             'properties': {
-                'raster_val': v
+                'inun_val': v
             },
             'geometry': s
         } for i, (s, v) in enumerate(
@@ -356,8 +368,8 @@ def VectorScanner(landuse,
         gdf = gpd.GeoDataFrame.from_features(list(results), crs=src.crs)
 
     # cut down to feasible area
-    gdf = gdf.loc[gdf.raster_val > 0]
-    gdf = gdf.loc[gdf.raster_val < 1000]
+    gdf = gdf.loc[gdf.inun_val > 0]
+    gdf = gdf.loc[gdf.inun_val < 1000]
 
     # Check if we need to turn off tqdm:
     tqdm_print = kwargs.get('print_tqdm', True)
@@ -375,7 +387,7 @@ def VectorScanner(landuse,
             hit_buff = hit.geometry.buffer(0)
             if hit_buff.intersects(row_buff):
                 unique_df.append([
-                    row.raster_val, hit.landuse,
+                    row.inun_val, hit.landuse,
                     row_buff.intersection(hit_buff)
                 ])
 
