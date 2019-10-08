@@ -3,7 +3,7 @@ import pandas
 import ogr
 import numpy 
 from tqdm import tqdm
-from shapely.wkt import loads
+from shapely.wkb import loads
 
 def fetch_landuse(osm_path):
     """
@@ -28,7 +28,7 @@ def fetch_landuse(osm_path):
         for feature in sql_lyr:
             try:
                 if feature.GetField('landuse') is not None:
-                    shapely_geo = loads(feature.geometry().ExportToWkt()) 
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
                     if shapely_geo is None:
                         continue
                     data_type=feature.GetField('landuse')
@@ -70,7 +70,7 @@ def fetch_buildings(osm_path):
             try:
                 if feature.GetField('building') is not None:
                     osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkt()) 
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
                     if shapely_geo is None:
                         continue
                     building=feature.GetField('building')
@@ -112,7 +112,7 @@ def fetch_roads(osm_path):
             try:
                 if feature.GetField('highway') is not None:
                     osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkt()) 
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
                     if shapely_geo is None:
                         continue
                     highway=feature.GetField('highway')
@@ -151,7 +151,7 @@ def fetch_railway(osm_path):
             try:
                 if feature.GetField('railway') is not None:
                     osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkt()) 
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
                     if shapely_geo is None:
                         continue
                     railway=feature.GetField('railway')
