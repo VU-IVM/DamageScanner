@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.com/ElcoK/DamageScanner.svg?branch=master)](https://travis-ci.com/ElcoK/DamageScanner) [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) [![PyPI version](https://badge.fury.io/py/damagescanner.svg)](https://badge.fury.io/py/damagescanner) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2551015.svg)](https://doi.org/10.5281/zenodo.2551015) 
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/damagescanner?color=yellow&label=Downloads)](https://pypistats.org/packages/damagescanner)
+
 
 
 # DamageScanner
