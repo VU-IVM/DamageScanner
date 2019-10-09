@@ -5,7 +5,8 @@ import numpy
 from tqdm import tqdm
 from shapely.wkb import loads
 
-def fetch_landuse(osm_path):
+
+def landuse(osm_path):
     """
     Function to extract land-use polygons from OpenStreetMap
     
@@ -23,7 +24,7 @@ def fetch_landuse(osm_path):
                        
     sql_lyr = data.ExecuteSQL("SELECT osm_id,landuse from multipolygons where landuse is not null")
 
-    osm_data = []
+    features = []
     if data is not None:
         for feature in sql_lyr:
             try:
@@ -34,21 +35,21 @@ def fetch_landuse(osm_path):
                     data_type=feature.GetField('landuse')
                     osm_id = feature.GetField('osm_id')
     
-                    osm_data.append([osm_id,data_type,shapely_geo])
+                    features.append([osm_id,data_type,shapely_geo])
             except:
                 print("WARNING: skipped landuse shape")                       
     else:
         print("ERROR: Nonetype error when requesting SQL. Check required.")    
 
-    if len(osm_data) > 0:
-        return geopandas.GeoDataFrame(osm_data,columns=['osm_id','landuse','geometry'],
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','landuse','geometry'],
                                 crs={'init': 'epsg:4326'})
     else:
-        print("WARNING: No landuse shapes or No Memory. returning empty GeoDataFrame") 
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
         return geopandas.GeoDataFrame(columns=['osm_id','landuse','geometry'],crs={'init': 'epsg:4326'})
 
     
-def fetch_buildings(osm_path):
+def buildings(osm_path):
     """
     Function to extract building polygons from OpenStreetMap
     
@@ -63,7 +64,7 @@ def fetch_buildings(osm_path):
     driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
 
-    buildings=[]    
+    features=[]    
     if data is not None:
         sql_lyr = data.ExecuteSQL("SELECT osm_id,amenity,building from multipolygons where building is not null")
         for feature in sql_lyr:
@@ -76,20 +77,20 @@ def fetch_buildings(osm_path):
                     building=feature.GetField('building')
                     amenity=feature.GetField('amenity')
 
-                    buildings.append([osm_id,building,amenity,shapely_geo])
+                    features.append([osm_id,building,amenity,shapely_geo])
             except:
                     print("WARNING: skipped building")
     else:
         print("ERROR: Nonetype error when requesting SQL. Check required.")    
 
-    if len(buildings) > 0:
-        return geopandas.GeoDataFrame(buildings,columns=['osm_id','building','amenity','geometry'],crs={'init': 'epsg:4326'})
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','building','amenity','geometry'],crs={'init': 'epsg:4326'})
     else:
-        print("WARNING: No buildings or No Memory. returning empty GeoDataFrame") 
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
         return geopandas.GeoDataFrame(columns=['osm_id','building','amenity','geometry'],crs={'init': 'epsg:4326'})
 
 
-def fetch_roads(osm_path):
+def roads(osm_path):
     """
     Function to extract road linestrings from OpenStreetMap
     
@@ -105,7 +106,7 @@ def fetch_roads(osm_path):
     driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
 
-    roads=[]    
+    features=[]    
     if data is not None:
         sql_lyr = data.ExecuteSQL("SELECT osm_id,highway FROM lines WHERE highway IS NOT NULL")
         for feature in sql_lyr:
@@ -116,19 +117,19 @@ def fetch_roads(osm_path):
                     if shapely_geo is None:
                         continue
                     highway=feature.GetField('highway')
-                    roads.append([osm_id,highway,shapely_geo])
+                    features.append([osm_id,highway,shapely_geo])
             except:
                     print("WARNING: skipped a road")
     else:
         print("ERROR: Nonetype error when requesting SQL. Check required.")    
 
-    if len(roads) > 0:
-        return geopandas.GeoDataFrame(roads,columns=['osm_id','highway','geometry'],crs={'init': 'epsg:4326'})
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','highway','geometry'],crs={'init': 'epsg:4326'})
     else:
-        print("WARNING: No buildings or No Memory. returning empty GeoDataFrame") 
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
         return geopandas.GeoDataFrame(columns=['osm_id','highway','geometry'],crs={'init': 'epsg:4326'})
     
-def fetch_railway(osm_path):
+def railway(osm_path):
     """
     Function to extract railway linestrings from OpenStreetMap
     
@@ -144,7 +145,7 @@ def fetch_railway(osm_path):
     driver=ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
 
-    railways=[]    
+    features=[]    
     if data is not None:
         sql_lyr = data.ExecuteSQL("SELECT osm_id,service,railway FROM lines WHERE railway IS NOT NULL")
         for feature in sql_lyr:
@@ -155,17 +156,100 @@ def fetch_railway(osm_path):
                     if shapely_geo is None:
                         continue
                     railway=feature.GetField('railway')
-                    railways.append([osm_id,railway,shapely_geo])
+                    features.append([osm_id,railway,shapely_geo])
             except:
-                    print("warning: skipped building")
+                    print("warning: skipped railway")
     else:
         print("ERROR: Nonetype error when requesting SQL. Check required.")    
 
-    if len(railways) > 0:
-        return geopandas.GeoDataFrame(railways,columns=['osm_id','building','geometry'],crs={'init': 'epsg:4326'})
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','railway','geometry'],crs={'init': 'epsg:4326'})
     else:
-        print("WARNING: No buildings or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','building','geometry'],crs={'init': 'epsg:4326'})
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
+        return geopandas.GeoDataFrame(columns=['osm_id','railway','geometry'],crs={'init': 'epsg:4326'})
+
+def ferries(osm_path):
+    """
+    Function to extract road linestrings from OpenStreetMap
+    
+    Arguments:
+        *osm_path* : file path to the .osm.pbf file of the region 
+        for which we want to do the analysis.
+        
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique road linestrings.
+    
+    """
+    
+    driver=ogr.GetDriverByName('OSM')
+    data = driver.Open(osm_path)
+
+    features=[]    
+    if data is not None:
+        sql_lyr = data.ExecuteSQL("SELECT osm_id,route FROM lines WHERE route = 'ferry'")
+        for feature in sql_lyr:
+            try:
+                if feature.GetField('route') is not None:
+                    osm_id = feature.GetField('osm_id')
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
+                    if shapely_geo is None:
+                        continue
+                    ferry=feature.GetField('route')
+                    features.append([osm_id,ferry,shapely_geo])
+            except:
+                    print("WARNING: skipped a ferry route")
+    else:
+        print("ERROR: Nonetype error when requesting SQL. Check required.")    
+
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','ferry_type','geometry'],crs={'init': 'epsg:4326'})
+    else:
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
+        return geopandas.GeoDataFrame(columns=['osm_id','ferry_type','geometry'],crs={'init': 'epsg:4326'})
+    
+    
+def electricity(osm_path):
+    """
+    Function to extract railway linestrings from OpenStreetMap
+    
+    Arguments:
+        *osm_path* : file path to the .osm.pbf file of the region 
+        for which we want to do the analysis.
+        
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
+    
+    """
+    
+    driver=ogr.GetDriverByName('OSM')
+    data = driver.Open(osm_path)
+
+    features=[]    
+    if data is not None:
+        sql_lyr = data.ExecuteSQL("SELECT osm_id,voltage,power FROM lines WHERE power IS NOT NULL")
+        for feature in sql_lyr:
+            try:
+                if feature.GetField('power') is not None:
+                    osm_id = feature.GetField('osm_id')
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
+                    if shapely_geo is None:
+                        continue
+                    powerline=feature.GetField('power')
+                    voltage=feature.GetField('voltage')
+
+                    features.append([osm_id,powerline,voltage,shapely_geo])
+            except:
+                    print("warning: skipped power line")
+    else:
+        print("ERROR: Nonetype error when requesting SQL. Check required.")    
+
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=['osm_id','powerline','voltage','geometry'],crs={'init': 'epsg:4326'})
+    else:
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
+        return geopandas.GeoDataFrame(columns=['osm_id','powerline','voltage','geometry'],crs={'init': 'epsg:4326'})
+
+
 
 def remove_overlap_openstreetmap(gdf):
     """
