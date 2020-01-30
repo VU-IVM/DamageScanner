@@ -1,254 +1,151 @@
 import geopandas
 import pandas
 import ogr
+import os
 import numpy 
+import gdal
 from tqdm import tqdm
 from shapely.wkb import loads
 
 
+
+def query_b(geoType,keyCol,**valConstraint):
+    """
+    This function builds an SQL query from the values passed to the retrieve() function.
+    Arguments:
+         *geoType* : Type of geometry (osm layer) to search for.
+         *keyCol* : A list of keys/columns that should be selected from the layer.
+         ***valConstraint* : A dictionary of constraints for the values. e.g. WHERE 'value'>20 or 'value'='constraint'
+    Returns:
+        *string: : a SQL query string.
+    """
+    query = "SELECT " + "osm_id"
+    for a in keyCol: query+= ","+ a  
+    query += " FROM " + geoType + " WHERE "
+    # If there are values in the dictionary, add constraint clauses
+    if valConstraint: 
+        for a in [*valConstraint]:
+            # For each value of the key, add the constraint
+            for b in valConstraint[a]: query += a + b
+        query+= " AND "
+    # Always ensures the first key/col provided is not Null.
+    query+= ""+str(keyCol[0]) +" IS NOT NULL" 
+    return query 
+
+
+def retrieve(osm_path,geoType,keyCol,**valConstraint):
+    """
+    Function to extract specified geometry and keys/values from OpenStreetMap
+    Arguments:
+        *osm_path* : file path to the .osm.pbf file of the region 
+        for which we want to do the analysis.     
+        *geoType* : Type of Geometry to retrieve. e.g. lines, multipolygons, etc.
+        *keyCol* : These keys will be returned as columns in the dataframe.
+        ***valConstraint: A dictionary specifiying the value constraints.  
+        A key can have multiple values (as a list) for more than one constraint for key/value.  
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with all columns, geometries, and constraints specified.    
+    """
+    driver=ogr.GetDriverByName('OSM')
+    data = driver.Open(osm_path)
+    query = query_b(geoType,keyCol,**valConstraint)
+    sql_lyr = data.ExecuteSQL(query)
+    features =[]
+    # cl = columns 
+    cl = ['osm_id'] 
+    for a in keyCol: cl.append(a)
+    if data is not None:
+        for feature in sql_lyr:
+            try:
+                if feature.GetField(keyCol[0]) is not None:
+                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
+                    if shapely_geo is None:
+                        continue
+                    # field will become a row in the dataframe.
+                    field = []
+                    for i in cl: field.append(feature.GetField(i))
+                    field.append(shapely_geo)   
+                    features.append(field)
+            except:
+                print("WARNING: skipped OSM feature")   
+    else:
+        print("ERROR: Nonetype error when requesting SQL. Check required.")    
+    cl.append('geometry')                   
+    if len(features) > 0:
+        return geopandas.GeoDataFrame(features,columns=cl,crs={'init': 'epsg:4326'})
+    else:
+        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
+        return geopandas.GeoDataFrame(columns=['osm_id','geometry'],crs={'init': 'epsg:4326'})
+
 def landuse(osm_path):
     """
-    Function to extract land-use polygons from OpenStreetMap
-    
+    Function to extract land-use polygons from OpenStreetMap    
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-        
+        for which we want to do the analysis.        
     Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
-    
-    """
-    
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
-                       
-    sql_lyr = data.ExecuteSQL("SELECT osm_id,landuse from multipolygons where landuse is not null")
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.    
+    """    
+    return(retrieve(osm_path,'multipolygons',['landuse']))
 
-    features = []
-    if data is not None:
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('landuse') is not None:
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    data_type=feature.GetField('landuse')
-                    osm_id = feature.GetField('osm_id')
-    
-                    features.append([osm_id,data_type,shapely_geo])
-            except:
-                print("WARNING: skipped landuse shape")                       
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','landuse','geometry'],
-                                crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','landuse','geometry'],crs={'init': 'epsg:4326'})
-
-    
 def buildings(osm_path):
     """
-    Function to extract building polygons from OpenStreetMap
-    
+    Function to extract building polygons from OpenStreetMap    
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-        
+        for which we want to do the analysis.        
     Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique building polygons.
-    
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique building polygons.    
     """
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
-
-    features=[]    
-    if data is not None:
-        sql_lyr = data.ExecuteSQL("SELECT osm_id,amenity,building from multipolygons where building is not null")
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('building') is not None:
-                    osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    building=feature.GetField('building')
-                    amenity=feature.GetField('amenity')
-
-                    features.append([osm_id,building,amenity,shapely_geo])
-            except:
-                    print("WARNING: skipped building")
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','building','amenity','geometry'],crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','building','amenity','geometry'],crs={'init': 'epsg:4326'})
-
+    return retrieve(osm_path, 'multipolygons',['building','amenity'])#, **{"amenity":""})
 
 def roads(osm_path):
     """
-    Function to extract road linestrings from OpenStreetMap
-    
+    Function to extract road linestrings from OpenStreetMap  
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-        
+        for which we want to do the analysis.        
     Returns:
         *GeoDataFrame* : a geopandas GeoDataFrame with all unique road linestrings.
-    
-    """
-    
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
-
-    features=[]    
-    if data is not None:
-        sql_lyr = data.ExecuteSQL("SELECT osm_id,highway FROM lines WHERE highway IS NOT NULL")
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('highway') is not None:
-                    osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    highway=feature.GetField('highway')
-                    features.append([osm_id,highway,shapely_geo])
-            except:
-                    print("WARNING: skipped a road")
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','highway','geometry'],crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','highway','geometry'],crs={'init': 'epsg:4326'})
-    
+    """   
+    return retrieve(osm_path,'lines',['highway']) 
+ 
 def railway(osm_path):
     """
-    Function to extract railway linestrings from OpenStreetMap
-    
+    Function to extract railway linestrings from OpenStreetMap   
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-        
+        for which we want to do the analysis.       
     Returns:
         *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
-    
-    """
-    
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
-
-    features=[]    
-    if data is not None:
-        sql_lyr = data.ExecuteSQL("SELECT osm_id,service,railway FROM lines WHERE railway IS NOT NULL")
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('railway') is not None:
-                    osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    railway=feature.GetField('railway')
-                    features.append([osm_id,railway,shapely_geo])
-            except:
-                    print("warning: skipped railway")
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','railway','geometry'],crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','railway','geometry'],crs={'init': 'epsg:4326'})
+    """ 
+    return retrieve(osm_path,'lines',['railway','service'],**{"service":[" IS NOT NULL"]})
 
 def ferries(osm_path):
     """
     Function to extract road linestrings from OpenStreetMap
-    
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.
-        
     Returns:
         *GeoDataFrame* : a geopandas GeoDataFrame with all unique road linestrings.
-    
     """
-    
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
+    return retrieve(osm_path,'lines',['route'],**{"route":["='ferry'",]})
 
-    features=[]    
-    if data is not None:
-        sql_lyr = data.ExecuteSQL("SELECT osm_id,route FROM lines WHERE route = 'ferry'")
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('route') is not None:
-                    osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    ferry=feature.GetField('route')
-                    features.append([osm_id,ferry,shapely_geo])
-            except:
-                    print("WARNING: skipped a ferry route")
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','ferry_type','geometry'],crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','ferry_type','geometry'],crs={'init': 'epsg:4326'})
-    
-    
 def electricity(osm_path):
     """
-    Function to extract railway linestrings from OpenStreetMap
-    
+    Function to extract railway linestrings from OpenStreetMap    
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-        
+        for which we want to do the analysis.        
     Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
-    
-    """
-    
-    driver=ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.   
+    """    
+    return retrieve(osm_path,'lines',['power','voltage'],**{'voltage':[" IS NULL"],})
 
-    features=[]    
-    if data is not None:
-        sql_lyr = data.ExecuteSQL("SELECT osm_id,voltage,power FROM lines WHERE power IS NOT NULL")
-        for feature in sql_lyr:
-            try:
-                if feature.GetField('power') is not None:
-                    osm_id = feature.GetField('osm_id')
-                    shapely_geo = loads(feature.geometry().ExportToWkb()) 
-                    if shapely_geo is None:
-                        continue
-                    powerline=feature.GetField('power')
-                    voltage=feature.GetField('voltage')
-
-                    features.append([osm_id,powerline,voltage,shapely_geo])
-            except:
-                    print("warning: skipped power line")
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=['osm_id','powerline','voltage','geometry'],crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','powerline','voltage','geometry'],crs={'init': 'epsg:4326'})
-
+def mainRoads(osm_path):
+    return retrieve(osm_path,'lines',['highway','oneway','lanes','maxspeed'],**{'highway':["='primary' or ","='trunk' or ","='motorway' or ","='trunk_link' or ",
+                    "='primary_link' or ", "='secondary' or ","='tertiary' or ","='tertiary_link'"]})
 
 
 def remove_overlap_openstreetmap(gdf):
