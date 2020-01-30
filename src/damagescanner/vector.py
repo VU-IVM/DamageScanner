@@ -97,7 +97,7 @@ def buildings(osm_path):
     Returns:
         *GeoDataFrame* : a geopandas GeoDataFrame with all unique building polygons.    
     """
-    return retrieve(osm_path, 'multipolygons',['building','amenity'])#, **{"amenity":""})
+    return retrieve(osm_path, 'multipolygons',['building','amenity'])
 
 def roads(osm_path):
     """
@@ -144,6 +144,14 @@ def electricity(osm_path):
     return retrieve(osm_path,'lines',['power','voltage'],**{'voltage':[" IS NULL"],})
 
 def mainRoads(osm_path):
+    """
+    Function to extract main road linestrings from OpenStreetMap    
+    Arguments:
+        *osm_path* : file path to the .osm.pbf file of the region 
+        for which we want to do the analysis.        
+    Returns:
+        *GeoDataFrame* : a geopandas GeoDataFrame with all unique main road linestrings.   
+    """ 
     return retrieve(osm_path,'lines',['highway','oneway','lanes','maxspeed'],**{'highway':["='primary' or ","='trunk' or ","='motorway' or ","='trunk_link' or ",
                     "='primary_link' or ", "='secondary' or ","='tertiary' or ","='tertiary_link'"]})
 
