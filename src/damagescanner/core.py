@@ -192,7 +192,7 @@ def RasterScanner(landuse_map,
     damagemap[area] = alldamage
 
     # create pandas dataframe with output
-    loss_df = pd.DataFrame(damagebin.astype(int),
+    loss_df = pd.DataFrame(damagebin.astype(np.int64),
                            columns=['landuse',
                                     'losses']).groupby('landuse').sum()
 
