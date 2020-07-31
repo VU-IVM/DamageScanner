@@ -18,7 +18,7 @@ def readme():
 
 setup(
     name='damagescanner',
-    version='0.3.0',
+    version='0.4.0',
     license='MIT License',
     description='Damage assessment tool for natural disasters',
     long_description=readme(),
