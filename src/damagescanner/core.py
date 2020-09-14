@@ -57,7 +57,6 @@ def RasterScanner(landuse_map,
                   curve_path,
                   maxdam_path,
                   dtype = np.int32,
-                  centimeters=False,
                   save=False,
                   **kwargs):
     """
@@ -83,8 +82,8 @@ def RasterScanner(landuse_map,
         *dtype*: Set the dtype to the requires precision. This will affect the output damage raster as well 
      
     Optional Arguments:
-        *centimeters* : Set to True if the inundation map and curves are in 
-        centimeters
+        *nan_value* : if nan_value is provided, will mask the inundation file. 
+        This option can significantly fasten computations
         
         *save* : Set to True if you would like to save the output. Requires 
         several **kwargs**
@@ -172,15 +171,13 @@ def RasterScanner(landuse_map,
     
     if maxdam.shape[0] != (curves.shape[1]-1):
         raise ValueError("Dimensions between maximum damages and the number of depth-damage curve do not agree")
-
+  
     # Speed up calculation by only considering feasible points
-    if centimeters:
-        inundation[inundation > 1000] = 0
-    else:
-        inundation[inundation > 10] = 0
-        
-    inun = inundation * (inundation >= 0) + 0
-    inun[inun >= curves[:, 0].max()] = curves[:, 0].max()
+    if nan_value:
+        inundation[inundation == nan_value] = 0
+
+    inun = inundation * (inundation >= 0) + 0   
+    inun[inun >= curves[:, 0].max()] = curves[:, 0].max()   
     area = inun > 0
     waterdepth = inun[inun > 0]
     landuse = landuse[inun > 0]
