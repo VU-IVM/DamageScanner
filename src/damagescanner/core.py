@@ -82,13 +82,13 @@ def RasterScanner(landuse_map,
         *dtype*: Set the dtype to the requires precision. This will affect the output damage raster as well 
      
     Optional Arguments:
-        *nan_value* : if nan_value is provided, will mask the inundation file. 
-        This option can significantly fasten computations
-        
         *save* : Set to True if you would like to save the output. Requires 
         several **kwargs**
         
     kwargs:
+        *nan_value* : if nan_value is provided, will mask the inundation file. 
+        This option can significantly fasten computations
+        
         *cell_size* : If both the landuse and inundation map are numpy arrays, 
         manually set the cell size.
         
@@ -173,7 +173,8 @@ def RasterScanner(landuse_map,
         raise ValueError("Dimensions between maximum damages and the number of depth-damage curve do not agree")
   
     # Speed up calculation by only considering feasible points
-    if nan_value:
+    if kwargs.get('nan_value'):
+        nan_value = kwargs.get('nan_value')
         inundation[inundation == nan_value] = 0
 
     inun = inundation * (inundation >= 0) + 0   
@@ -208,15 +209,8 @@ def RasterScanner(landuse_map,
                                     'losses']).groupby('landuse').sum()
 
     if save:
-        if src.crs:
-            crs = src.crs
-        else:
-            crs = kwargs.get('crs', crs)
-        
-        if src.crs:
-            transform = src.transform
-        else:
-            transform = kwargs.get('transform', transform)
+        crs = kwargs.get('crs', src.crs)
+        transform = kwargs.get('transform', transform)
 
         # requires adding output_path and scenario_name to function call
         # If output path is not defined, will place file in current directory
