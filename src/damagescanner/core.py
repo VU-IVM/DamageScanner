@@ -56,7 +56,7 @@ def RasterScanner(landuse_map,
                   inun_map,
                   curve_path,
                   maxdam_path,
-                  centimeters=False,
+                  dtype = np.int32,
                   save=False,
                   **kwargs):
     """
@@ -73,19 +73,22 @@ def RasterScanner(landuse_map,
         first column of the curves file.
      
         *curve_path* : File with the stage-damage curves of the different 
-        land-use classes. Can also be a pandas DataFrame or numpy Array.
+        land-use classes. Values should be given as ratios, i.e. between 0 and 1.
+        Can also be a pandas DataFrame or numpy Array.
      
         *maxdam_path* : File with the maximum damages per land-use class 
         (in euro/m2). Can also be a pandas DataFrame or numpy Array.
+                        
+        *dtype*: Set the dtype to the requires precision. This will affect the output damage raster as well 
      
     Optional Arguments:
-        *centimeters* : Set to True if the inundation map and curves are in 
-        centimeters
-        
         *save* : Set to True if you would like to save the output. Requires 
         several **kwargs**
         
     kwargs:
+        *nan_value* : if nan_value is provided, will mask the inundation file. 
+        This option can significantly fasten computations
+        
         *cell_size* : If both the landuse and inundation map are numpy arrays, 
         manually set the cell size.
         
@@ -96,7 +99,9 @@ def RasterScanner(landuse_map,
         *in_millions*: Set to True if all values should be set in millions.
         
         *crs*: Specify crs if you only read in two numpy array
-
+        
+        *transform*: Specify transform if you only read in numpy arrays in order to save the result raster
+        
     Raises:
         *ValueError* : on missing kwarg options
 
@@ -121,6 +126,7 @@ def RasterScanner(landuse_map,
     if isinstance(inun_map, str):
         with rasterio.open(inun_map) as src:
             inundation = src.read()[0, :, :]
+            transform = src.transform
     else:
         inundation = inun_map.copy()
 
@@ -151,6 +157,9 @@ def RasterScanner(landuse_map,
         curves = curve_path
     elif curve_path.endswith('.csv'):
         curves = pd.read_csv(curve_path).values
+    
+    if ((curves>1).all()) or ((curves<0).all()):
+        raise ValueError("Stage-damage curve values must be between 0 and 1")
 
     # Load maximum damages
     if isinstance(maxdam_path, pd.DataFrame):
@@ -158,15 +167,18 @@ def RasterScanner(landuse_map,
     elif isinstance(maxdam_path, np.ndarray):
         maxdam = maxdam_path
     elif maxdam_path.endswith('.csv'):
-        maxdam = pd.read_csv(maxdam_path, skiprows=1).values
-
+        maxdam = pd.read_csv(maxdam_path).values
+    
+    if maxdam.shape[0] != (curves.shape[1]-1):
+        raise ValueError("Dimensions between maximum damages and the number of depth-damage curve do not agree")
+  
     # Speed up calculation by only considering feasible points
-    if centimeters:
-        inundation[inundation > 1000] = 0
-    else:
-        inundation[inundation > 10] = 0
-    inun = inundation * (inundation >= 0) + 0
-    inun[inun >= curves[:, 0].max()] = curves[:, 0].max()
+    if kwargs.get('nan_value'):
+        nan_value = kwargs.get('nan_value')
+        inundation[inundation == nan_value] = 0
+
+    inun = inundation * (inundation >= 0) + 0   
+    inun[inun >= curves[:, 0].max()] = curves[:, 0].max()   
     area = inun > 0
     waterdepth = inun[inun > 0]
     landuse = landuse[inun > 0]
@@ -186,18 +198,19 @@ def RasterScanner(landuse_map,
         damage = alpha * (maxdam[i, 1] * cellsize)
         damagebin[i, 1] = sum(damage)
         alldamage[landuse == n] = damage
-
+    
     # create the damagemap
-    damagemap = np.zeros((area.shape[0], area.shape[1]), dtype='int32')
+    damagemap = np.zeros((area.shape[0], area.shape[1]), dtype=dtype)
     damagemap[area] = alldamage
 
     # create pandas dataframe with output
-    loss_df = pd.DataFrame(damagebin.astype(np.int64),
+    loss_df = pd.DataFrame(damagebin.astype(dtype),
                            columns=['landuse',
                                     'losses']).groupby('landuse').sum()
 
     if save:
         crs = kwargs.get('crs', src.crs)
+        transform = kwargs.get('transform', transform)
 
         # requires adding output_path and scenario_name to function call
         # If output path is not defined, will place file in current directory
@@ -214,7 +227,7 @@ def RasterScanner(landuse_map,
             'height': damagemap.shape[0],
             'width': damagemap.shape[1],
             'count': 1,
-            'dtype': damagemap.dtype,
+            'dtype': dtype,
             'crs': crs,
             'transform': transform,
             'compress': "LZW"
