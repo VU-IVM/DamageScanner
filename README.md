@@ -53,6 +53,3 @@ Here's an example BibTeX entry:
 
 ### License
 Copyright (C) 2019 Elco Koks. All versions released under the [MIT license](LICENSE).
-
-
-![IVM](http://ivm.vu.nl/en/Images/IVM_logo_rgb2_tcm234-851594.svg)
