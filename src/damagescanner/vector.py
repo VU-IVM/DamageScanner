@@ -1,9 +1,8 @@
 import geopandas
 import pandas
-import ogr
+from osgeo import ogr,gdal
 import os
 import numpy 
-import gdal
 from tqdm import tqdm
 from shapely.wkb import loads
 
