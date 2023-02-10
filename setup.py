@@ -41,6 +41,7 @@ setup(
 
     install_requires=[
         "geopandas",
+        "cython",
         "pandas>=1.4",
         "pygeos",
         "xarray",
