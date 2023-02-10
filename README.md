@@ -1,24 +1,30 @@
-[![Build Status](https://travis-ci.com/ElcoK/DamageScanner.svg?branch=master)](https://travis-ci.com/ElcoK/DamageScanner) [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) [![PyPI version](https://badge.fury.io/py/damagescanner.svg)](https://badge.fury.io/py/damagescanner) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2551015.svg)](https://doi.org/10.5281/zenodo.2551015) 
+# DamageScanner: direct damage assessments for natural disasters.
+
+<img align="right" width="160" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/main/docs/ds_logo.png">
+
+
+[![github repo badge](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/ElcoK/DamageScanner)
+[![github license badge](https://img.shields.io/github/license/ElcoK/DamageScanner)](https://github.com/ElcoK/DamageScanner)
+[![fair-software badge](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
+[![Build Status](https://travis-ci.com/ElcoK/DamageScanner.svg?branch=master)](https://travis-ci.com/ElcoK/DamageScanner) [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
+[![PyPI version](https://badge.fury.io/py/damagescanner.svg)](https://badge.fury.io/py/damagescanner) 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2551015.svg)](https://doi.org/10.5281/zenodo.2551015) 
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/damagescanner?color=yellow&label=Downloads)](https://pypistats.org/packages/damagescanner)
 
-# DamageScanner 
 
-Python toolkit for direct damage assessments for natural disasters.
-
-Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this project for the full documentation of all functions. 
-
-**Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm) 
+A python toolkit for direct damage assessments for natural disasters. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
 
 **Please note:** This package is still in development phase. In case of any problems, or if you have any suggestions for improvements, please raise an *issue*. 
 
 ## Background
 This package is (loosely) based on the original DamageScanner, which calculated potential flood damages based on inundation depth and land use using depth-damage curves in the Netherlands. The DamageScanner was originally developed for the 'Netherlands Later' project [(Klijn et al., 2007)](https://www.rivm.nl/bibliotheek/digitaaldepot/WL_rapport_Overstromingsrisicos_Nederland.pdf).  The original land-use classes were based on the Land-Use Scanner in order to evaluate the effect of future land-use change on flood damages. 
 
-This package aims to make this method widely available and for everyone to use. Next to a (generalized) function for estimating damages based on raster data, it also includes a damage assessment function using vector land-use data. 
-
-Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a fragility curve (i.e. a one-dimensional relation). 
-
 ## Installation
+[![workflow pypi badge](https://img.shields.io/pypi/v/damagescanner.svg?colorB=blue)](https://pypi.python.org/project/damagescanner/)
+[![supported python versions](https://img.shields.io/pypi/pyversions/damagescanner)](https://pypi.python.org/project/damagescanner/)
+
+**Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm) 
+
 
 1. Open the python environment in your command prompt or bash in which you want to install this package.
 2. Type ``pip install damagescanner`` and it should install itself into your python environment.
@@ -31,10 +37,9 @@ OR:
 3. Type ``python setup.py install`` and it should install itself into your python environment.
 4. Now you can import the package like any other package!
 
-## To-do:
-* Make inputs for both the RasterScanner and VectorScanner more flexible. Catch common errors.
-* Make plotting functions more flexible.
-* Develop automated damage assessments using OpenStreetMap data.
+## Documentation
+[Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
+Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this project for the full documentation of all functions. 
 
 ## How to cite:
 If you use the **DamageScanner** in your work, please cite the package directly:
