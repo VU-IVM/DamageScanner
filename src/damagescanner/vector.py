@@ -6,6 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import pygeos
 import pyproj
+from pyproj import CRS
 
 
 def query_b(geoType,keyCol,**valConstraint):

@@ -12,12 +12,14 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 from affine import Affine
+import pyproj
 from tqdm import tqdm
 from os.path import join as p_join
 import warnings
 
-from damagescanner.vector import reproject,get_damage_per_object
-from damagescanner.raster import match
+
+from vector import reproject,get_damage_per_object
+from raster import match
 
 
 def check_output_path(given_args):
@@ -51,8 +53,8 @@ def check_scenario_name(given_args):
     return scenario_name
 
 
-def RasterScanner(landuse_map,
-                  inun_map,
+def RasterScanner(landuse_file,
+                  hazard_file,
                   curve_path,
                   maxdam_path,
                   dtype = np.int32,
@@ -62,12 +64,12 @@ def RasterScanner(landuse_map,
     Raster-based implementation of a direct damage assessment.
     
     Arguments:
-        *landuse_map* : GeoTiff with land-use information per grid cell. Make sure 
+        *landuse_file* : GeoTiff with land-use information per grid cell. Make sure 
         the land-use categories correspond with the curves and maximum damages 
         (see below). Furthermore, the resolution and extend of the land-use map 
         has to be exactly the same as the inundation map.
      
-        *inun_map* : GeoTiff with inundation depth per grid cell. Make sure 
+        *hazard_file* : GeoTiff or netCDF4 with hazard intensity per grid cell. Make sure 
         that the unit of the inundation map corresponds with the unit of the 
         first column of the curves file.
      
@@ -112,36 +114,43 @@ def RasterScanner(landuse_map,
      
     """
     # load land-use map
-    if isinstance(landuse_map, str):
-        with rasterio.open(landuse_map) as src:
+    if isinstance(landuse_file, str):
+        with rasterio.open(landuse_file) as src:
             landuse = src.read()[0, :, :]
             transform = src.transform
     else:
-        landuse = landuse_map.copy()
+        landuse = landuse_file.copy()
 
     landuse_in = landuse.copy()
+        
+    # Load hazard map
+    if isinstance(hazard_file, str):
+        if (hazard_file.endswith('.tif') | hazard_file.endswith('.tiff')):      
+            with rasterio.open(hazard_file) as src:
+                hazard = src.read()[0, :, :]
+                transform = src.transform
+                
+        elif hazard_file.endswith('.nc'):
+            hazard = xr.open_dataset(hazard_file)    
+            #complete this part
+        
+        else:
+            hazard = hazard_file.copy()
 
-    # Load inundation map
-    if isinstance(inun_map, str):
-        with rasterio.open(inun_map) as src:
-            inundation = src.read()[0, :, :]
-            transform = src.transform
-    else:
-        inundation = inun_map.copy()
-
-    # check if land-use and inundation map have the same shape.
-    if landuse.shape != inundation.shape:
+    # check if land-use and hazard map have the same shape.
+    if landuse.shape != hazard.shape:
         warnings.warn(
-            "WARNING: landuse and inundation maps are not the same shape. Let's fix this first!"
+            "WARNING: landuse and hazard maps are not the same shape. Let's fix this first!"
         )
-        landuse, inundation, intersection = match(landuse_map, inun_map)
+        
+        landuse, hazard, intersection = match(landuse_file, hazard_file)
 
         # create the right affine for saving the output
         transform = Affine(transform[0], transform[1], intersection[0],
                            transform[3], transform[4], intersection[1])
 
     # set cellsize:
-    if isinstance(landuse_map, str) | isinstance(inun_map, str):
+    if isinstance(landuse_file, str) | isinstance(hazard_file, str):
         cellsize = src.res[0] * src.res[1]
     else:
         try:
@@ -174,13 +183,13 @@ def RasterScanner(landuse_map,
     # Speed up calculation by only considering feasible points
     if kwargs.get('nan_value'):
         nan_value = kwargs.get('nan_value')
-        inundation[inundation == nan_value] = 0
+        hazard[hazard == nan_value] = 0
 
-    inun = inundation * (inundation >= 0) + 0   
-    inun[inun >= curves[:, 0].max()] = curves[:, 0].max()   
-    area = inun > 0
-    waterdepth = inun[inun > 0]
-    landuse = landuse[inun > 0]
+    haz = hazard * (hazard >= 0) + 0   
+    haz[haz >= curves[:, 0].max()] = curves[:, 0].max()   
+    area = haz > 0
+    haz_intensity = haz[haz > 0]
+    landuse = landuse[haz > 0]
 
     # Calculate damage per land-use class for structures
     numberofclasses = len(maxdam)
@@ -192,7 +201,7 @@ def RasterScanner(landuse_map,
     for i in range(0, numberofclasses):
         n = maxdam[i, 0]
         damagebin[i, 0] = n
-        wd = waterdepth[landuse == n]
+        wd = haz_intensity[landuse == n]
         alpha = np.interp(wd, ((curves[:, 0])), curves[:, i + 1])
         damage = alpha * (maxdam[i, 1] * cellsize)
         damagebin[i, 1] = sum(damage)
@@ -235,10 +244,10 @@ def RasterScanner(landuse_map,
             dst.write(damagemap, 1)
 
     if 'in_millions' in kwargs:
-        loss_df = loss_df / 1e6
+        damage_df = damage_df / 1e6
 
     # return output
-    return loss_df, damagemap, landuse_in, inundation
+    return damage_df, damagemap, landuse_in, hazard
 
 
 def VectorScanner(exposure_file,
@@ -246,10 +255,10 @@ def VectorScanner(exposure_file,
                   curve_path,
                   maxdam_path,
                   cell_size = 5,
+                  exp_crs=4326,
+                  haz_crs=4326,                   
                   object_col='landuse',
                   hazard_col='inun_val',
-                  exp_crs='epsg:4326',
-                  haz_crs='epsg:4326',                  
                   centimeters=False,
                   save=False,
                   **kwargs):
@@ -271,6 +280,16 @@ def VectorScanner(exposure_file,
         (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
 
     Optional Arguments:
+        *cell_size* : Specify the cell size of the hazard map. 
+
+        *exp_crs* : Specify the coordinate reference system of the exposure. Default is 
+        set to **4326**. A preferred CRS system is in meters. Please note that the function
+        only accepts the CRS system in the form of an integer EPSG code.
+        
+        *haz_crs* : Specify the cooordinate reference system of the hazard. Default is 
+        set to **4326**.  A preferred CRS system is in meters.Please note that the function
+        only accepts the CRS system in the form of an integer EPSG code.
+        
         *centimeters* : Set to True if the inundation map and curves are in 
         centimeters
         
@@ -373,10 +392,22 @@ def VectorScanner(exposure_file,
         )
 
     #check if exposure and hazard data are in the same CRS and in a CRS in meters
-    if exp_crs == haz_crs:
-        if exp_crs == 'epsg:4326':
-            exposure.geometry = reproject(exposure,current_crs="epsg:4326",approximate_crs = "epsg:28992")
-        
+    CRS_exposure = pyproj.CRS.from_epsg(exp_crs)
+    CRS_hazard = pyproj.CRS.from_epsg(haz_crs)
+
+    exp_crs_unit_name = CRS_exposure.axis_info[0].unit_name
+    haz_crs_unit_name = CRS_hazard.axis_info[0].unit_name
+
+    if exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'metre':
+        exposure.geometry = reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = f"epsg:{haz_crs}")
+    elif exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'degree':
+         exposure.geometry = reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = "epsg:3857")  
+
+    if haz_crs_unit_name == 'degree' and exp_crs_unit_name == 'metre':
+        hazard.geometry = reproject(hazard,current_crs=haz_crs,approximate_crs = f"epsg:{exp_crs}")
+    elif haz_crs_unit_name == 'degree' and exp_crs_unit_name == 'degree':
+        hazard.geometry = reproject(hazard,current_crs=haz_crs,approximate_crs = "epsg:3857")
+         
     # rename inundation colum, set values to centimeters if required and to integers:
     hazard = hazard.rename(columns={hazard_col:'haz_val'})
     if not centimeters:
