@@ -1,6 +1,6 @@
 # DamageScanner: direct damage assessments for natural disasters.
 
-<img align="right" width="160" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/main/docs/ds_logo.png">
+<img align="right" width="160" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/master/docs/ds_logo.png">
 
 
 [![github repo badge](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/ElcoK/DamageScanner)
