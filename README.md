@@ -1,6 +1,6 @@
-# DamageScanner: direct damage assessments for natural disasters.
+# DamageScanner: direct damage assessments for natural disasters
 
-<img align="right" width="160" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/master/docs/ds_logo.png">
+<img align="right" width="200" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/master/docs/ds_logo.png">
 
 
 [![github repo badge](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/ElcoK/DamageScanner)
@@ -23,7 +23,8 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 [![workflow pypi badge](https://img.shields.io/pypi/v/damagescanner.svg?colorB=blue)](https://pypi.python.org/project/damagescanner/)
 [![supported python versions](https://img.shields.io/pypi/pyversions/damagescanner)](https://pypi.python.org/project/damagescanner/)
 
-**Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm) 
+**Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm), 
+[xarray](https://docs.xarray.dev/en/stable/), [pyproj]https://pyproj4.github.io/pyproj/stable/) 
 
 
 1. Open the python environment in your command prompt or bash in which you want to install this package.
@@ -38,13 +39,14 @@ OR:
 4. Now you can import the package like any other package!
 
 ## Documentation
-[Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
+[![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
+
 Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this project for the full documentation of all functions. 
 
 ## How to cite:
 If you use the **DamageScanner** in your work, please cite the package directly:
 
-* Koks. E.E. (2019). DamageScanner: Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
+* Koks. E.E. (2022). DamageScanner: Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
 Here's an example BibTeX entry:
 
@@ -57,4 +59,4 @@ Here's an example BibTeX entry:
         }
 
 ### License
-Copyright (C) 2019 Elco Koks. All versions released under the [MIT license](LICENSE).
+Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICENSE).
