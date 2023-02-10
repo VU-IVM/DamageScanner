@@ -29,9 +29,9 @@ module_dir = os.path.join(__location__, "../src/damagescanner")
 
 # add list of modules used
 
-MOCK_MODULES = ['numpy','pandas','geopandas','matplotlib','matplotlib.pyplot','SALib','SALib.sample','ogr','osgeo','affine',
+MOCK_MODULES = ['numpy','pandas','geopandas','matplotlib','xarray','matplotlib.pyplot','SALib','SALib.sample','ogr','osgeo','affine',
                 'SALib.analyze.morris','tqdm','rasterio','shapely.wkt','rasterio.mask','rasterio.features','shapely.geometry',
-                'matplotlib.colors','matplotlib.patches','rasterio.plot','scipy']
+                'matplotlib.colors','matplotlib.patches','rasterio.plot','scipy','pygeos','rioxarray','pyproj']
 				
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
@@ -40,13 +40,13 @@ for mod_name in MOCK_MODULES:
 # -- Project information -----------------------------------------------------
 
 project = 'damagescanner'
-copyright = '2019, Elco Koks'
+copyright = '2022, Elco Koks'
 author = 'Elco Koks'
 
 # The short X.Y version
-version = '0.3.0'
+version = '0.6.0'
 # The full version, including alpha/beta/rc tags
-release = '0.3.0'
+release = '0.6.0'
 
 
 # -- General configuration ---------------------------------------------------

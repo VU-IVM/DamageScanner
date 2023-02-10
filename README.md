@@ -24,7 +24,7 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 [![supported python versions](https://img.shields.io/pypi/pyversions/damagescanner)](https://pypi.python.org/project/damagescanner/)
 
 **Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm), 
-[xarray](https://docs.xarray.dev/en/stable/), [pyproj]https://pyproj4.github.io/pyproj/stable/) 
+[xarray](https://docs.xarray.dev/en/stable/), [pyproj](https://pyproj4.github.io/pyproj/stable/) 
 
 
 1. Open the python environment in your command prompt or bash in which you want to install this package.

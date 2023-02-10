@@ -41,7 +41,7 @@ setup(
 
     install_requires=[
         "geopandas",
-        "pandas",
+        "pandas>=1.4",
         "pygeos",
         "xarray",
         "rasterio",
