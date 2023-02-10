@@ -126,3 +126,6 @@ gams_runs/
 
 # Figures
 figures/*
+
+# Data
+examples/C3S_fp_era5_sd_20131028_95_0_Christian_v1.nc

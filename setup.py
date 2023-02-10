@@ -16,7 +16,7 @@ def readme():
 
 setup(
     name="damagescanner",
-    version="0.5.0",
+    version="0.6.0",
     license="MIT License",
     description='Damage assessment tool for natural disasters',
     long_description=readme(),
@@ -40,10 +40,12 @@ setup(
     ],
 
     install_requires=[
-        "shapely",
         "geopandas",
         "pandas",
+        "pygeos",
+        "xarray",
         "rasterio",
+        "rioxarray",
         "numpy",
         "matplotlib",
         "scipy",
