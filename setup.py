@@ -40,9 +40,8 @@ setup(
     ],
 
     install_requires=[
+        "pandas>=1.4,<1.5",
         "geopandas",
-        "cython",
-        "pandas>=1.4",
         "pygeos",
         "xarray",
         "rasterio",
