@@ -203,9 +203,9 @@ def RasterScanner(landuse_map,
     damagemap[area] = alldamage
 
     # create pandas dataframe with output
-    loss_df = pd.DataFrame(damagebin.astype(dtype),
+    damage_df = pd.DataFrame(damagebin.astype(dtype),
                            columns=['landuse',
-                                    'losses']).groupby('landuse').sum()
+                                    'damages']).groupby('landuse').sum()
 
     if save:
         crs = kwargs.get('crs', src.crs)
@@ -217,8 +217,8 @@ def RasterScanner(landuse_map,
         scenario_name = check_scenario_name(kwargs)
         path_prefix = p_join(output_path, scenario_name)
 
-        loss_fn = '{}_losses.csv'.format(path_prefix)
-        loss_df.to_csv(loss_fn)
+        damage_fn = '{}_damages.csv'.format(path_prefix)
+        damage_df.to_csv(damage_fn)
 
         dmap_fn = '{}_damagemap.tif'.format(path_prefix)
         rst_opts = {
@@ -428,5 +428,18 @@ def VectorScanner(exposure_file,
         
     damaged_objects = exposure.merge(pd.DataFrame(collect_output,columns=['index','damage']),
                                                           left_index=True,right_on='index')[['obj_type','geometry','damage']]
-    
-    return damaged_objects
+
+
+    if save == True:
+        # requires adding output_path and scenario_name to function call
+        # If output path is not defined, will place file in current directory
+        output_path = check_output_path(kwargs)
+        scenario_name = check_scenario_name(kwargs)
+        path_prefix = p_join(output_path, scenario_name)
+
+        damage_fn = f'{path_prefix}_damages.csv'
+        damaged_objects.to_csv(damage_fn)
+        return damaged_objects
+        
+    else:
+        return damaged_objects 
