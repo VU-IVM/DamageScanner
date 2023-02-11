@@ -45,6 +45,7 @@ extensions = [
     "autoapi.extension",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    "autoapi.extension",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
