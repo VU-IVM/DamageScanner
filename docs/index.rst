@@ -50,10 +50,3 @@ Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICE
 
    getstarted
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
