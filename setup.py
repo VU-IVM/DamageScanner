@@ -40,15 +40,13 @@ setup(
     ],
 
     install_requires=[
-        "pandas>=1.4,<1.5",
+        "pandas",
         "geopandas",
-        "pygeos",
         "xarray",
         "rasterio",
         "rioxarray",
         "numpy",
         "matplotlib",
-        "scipy",
         "tqdm"
     ]
 )

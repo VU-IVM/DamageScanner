@@ -18,8 +18,8 @@ from os.path import join as p_join
 import warnings
 
 
-from vector import reproject,get_damage_per_object
-from raster import match
+from damagescanner.vector import reproject,get_damage_per_object
+from damagescanner.raster import match
 
 
 def check_output_path(given_args):
@@ -57,6 +57,9 @@ def RasterScanner(landuse_file,
                   hazard_file,
                   curve_path,
                   maxdam_path,
+                  lu_crs=28992,
+                  haz_crs=4326,                   
+                  hazard_col='FX',                  
                   dtype = np.int32,
                   save=False,
                   **kwargs):
@@ -70,7 +73,7 @@ def RasterScanner(landuse_file,
         has to be exactly the same as the inundation map.
      
         *hazard_file* : GeoTiff or netCDF4 with hazard intensity per grid cell. Make sure 
-        that the unit of the inundation map corresponds with the unit of the 
+        that the unit of the hazard map corresponds with the unit of the 
         first column of the curves file.
      
         *curve_path* : File with the stage-damage curves of the different 
@@ -90,9 +93,12 @@ def RasterScanner(landuse_file,
         *nan_value* : if nan_value is provided, will mask the inundation file. 
         This option can significantly fasten computations
         
-        *cell_size* : If both the landuse and inundation map are numpy arrays, 
+        *cell_size* : If both the landuse and hazard map are numpy arrays, 
         manually set the cell size.
-        
+
+        *resolution* : If landuse is a numpy array, but the hazard map 
+        is a netcdf, you need to specify the resolution of the landuse map.
+
         *output_path* : Specify where files should be saved.
         
         *scenario_name*: Give a unique name for the files that are going to be saved.
@@ -118,6 +124,8 @@ def RasterScanner(landuse_file,
         with rasterio.open(landuse_file) as src:
             landuse = src.read()[0, :, :]
             transform = src.transform
+            resolution = src.res[0]
+            cellsize = src.res[0] * src.res[1]
     else:
         landuse = landuse_file.copy()
 
@@ -131,8 +139,66 @@ def RasterScanner(landuse_file,
                 transform = src.transform
                 
         elif hazard_file.endswith('.nc'):
-            hazard = xr.open_dataset(hazard_file)    
-            #complete this part
+
+            # Open the hazard netcdf file and store it in the hazard variable
+            hazard = xr.open_dataset(hazard_file)
+
+            # Set the crs of the hazard variable to haz_crs
+            hazard.rio.write_crs(haz_crs, inplace=True)
+
+            # Rename the latitude and longitude variables to 'y' and 'x' respectively
+            hazard = hazard.rename({'Latitude': 'y','Longitude': 'x'})
+
+            # Set the x and y dimensions in the hazard variable to 'x' and 'y' respectively
+            hazard.rio.set_spatial_dims(x_dim="x",y_dim="y", inplace=True)
+
+            # Open the landuse geotiff file and store it in the landuse variable
+            landuse = xr.open_dataset(landuse_file, engine="rasterio")
+
+            # Set the crs of the landuse variable to lu_crs
+            landuse.rio.write_crs(lu_crs,inplace=True)
+
+            # Reproject the landuse variable from EPSG:4326 to EPSG:3857
+            landuse = landuse.rio.reproject("EPSG:3857",resolution=resolution)
+
+            # Get the minimum longitude and latitude values in the landuse variable
+            min_lon = landuse.x.min().to_dict()['data']
+            min_lat = landuse.y.min().to_dict()['data']
+
+            # Get the maximum longitude and latitude values in the landuse variable
+            max_lon = landuse.x.max().to_dict()['data']
+            max_lat = landuse.y.max().to_dict()['data']
+
+            # Create a bounding box using the minimum and maximum latitude and longitude values
+            area = gpd.GeoDataFrame([shapely.box(min_lon,min_lat,max_lon, max_lat)],columns=['geometry'])
+
+            # Set the crs of the bounding box to EPSG:3857
+            area.crs = 'epsg:3857'
+
+            # Convert the crs of the bounding box to EPSG:4326
+            area = area.to_crs('epsg:4326')
+
+            # Clip the hazard variable to the extent of the bounding box
+            hazard = hazard.rio.clip(area.geometry.values, area.crs)
+
+            # Reproject the hazard variable to EPSG:3857 with the desired resolution
+            hazard = hazard.rio.reproject("EPSG:3857",resolution=resolution)
+
+            # Clip the hazard variable again to the extent of the bounding box
+            hazard = hazard.rio.clip(area.geometry.values, area.crs)
+
+            # If the hazard variable has fewer columns and rows than the landuse variable, reproject the landuse variable to match the hazard variable
+            if (len(hazard.x)<len(landuse.x)) & (len(hazard.y)<len(landuse.y)):
+                landuse= landuse.rio.reproject_match(hazard)
+
+            # If the hazard variable has more columns and rows than the landuse variable, reproject the hazard variable to match the landuse variable
+
+            elif (len(hazard.x)>len(landuse.x)) & (len(hazard.y)>len(landuse.y)):
+                hazard = hazard.rio.reproject_match(landuse)
+
+            # Convert the hazard and landuse variable to a numpy array
+            landuse = landuse['band_data'].to_numpy()[0,:,:]
+            hazard = hazard[hazard_col].to_numpy()[0,:,:]
         
         else:
             hazard = hazard_file.copy()
@@ -387,6 +453,8 @@ def VectorScanner(exposure_file,
             'ERROR: hazard data should be a GeoTiff, a netCDF4, a shapefile, a GeoDataFrame \
               or any other georeferenced format that can be read by xarray or geopandas'
         )
+
+    print("PROGRESS: Exposure and hazard data loaded")
 
     #check if exposure and hazard data are in the same CRS and in a CRS in meters
     CRS_exposure = pyproj.CRS.from_epsg(exp_crs)
