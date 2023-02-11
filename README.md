@@ -1,4 +1,4 @@
-# DamageScanner: direct damage assessments for natural disasters
+# DamageScanner: direct damage assessments for natural hazards
 
 <img align="right" width="200" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/master/docs/ds_logo.png">
 
