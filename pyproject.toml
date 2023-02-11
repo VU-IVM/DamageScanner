@@ -7,7 +7,7 @@ authors = [
 
 license = {text = "MIT License"}
 description = "Direct damage assessments for natural disasters"
-keywords = ["GIS", "natural_hazards", "geopandas"]
+keywords = ["GIS", "natural hazards", "damage assessment", "remote sensing", "raster", "vector", "geospatial"]
 classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
@@ -30,8 +30,6 @@ dependencies = [
     "shapely >= 2.0",
 ]
 
-[project.readme]
-text = """\
-A python toolkit for direct damage assessments for natural disasters. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation).
-"""
-content-type = "text/x-rst"
+[project.urls]
+"Homepage" = "https://github.com/ElcoK/DamageScanner"
+"Documentation" = "https://damagescanner.readthedocs.io/en/latest/"

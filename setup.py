@@ -1,8 +1,14 @@
 from setuptools import setup
 
+def long_description():
+    with open('README.md', encoding='utf-8') as f:
+        return f.read()
+
 setup(
-    name='damagescanner',
-    version='0.6.0',
+    name='damagescanner',    
+    version='0.6.1',
+    long_description=long_description(),
+    long_description_content_type='text/markdown',    
     install_requires=[
     "geopandas",
     "matplotlib",	
@@ -14,5 +20,9 @@ setup(
     "packaging",
     "pandas",
     "shapely",
-    ]
+    ],
+    project_urls={
+        'GitHub': 'https://github.com/ElcoK/DamageScanner'
+    },
+
 )
