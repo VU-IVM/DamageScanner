@@ -39,6 +39,7 @@ snowballstemmer==2.2.0
 sphinx==5.0.2
     # via
     #   -r docs/requirements.in
+sphinx-autoapi>=1.8.0
     #   sphinx-rtd-theme
 sphinx-rtd-theme==1.0.0
     # via -r docs/requirements.in
