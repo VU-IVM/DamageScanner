@@ -49,4 +49,5 @@ Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICE
    :caption: Contents:
 
    getstarted
+   main
 
