@@ -39,16 +39,6 @@ If you use the **DamageScanner** in your work, please cite the package directly:
 
 * Koks. E.E. (2022). DamageScanner: Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
-Here's an example BibTeX entry:
-
-        @misc{damagescannerPython,
-              author       = {Koks, E.E.},
-              title        = {DamageScanner: Python tool for disaster damage assessments},
-              year         = 2019,
-              doi          = {10.5281/zenodo.2551015},
-              url          = {http://doi.org/10.5281/zenodo.2551015}}
-
-
 License
 #######
 
