@@ -1,0 +1,22 @@
+name: ds_env
+
+channels:
+    - conda-forge
+
+dependencies:
+        - python=3.10
+        - gdal
+        - numpy
+        - geopandas
+        - rasterio
+        - matplotlib
+        - tqdm
+        - pip
+        - jupyterlab
+        - xlrd
+        - pyproj
+        - xarray
+        - rioxarray
+        - osmnx
+   
+          

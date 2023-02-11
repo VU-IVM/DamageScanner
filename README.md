@@ -38,6 +38,22 @@ OR:
 3. Type ``python setup.py install`` and it should install itself into your python environment.
 4. Now you can import the package like any other package!
 
+## Create testing environment
+Recommended option is to use a [miniconda](https://conda.io/miniconda.html)
+environment to work in for this project, relying on conda to handle some of the
+trickier library dependencies.
+
+```bash
+
+# Add conda-forge channel for extra packages
+conda config --add channels conda-forge
+
+# Create a conda environment for the project and install packages
+conda env create -f environment.yml
+activate ds_env
+
+```
+
 ## Documentation
 [![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
 

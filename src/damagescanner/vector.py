@@ -1,63 +1,68 @@
+import shapely
 import geopandas
 import pandas
 from osgeo import ogr,gdal
 import os
 import numpy as np
 from tqdm import tqdm
-import pygeos
 import pyproj
 
 
-def query_b(geoType,keyCol,**valConstraint):
+def query_b(geo_type, key_col, **val_constraint):
     """
-    This function builds an SQL query from the values passed to the retrieve() function.
+    Builds an SQL query from the values passed to the function.
     Arguments:
-         *geoType* : Type of geometry (osm layer) to search for.
-         *keyCol* : A list of keys/columns that should be selected from the layer.
-         ***valConstraint* : A dictionary of constraints for the values. e.g. WHERE 'value'>20 or 'value'='constraint'
+            geo_type : Type of geometry (osm layer) to search for.
+            key_col : A list of keys/columns that should be selected from the layer.
+            val_constraint : A dictionary of constraints for the values. e.g. WHERE 'value'>20 or 'value'='constraint'
     Returns:
-        *string: : a SQL query string.
+        string: A SQL query string.
     """
-    query = "SELECT " + "osm_id"
-    for a in keyCol: query+= ","+ a  
-    query += " FROM " + geoType + " WHERE "
-    # If there are values in the dictionary, add constraint clauses
-    if valConstraint: 
-        for a in [*valConstraint]:
-            # For each value of the key, add the constraint
-            for b in valConstraint[a]: query += a + b
-        query+= " AND "
-    # Always ensures the first key/col provided is not Null.
-    query+= ""+str(keyCol[0]) +" IS NOT NULL" 
-    return query 
+    query = "SELECT osm_id"
+    
+    for column in key_col:
+        query += ", " + column
+
+    query += " FROM " + geo_type + " WHERE "
+
+    if val_constraint:
+        constraint_clauses = []
+        for key, values in val_constraint.items():
+            for value in values:
+                constraint_clauses.append(f"{key} {value}")
+        query += " AND ".join(constraint_clauses) + " AND "
+        
+    query += f"{key_col[0]} IS NOT NULL"
+    return query
 
 
-def retrieve(osm_path,geoType,keyCol,**valConstraint):
+def retrieve(osm_path, geo_type, key_col, **val_constraint):
     """
     Function to extract specified geometry and keys/values from OpenStreetMap
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.     
-        *geoType* : Type of Geometry to retrieve. e.g. lines, multipolygons, etc.
-        *keyCol* : These keys will be returned as columns in the dataframe.
-        ***valConstraint: A dictionary specifiying the value constraints.  
+        *geo_type* : Type of Geometry to retrieve. e.g. lines, multipolygons, etc.
+        *key_col* : These keys will be returned as columns in the dataframe.
+        ***val_constraint: A dictionary specifying the value constraints.  
         A key can have multiple values (as a list) for more than one constraint for key/value.  
     Returns:
         *GeoDataFrame* : a geopandas GeoDataFrame with all columns, geometries, and constraints specified.    
     """
-    driver=ogr.GetDriverByName('OSM')
+    driver = ogr.GetDriverByName('OSM')
     data = driver.Open(osm_path)
-    query = query_b(geoType,keyCol,**valConstraint)
+    query = query_b(geo_type, key_col, **val_constraint)
     sql_lyr = data.ExecuteSQL(query)
-    features =[]
+    features = []
+
     # cl = columns 
     cl = ['osm_id'] 
-    for a in keyCol: cl.append(a)
+    for a in key_col: cl.append(a)
     if data is not None:
         for feature in sql_lyr:
             try:
-                if feature.GetField(keyCol[0]) is not None:
-                    shapely_geo = pygeos.from_wkt(feature.geometry().ExportToWkt()) 
+                if feature.GetField(key_col[0]) is not None:
+                    shapely_geo = shapely.from_wkt(feature.geometry().ExportToWkt()) 
                     if shapely_geo is None:
                         continue
                     # field will become a row in the dataframe.
@@ -71,10 +76,10 @@ def retrieve(osm_path,geoType,keyCol,**valConstraint):
         print("ERROR: Nonetype error when requesting SQL. Check required.")    
     cl.append('geometry')                   
     if len(features) > 0:
-        return geopandas.GeoDataFrame(features,columns=cl,crs={'init': 'epsg:4326'})
+        return geopandas.GeoDataFrame(features, columns=cl, crs={'init': 'epsg:4326'})
     else:
         print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','geometry'],crs={'init': 'epsg:4326'})
+        return geopandas.GeoDataFrame(columns=['osm_id','geometry'], crs={'init': 'epsg:4326'})
 
 def landuse(osm_path):
     """
@@ -213,29 +218,29 @@ def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
         _type_: _description_
     """    
     geometries = df_ds['geometry']
-    coords = pygeos.get_coordinates(geometries)
+    coords = shapely.get_coordinates(geometries)
     transformer=pyproj.Transformer.from_crs(current_crs, approximate_crs,always_xy=True)
     new_coords = transformer.transform(coords[:, 0], coords[:, 1])
     
-    return pygeos.set_coordinates(geometries.copy(), np.array(new_coords).T) 
+    return shapely.set_coordinates(geometries.copy(), np.array(new_coords).T) 
     
 def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
     """_summary_
 
     Args:
-        obj (_type_): _description_
-        df_ds (_type_): _description_
-        objects (_type_): _description_
-        curves (_type_): _description_
-        maxdam (_type_): _description_
+        obj (): The object for which we want to calculate the damage.
+        df_ds (pandas DataFrame): The dataframe with the hazard points.
+        objects (pandas DataFrame): The dataframe with the objects.
+        curves (pandas DataFrame): The dataframe with the vulnerability curves.
+        maxdam (dictionary): The dictionary with the maximum damage per object type.
 
     Returns:
-        _type_: _description_
+        _type_: The damage per object.
     """  
 
     # find the exact hazard overlays:
     get_hazard_points = df_ds.iloc[obj[1]['hazard_point'].values].reset_index()
-    get_hazard_points = get_hazard_points.loc[pygeos.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
+    get_hazard_points = get_hazard_points.loc[shapely.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
 
     object_type = objects.iloc[obj[0]].obj_type
     object_geom = objects.iloc[obj[0]].geometry
@@ -249,14 +254,14 @@ def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
         return obj[0],0
     else:
         
-        if pygeos.get_type_id(object_geom) == 1:
-            get_hazard_points['overlay_meters'] = pygeos.length(pygeos.intersection(get_hazard_points.geometry.values,object_geom))
+        if shapely.get_type_id(object_geom) == 1:
+            get_hazard_points['overlay_meters'] = shapely.length(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*get_hazard_points.overlay_meters*maxdam_object)
         
-        elif (pygeos.get_type_id(object_geom) == 3) | (pygeos.get_type_id(object_geom) == 6):
-            get_hazard_points['overlay_m2'] = pygeos.area(pygeos.intersection(get_hazard_points.geometry.values,object_geom))
+        elif (shapely.get_type_id(object_geom) == 3) | (shapely.get_type_id(object_geom) == 6):
+            get_hazard_points['overlay_m2'] = shapely.area(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],get_hazard_points.apply(lambda x: np.interp(x.haz_val, hazard_intensity, fragility_values)*maxdam_object*x.overlay_m2,axis=1).sum()     
         
         else:
-            print(pygeos.get_type_id(object_geom))
+            print(shapely.get_type_id(object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*maxdam_object)
