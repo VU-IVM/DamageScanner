@@ -12,7 +12,7 @@
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/damagescanner?color=yellow&label=Downloads)](https://pypistats.org/packages/damagescanner)
 
 
-A python toolkit for direct damage assessments for natural disasters. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
+A python toolkit for direct damage assessments for natural hazards. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
 
 **Please note:** This package is still in development phase. In case of any problems, or if you have any suggestions for improvements, please raise an *issue*. 
 
@@ -61,13 +61,13 @@ Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this 
 ## How to cite:
 If you use the **DamageScanner** in your work, please cite the package directly:
 
-* Koks. E.E. (2022). DamageScanner: Python tool for disaster damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
+* Koks. E.E. (2022). DamageScanner: Python tool for natural hazard damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
 Here's an example BibTeX entry:
 
         @misc{damagescannerPython,
               author       = {Koks, E.E.},
-              title        = {DamageScanner: Python tool for disaster damage assessments},
+              title        = {DamageScanner: Python tool for natural hazard damage assessments},
               year         = 2019,
               doi          = {10.5281/zenodo.2551015},
               url          = {http://doi.org/10.5281/zenodo.2551015}
