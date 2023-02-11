@@ -48,6 +48,6 @@ Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICE
    :maxdepth: 2
    :caption: Contents:
 
+   index
    getstarted
-   main
 
