@@ -6,9 +6,9 @@ Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
 # Get all the needed modules
 import os
 import rasterio
-import pygeos
 import xarray as xr
 import numpy as np
+import shapely
 import pandas as pd
 import geopandas as gpd
 from affine import Affine
@@ -320,12 +320,9 @@ def VectorScanner(exposure_file,
     # load exposure data
     if isinstance(exposure_file, str):
         exposure = gpd.read_file(exposure_file)
-        exposure = pd.DataFrame(exposure.copy())
-        exposure.geometry = pygeos.from_shapely(exposure.geometry)
     
     elif (isinstance(exposure_file, gpd.GeoDataFrame) | isinstance(exposure_file, pd.DataFrame)):
-        exposure = pd.DataFrame(exposure_file.copy())
-        exposure.geometry = pygeos.from_shapely(exposure.geometry)
+        exposure = gpd.GeoDataFrame(exposure_file.copy())
 
     else:
         print(
@@ -348,14 +345,14 @@ def VectorScanner(exposure_file,
             # drop all non values and zeros to reduce size
             hazard = hazard.loc[~(hazard['band_data'].isna() 
                                                       | hazard['band_data']<=0)].reset_index(drop=True)
-            
+                    
             # create geometry values and drop lat lon columns
-            hazard['geometry'] = [pygeos.points(x) for x in list(zip(hazard['x'],hazard['y']))]
+            hazard['geometry'] = shapely.points(np.array(list(zip(hazard['x'],hazard['y']))))
             hazard = hazard.drop(['x','y','band','spatial_ref'],axis=1)
 
             #and turn them into squares again:
-            hazard.geometry= pygeos.buffer(hazard.geometry,
-                                               radius=cell_size/2,cap_style='square').values
+            hazard.geometry= shapely.buffer(hazard.geometry,
+                                               distance=cell_size/2,cap_style='square').values
             
         elif hazard_file.endswith('.nc'):
            #load dataset
@@ -367,13 +364,14 @@ def VectorScanner(exposure_file,
             # drop all non values and below zeros to reduce size. Might cause issues for cold waves
             hazard = hazard.loc[~(hazard[hazard_col].isna() | hazard[hazard_col]<=0)].reset_index(drop=True)
             
-            # create geometry values and drop lat lon columns
-            hazard['geometry'] = [pygeos.points(x) for x in list(zip(hazard['x'],hazard['y']))]
+           # create geometry values and drop lat lon columns
+            hazard['geometry'] = shapely.points(np.array(list(zip(hazard['x'],hazard['y']))))
             hazard = hazard.drop(['x','y','band','spatial_ref'],axis=1)
 
             #and turn them into squares again:
-            hazard.geometry= pygeos.buffer(hazard.geometry,
-                                               radius=cell_size/2,cap_style='square').values
+            hazard.geometry= shapely.buffer(hazard.geometry,
+                                               distance=cell_size/2,cap_style='square').values
+     
 
 
         elif (hazard_file.endswith('.shp') | hazard_file.endswith('.gpkg')):
@@ -383,8 +381,7 @@ def VectorScanner(exposure_file,
                  )          
 
     elif (isinstance(hazard_file, gpd.GeoDataFrame) | isinstance(hazard_file, pd.DataFrame)):
-        hazard = pd.DataFrame(hazard_file.copy())
-        hazard.geometry = pygeos.from_shapely(hazard.geometry)
+        hazard = gpd.GeoDataFrame(hazard_file.copy())
     else:
         raise ValueError(
             'ERROR: hazard data should be a GeoTiff, a netCDF4, a shapefile, a GeoDataFrame \
@@ -441,12 +438,12 @@ def VectorScanner(exposure_file,
     tqdm_print = kwargs.get('print_tqdm', True)
 
     #overlay hazard and exposure data
-    hazard_tree = pygeos.STRtree(hazard.geometry.values)
+    hazard_tree = shapely.STRtree(hazard.geometry.values)
     
-    if (pygeos.get_type_id(exposure.iloc[0].geometry) == 3) | (pygeos.get_type_id(exposure.iloc[0].geometry) == 6):
-        overlay = hazard_tree.query_bulk(exposure.geometry,predicate='intersects')    
+    if (shapely.get_type_id(exposure.iloc[0].geometry) == 3) | (shapely.get_type_id(exposure.iloc[0].geometry) == 6):
+        overlay = hazard_tree.query(exposure.geometry,predicate='intersects')    
     else:
-        overlay = hazard_tree.query_bulk(pygeos.buffer(exposure.geometry.values,radius=cell_size*2),predicate='intersects')
+        overlay = hazard_tree.query(shapely.buffer(exposure.geometry.values,distance=cell_size*2),predicate='intersects')
     
     overlay_exp_haz = pd.DataFrame(overlay.T,columns=['obj_type','hazard_point'])
     

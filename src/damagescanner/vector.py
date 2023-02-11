@@ -1,10 +1,11 @@
+import shapely
 import geopandas
 import pandas
 from osgeo import ogr,gdal
 import os
 import numpy as np
 from tqdm import tqdm
-import pygeos
+#import pygeos
 import pyproj
 
 
@@ -57,7 +58,7 @@ def retrieve(osm_path,geoType,keyCol,**valConstraint):
         for feature in sql_lyr:
             try:
                 if feature.GetField(keyCol[0]) is not None:
-                    shapely_geo = pygeos.from_wkt(feature.geometry().ExportToWkt()) 
+                    shapely_geo = shapely.from_wkt(feature.geometry().ExportToWkt()) 
                     if shapely_geo is None:
                         continue
                     # field will become a row in the dataframe.
@@ -213,11 +214,11 @@ def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
         _type_: _description_
     """    
     geometries = df_ds['geometry']
-    coords = pygeos.get_coordinates(geometries)
+    coords = shapely.get_coordinates(geometries)
     transformer=pyproj.Transformer.from_crs(current_crs, approximate_crs,always_xy=True)
     new_coords = transformer.transform(coords[:, 0], coords[:, 1])
     
-    return pygeos.set_coordinates(geometries.copy(), np.array(new_coords).T) 
+    return shapely.set_coordinates(geometries.copy(), np.array(new_coords).T) 
     
 def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
     """_summary_
@@ -235,7 +236,7 @@ def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
 
     # find the exact hazard overlays:
     get_hazard_points = df_ds.iloc[obj[1]['hazard_point'].values].reset_index()
-    get_hazard_points = get_hazard_points.loc[pygeos.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
+    get_hazard_points = get_hazard_points.loc[shapely.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
 
     object_type = objects.iloc[obj[0]].obj_type
     object_geom = objects.iloc[obj[0]].geometry
@@ -249,14 +250,14 @@ def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
         return obj[0],0
     else:
         
-        if pygeos.get_type_id(object_geom) == 1:
-            get_hazard_points['overlay_meters'] = pygeos.length(pygeos.intersection(get_hazard_points.geometry.values,object_geom))
+        if shapely.get_type_id(object_geom) == 1:
+            get_hazard_points['overlay_meters'] = shapely.length(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*get_hazard_points.overlay_meters*maxdam_object)
         
-        elif (pygeos.get_type_id(object_geom) == 3) | (pygeos.get_type_id(object_geom) == 6):
-            get_hazard_points['overlay_m2'] = pygeos.area(pygeos.intersection(get_hazard_points.geometry.values,object_geom))
+        elif (shapely.get_type_id(object_geom) == 3) | (shapely.get_type_id(object_geom) == 6):
+            get_hazard_points['overlay_m2'] = shapely.area(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],get_hazard_points.apply(lambda x: np.interp(x.haz_val, hazard_intensity, fragility_values)*maxdam_object*x.overlay_m2,axis=1).sum()     
         
         else:
-            print(pygeos.get_type_id(object_geom))
+            print(shapely.get_type_id(object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*maxdam_object)
