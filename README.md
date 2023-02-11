@@ -21,7 +21,6 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 
 ## Installation
 [![workflow pypi badge](https://img.shields.io/pypi/v/damagescanner.svg?colorB=blue)](https://pypi.python.org/project/damagescanner/)
-[![supported python versions](https://img.shields.io/pypi/pyversions/damagescanner)](https://pypi.python.org/project/damagescanner/)
 
 **Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm), 
 [xarray](https://docs.xarray.dev/en/stable/), [pyproj](https://pyproj4.github.io/pyproj/stable/) 
