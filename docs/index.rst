@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+==============================================================
 DamageScanner: direct damage assessments for natural disasters
 ==============================================================
 
@@ -42,10 +43,11 @@ If you use the **DamageScanner** in your work, please cite the package directly:
 License
 #######
 
-Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICENSE).
+Copyright (C) 2022 Elco Koks. All versions released under the **MIT license**.
+
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    index
