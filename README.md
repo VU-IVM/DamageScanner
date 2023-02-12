@@ -68,7 +68,7 @@ Here's an example BibTeX entry:
         @misc{damagescannerPython,
               author       = {Koks, E.E.},
               title        = {DamageScanner: Python tool for natural hazard damage assessments},
-              year         = 2019,
+              year         = 2022,
               doi          = {10.5281/zenodo.2551015},
               url          = {http://doi.org/10.5281/zenodo.2551015}
         }

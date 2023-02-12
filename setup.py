@@ -6,7 +6,7 @@ def long_description():
 
 setup(
     name='damagescanner',    
-    version='0.6.1',
+    version='0.6.2',
     long_description=long_description(),
     long_description_content_type='text/markdown',    
     install_requires=[

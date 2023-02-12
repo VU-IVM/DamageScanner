@@ -13,7 +13,16 @@ from damagescanner.core import RasterScanner,VectorScanner
 
 def monetary_risk(RPS,loss_list):
     """
+    Calculates the monetary risk based on the return periods and the losses.
+
+    Arguments:
+        *RPS* : List of return periods (in years) for which the losses are calculated.
+        *loss_list* : List of losses (in euro) for each return period.
+
+    Returns:
+        *total_risk* : Returns the total risk for the area
     """
+    
     return integrate.simps(y=loss_list[::-1], x=RPS[::-1])
 
 def RasterBased(landuse_ras,inundation_path,curve_path,maxdam_path,per_landuse=False):

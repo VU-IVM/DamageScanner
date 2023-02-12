@@ -14,6 +14,8 @@ from rasterio.plot import show
 
 def landuse_vector(landuse,color_dict={},save=False,**kwargs):
     """
+    Plots a vector map of the land-use classes.
+
     Arguments:
         *landuse_map* : Shapefile, Pandas DataFrame or Geopandas GeoDataFrame 
         with land-use information of the area.
@@ -94,6 +96,8 @@ def landuse_vector(landuse,color_dict={},save=False,**kwargs):
 
 def landuse_raster(landuse_ras,color_dict={},save=False,**kwargs):
     """
+    Plots a raster map of the land-use classes.
+
     Arguments:
         *landuse_map* : path to GeoTiff with land-use information per grid cell. 
 
@@ -172,6 +176,8 @@ def landuse_raster(landuse_ras,color_dict={},save=False,**kwargs):
 
 def inundation_map(inun_map,lu_raster=False,lu_vector=False,save=False,**kwargs):
     """
+    Plots a map of the inundation depth.
+
     Arguments:
         *inun_map* : GeoTiff with inundation depth per grid cell.
 
@@ -229,6 +235,8 @@ def inundation_map(inun_map,lu_raster=False,lu_vector=False,save=False,**kwargs)
      
 def damagemap_vector(losses,bins=[],save=False,**kwargs):
     """
+    Plots a map of the damage per land-use class.
+
     Arguments:
         *losses* : Shapefile, Pandas DataFrame or Geopandas GeoDataFrame 
         with land-use information of the area.
@@ -283,6 +291,9 @@ def damagemap_vector(losses,bins=[],save=False,**kwargs):
         
 def damagemap_raster(damagemap,landuse,lu_raster=False,bins=[],save=False,**kwargs):
     """
+
+    Plots a map of the damage per cell.
+
     Arguments:
         *damagemap* : Numpy array of loss output.
 

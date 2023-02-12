@@ -11,6 +11,7 @@ import pyproj
 def query_b(geo_type, key_col, **val_constraint):
     """
     Builds an SQL query from the values passed to the function.
+    
     Arguments:
             geo_type : Type of geometry (osm layer) to search for.
             key_col : A list of keys/columns that should be selected from the layer.
@@ -38,7 +39,8 @@ def query_b(geo_type, key_col, **val_constraint):
 
 def retrieve(osm_path, geo_type, key_col, **val_constraint):
     """
-    Function to extract specified geometry and keys/values from OpenStreetMap
+    Function to extract specified geometry and keys/values from OpenStreetMap.
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.     
@@ -84,6 +86,7 @@ def retrieve(osm_path, geo_type, key_col, **val_constraint):
 def landuse(osm_path):
     """
     Function to extract land-use polygons from OpenStreetMap    
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.        
@@ -95,6 +98,7 @@ def landuse(osm_path):
 def buildings(osm_path):
     """
     Function to extract building polygons from OpenStreetMap    
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.        
@@ -106,6 +110,7 @@ def buildings(osm_path):
 def roads(osm_path):
     """
     Function to extract road linestrings from OpenStreetMap  
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.        
@@ -116,7 +121,8 @@ def roads(osm_path):
  
 def railway(osm_path):
     """
-    Function to extract railway linestrings from OpenStreetMap   
+    Function to extract railway linestrings from OpenStreetMap
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.       
@@ -128,6 +134,7 @@ def railway(osm_path):
 def ferries(osm_path):
     """
     Function to extract road linestrings from OpenStreetMap
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.
@@ -138,7 +145,8 @@ def ferries(osm_path):
 
 def electricity(osm_path):
     """
-    Function to extract railway linestrings from OpenStreetMap    
+    Function to extract railway linestrings from OpenStreetMap
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.        
@@ -149,7 +157,8 @@ def electricity(osm_path):
 
 def mainRoads(osm_path):
     """
-    Function to extract main road linestrings from OpenStreetMap    
+    Function to extract main road linestrings from OpenStreetMap  
+
     Arguments:
         *osm_path* : file path to the .osm.pbf file of the region 
         for which we want to do the analysis.        
@@ -207,10 +216,11 @@ def extract_value_other_gdf(x,gdf,col_name):
         return None
 
 def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
-    """_summary_
+    """
+    Function to reproject a GeoDataFrame to a different CRS.
 
     Args:
-        df_ds (_type_): _description_
+        df_ds (pandas DataFrame): _description_
         current_crs (str, optional): _description_. Defaults to "epsg:4326".
         approximate_crs (str, optional): _description_. Defaults to "epsg:3035".
 
@@ -225,43 +235,51 @@ def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
     return shapely.set_coordinates(geometries.copy(), np.array(new_coords).T) 
     
 def get_damage_per_object(obj,df_ds,objects,curves,maxdam):
-    """_summary_
+    """"
+    Function to calculate the damage per object.
 
     Args:
-        obj (): The object for which we want to calculate the damage.
+        obj (tuple): The object for which we want to calculate the damage.
         df_ds (pandas DataFrame): The dataframe with the hazard points.
         objects (pandas DataFrame): The dataframe with the objects.
         curves (pandas DataFrame): The dataframe with the vulnerability curves.
         maxdam (dictionary): The dictionary with the maximum damage per object type.
 
     Returns:
-        _type_: The damage per object.
+        tuple: The damage per object.
     """  
 
     # find the exact hazard overlays:
     get_hazard_points = df_ds.iloc[obj[1]['hazard_point'].values].reset_index()
     get_hazard_points = get_hazard_points.loc[shapely.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
 
+    # get the object type and the object geometry
     object_type = objects.iloc[obj[0]].obj_type
     object_geom = objects.iloc[obj[0]].geometry
     
+    # get the maximum damage for the object type
     maxdam_object = maxdam[object_type]
 
+    # get the vulnerability curves for the object type
     hazard_intensity = curves[object_type].index.values
     fragility_values = curves[object_type].values
                 
+    # if there are no hazard points, return 0 damage
     if len(get_hazard_points) == 0:
         return obj[0],0
     else:
         
+        # run the analysis for lines (object_type = 1, e.g. railway lines)
         if shapely.get_type_id(object_geom) == 1:
             get_hazard_points['overlay_meters'] = shapely.length(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*get_hazard_points.overlay_meters*maxdam_object)
         
+        # run the analysis for polygons (object_type = 2, e.g. buildings)
         elif (shapely.get_type_id(object_geom) == 3) | (shapely.get_type_id(object_geom) == 6):
             get_hazard_points['overlay_m2'] = shapely.area(shapely.intersection(get_hazard_points.geometry.values,object_geom))
             return obj[0],get_hazard_points.apply(lambda x: np.interp(x.haz_val, hazard_intensity, fragility_values)*maxdam_object*x.overlay_m2,axis=1).sum()     
         
+        # run the analysis for points (object_type = 0, e.g. hospitals)
         else:
             print(shapely.get_type_id(object_geom))
             return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*maxdam_object)
