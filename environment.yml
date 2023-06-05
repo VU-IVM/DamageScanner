@@ -1,4 +1,4 @@
-name: ds_env
+name: py310
 
 channels:
     - conda-forge
@@ -6,6 +6,7 @@ channels:
 dependencies:
         - python=3.10
         - gdal
+        - pygeos
         - numpy
         - geopandas
         - rasterio
@@ -17,6 +18,5 @@ dependencies:
         - pyproj
         - xarray
         - rioxarray
-        - osmnx
    
           

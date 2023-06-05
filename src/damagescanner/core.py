@@ -52,6 +52,75 @@ def check_scenario_name(given_args):
 
     return scenario_name
 
+def match_raster_to_vector(hazard,landuse,lu_crs,haz_crs,resolution,hazard_col):
+        
+    """ Matches the resolution and extent of a raster to a vector file.
+
+    Arguments:
+        *hazard* : netCDF4 with hazard intensity per grid cell.
+        *landuse* : netCDF4 with land-use information per grid cell.
+        *lu_crs* : EPSG code of the land-use file.
+        *haz_crs* : EPSG code of the hazard file.
+        *resolution* : Desired resolution of the raster file.
+        *hazard_col* : Name of the column in the hazard file that contains the hazard intensity.
+    """
+    # Set the crs of the hazard variable to haz_crs
+    hazard.rio.write_crs(haz_crs, inplace=True)
+
+    # Rename the latitude and longitude variables to 'y' and 'x' respectively
+    hazard = hazard.rename({'Latitude': 'y','Longitude': 'x'})
+
+    # Set the x and y dimensions in the hazard variable to 'x' and 'y' respectively
+    hazard.rio.set_spatial_dims(x_dim="x",y_dim="y", inplace=True)
+
+    # Set the crs of the landuse variable to lu_crs
+    landuse.rio.write_crs(lu_crs,inplace=True)
+
+    # Reproject the landuse variable from EPSG:4326 to EPSG:3857
+    landuse = landuse.rio.reproject("EPSG:3857",resolution=resolution)
+
+    # Get the minimum longitude and latitude values in the landuse variable
+    min_lon = landuse.x.min().to_dict()['data']
+    min_lat = landuse.y.min().to_dict()['data']
+
+    # Get the maximum longitude and latitude values in the landuse variable
+    max_lon = landuse.x.max().to_dict()['data']
+    max_lat = landuse.y.max().to_dict()['data']
+
+    # Create a bounding box using the minimum and maximum latitude and longitude values
+    area = gpd.GeoDataFrame([shapely.box(min_lon,min_lat,max_lon, max_lat)],columns=['geometry'])
+
+    # Set the crs of the bounding box to EPSG:3857
+    area.crs = 'epsg:3857'
+
+    # Convert the crs of the bounding box to EPSG:4326
+    area = area.to_crs('epsg:4326')
+
+    # Clip the hazard variable to the extent of the bounding box
+    hazard = hazard.rio.clip(area.geometry.values, area.crs)
+
+    # Reproject the hazard variable to EPSG:3857 with the desired resolution
+    hazard = hazard.rio.reproject("EPSG:3857",resolution=resolution)
+
+    # Clip the hazard variable again to the extent of the bounding box
+    hazard = hazard.rio.clip(area.geometry.values, area.crs)
+
+    # If the hazard variable has fewer columns and rows than the landuse variable, reproject 
+    # the landuse variable to match the hazard variable
+    if (len(hazard.x)<len(landuse.x)) & (len(hazard.y)<len(landuse.y)):
+        landuse= landuse.rio.reproject_match(hazard)
+
+    # If the hazard variable has more columns and rows than the landuse variable, 
+    # reproject the hazard variable to match the landuse variable
+
+    elif (len(hazard.x)>len(landuse.x)) & (len(hazard.y)>len(landuse.y)):
+        hazard = hazard.rio.reproject_match(landuse)
+
+    # Convert the hazard and landuse variable to a numpy array
+    landuse = landuse['band_data'].to_numpy()[0,:,:]
+    hazard = hazard[hazard_col].to_numpy()[0,:,:]
+
+    return hazard,landuse
 
 def RasterScanner(landuse_file,
                   hazard_file,
@@ -142,66 +211,22 @@ def RasterScanner(landuse_file,
 
             # Open the hazard netcdf file and store it in the hazard variable
             hazard = xr.open_dataset(hazard_file)
-
-            # Set the crs of the hazard variable to haz_crs
-            hazard.rio.write_crs(haz_crs, inplace=True)
-
-            # Rename the latitude and longitude variables to 'y' and 'x' respectively
-            hazard = hazard.rename({'Latitude': 'y','Longitude': 'x'})
-
-            # Set the x and y dimensions in the hazard variable to 'x' and 'y' respectively
-            hazard.rio.set_spatial_dims(x_dim="x",y_dim="y", inplace=True)
-
+    
             # Open the landuse geotiff file and store it in the landuse variable
             landuse = xr.open_dataset(landuse_file, engine="rasterio")
 
-            # Set the crs of the landuse variable to lu_crs
-            landuse.rio.write_crs(lu_crs,inplace=True)
+            # Match raster to vector
+            hazard,landuse = match_raster_to_vector(hazard,landuse,lu_crs,haz_crs,resolution,hazard_col)  
 
-            # Reproject the landuse variable from EPSG:4326 to EPSG:3857
-            landuse = landuse.rio.reproject("EPSG:3857",resolution=resolution)
+    elif isinstance(hazard_file,xr.Dataset):
+        # Open the landuse geotiff file and store it in the landuse variable
+        landuse = xr.open_dataset(landuse_file, engine="rasterio")
 
-            # Get the minimum longitude and latitude values in the landuse variable
-            min_lon = landuse.x.min().to_dict()['data']
-            min_lat = landuse.y.min().to_dict()['data']
+        # Match raster to vector
+        hazard,landuse = match_raster_to_vector(hazard_file,landuse,lu_crs,haz_crs,resolution,hazard_col)  
 
-            # Get the maximum longitude and latitude values in the landuse variable
-            max_lon = landuse.x.max().to_dict()['data']
-            max_lat = landuse.y.max().to_dict()['data']
-
-            # Create a bounding box using the minimum and maximum latitude and longitude values
-            area = gpd.GeoDataFrame([shapely.box(min_lon,min_lat,max_lon, max_lat)],columns=['geometry'])
-
-            # Set the crs of the bounding box to EPSG:3857
-            area.crs = 'epsg:3857'
-
-            # Convert the crs of the bounding box to EPSG:4326
-            area = area.to_crs('epsg:4326')
-
-            # Clip the hazard variable to the extent of the bounding box
-            hazard = hazard.rio.clip(area.geometry.values, area.crs)
-
-            # Reproject the hazard variable to EPSG:3857 with the desired resolution
-            hazard = hazard.rio.reproject("EPSG:3857",resolution=resolution)
-
-            # Clip the hazard variable again to the extent of the bounding box
-            hazard = hazard.rio.clip(area.geometry.values, area.crs)
-
-            # If the hazard variable has fewer columns and rows than the landuse variable, reproject the landuse variable to match the hazard variable
-            if (len(hazard.x)<len(landuse.x)) & (len(hazard.y)<len(landuse.y)):
-                landuse= landuse.rio.reproject_match(hazard)
-
-            # If the hazard variable has more columns and rows than the landuse variable, reproject the hazard variable to match the landuse variable
-
-            elif (len(hazard.x)>len(landuse.x)) & (len(hazard.y)>len(landuse.y)):
-                hazard = hazard.rio.reproject_match(landuse)
-
-            # Convert the hazard and landuse variable to a numpy array
-            landuse = landuse['band_data'].to_numpy()[0,:,:]
-            hazard = hazard[hazard_col].to_numpy()[0,:,:]
-        
-        else:
-            hazard = hazard_file.copy()
+    else:
+        hazard = hazard_file.copy()
 
     # check if land-use and hazard map have the same shape.
     if landuse.shape != hazard.shape:
@@ -460,9 +485,11 @@ def VectorScanner(exposure_file,
     CRS_exposure = pyproj.CRS.from_epsg(exp_crs)
     CRS_hazard = pyproj.CRS.from_epsg(haz_crs)
 
+    #get the unit name of the CRS
     exp_crs_unit_name = CRS_exposure.axis_info[0].unit_name
     haz_crs_unit_name = CRS_hazard.axis_info[0].unit_name
 
+    #reproject exposure and hazard data to the same CRS
     if exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'metre':
         exposure.geometry = reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = f"epsg:{haz_crs}")
     elif exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'degree':
@@ -515,17 +542,18 @@ def VectorScanner(exposure_file,
     
     overlay_exp_haz = pd.DataFrame(overlay.T,columns=['obj_type','hazard_point'])
     
-    #perform calculation
+    # Perform calculation
     collect_output = []
     
     for obj in tqdm(overlay_exp_haz.groupby('obj_type'),total=len(overlay_exp_haz.obj_type.unique()),
                                   desc='damage calculation'):
         collect_output.append(get_damage_per_object(obj,hazard,exposure,curves,maxdam))
-        
+    
+    # Merge results
     damaged_objects = exposure.merge(pd.DataFrame(collect_output,columns=['index','damage']),
                                                           left_index=True,right_on='index')[['obj_type','geometry','damage']]
 
-
+    # Save output
     if save == True:
         # requires adding output_path and scenario_name to function call
         # If output path is not defined, will place file in current directory
