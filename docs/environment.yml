@@ -1,0 +1,22 @@
+name: damagescanner
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - cartopy
+  - geopandas
+  - rasterio
+  - gdal
+  - numpy
+  - shapely>=2.0
+  - pandas
+  - tqdm
+  - jupyter
+  - matplotlib
+  - xarray
+  - rioxarray
+  - nbsphinx
+  - sphinx
+  - sphinx-autoapi>=3.0
+  - sphinx-rtd-theme

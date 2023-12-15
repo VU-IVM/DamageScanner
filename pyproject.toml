@@ -28,6 +28,7 @@ dependencies = [
     "packaging",
     "pandas >= 1.4.0",
     "shapely >= 2.0",
+    "tqdm >= 4.30",
 ]
 
 [tool.setuptools.package-data]

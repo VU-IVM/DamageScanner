@@ -1,4 +1,4 @@
-name: py311
+name: damagescanner
 
 channels:
     - conda-forge
