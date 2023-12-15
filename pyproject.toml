@@ -1,6 +1,10 @@
+[build-system]
+requires = ["setuptools>=64.0.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "damagescanner"
-dynamic = ["version"]
+version = 0.7
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
 ]
@@ -16,9 +20,9 @@ classifiers=[
         "Topic :: Utilities",
     ]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
-    "geopandas >= 0.12.2",
+    "geopandas >= 0.13",
     "matplotlib >= 3.0",	
     "numpy >= 1.20",
     "pyproj >= 3.0",
