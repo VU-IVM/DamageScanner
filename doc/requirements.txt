@@ -39,7 +39,6 @@ snowballstemmer==2.2.0
 sphinx==5.0.2
     # via
     #   -r requirements.in
-sphinx-autoapi>=1.8.0
     #   sphinx-rtd-theme
 sphinx-rtd-theme==1.0.0
     # via -r requirements.in
@@ -55,5 +54,5 @@ sphinxcontrib-qthelp==1.0.3
     # via sphinx
 sphinxcontrib-serializinghtml==1.1.5
     # via sphinx
-urllib3==1.26.9
+urllib3==1.26.18
     # via requests
