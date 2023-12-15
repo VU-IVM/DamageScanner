@@ -30,6 +30,13 @@ dependencies = [
     "shapely >= 2.0",
 ]
 
+[tool.setuptools.package-data]
+"*" = ["*.ini"]
+
+[project.optional-dependencies]
+tests = ["pytest"]
+docs = ["jupyter"]
+
 [project.urls]
 "Homepage" = "https://github.com/ElcoK/DamageScanner"
 "Documentation" = "https://damagescanner.readthedocs.io/en/latest/"
