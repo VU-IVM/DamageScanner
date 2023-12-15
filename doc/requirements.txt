@@ -32,14 +32,13 @@ pyparsing==3.0.9
     # via packaging
 pytz==2022.1
     # via babel
-requests==2.28.1
+requests==2.31.0
     # via sphinx
 snowballstemmer==2.2.0
     # via sphinx
 sphinx==5.0.2
     # via
     #   -r requirements.in
-sphinx-autoapi>=1.8.0
     #   sphinx-rtd-theme
 sphinx-rtd-theme==1.0.0
     # via -r requirements.in
