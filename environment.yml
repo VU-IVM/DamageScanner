@@ -1,12 +1,11 @@
-name: py310
+name: py311
 
 channels:
     - conda-forge
 
 dependencies:
-        - python=3.10
+        - python=3.11
         - gdal
-        - pygeos
         - numpy
         - geopandas
         - rasterio
@@ -17,6 +16,5 @@ dependencies:
         - xlrd
         - pyproj
         - xarray
-        - rioxarray
-   
+        - rioxarray   
           
