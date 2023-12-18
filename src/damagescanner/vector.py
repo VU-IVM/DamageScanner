@@ -1,173 +1,86 @@
 import shapely
-import geopandas
+import geopandas as gpd
 import pandas
-from osgeo import ogr,gdal
-import os
 import numpy as np
 from tqdm import tqdm
 import pyproj
 
 
-def query_b(geo_type, key_col, **val_constraint):
-    """
-    Builds an SQL query from the values passed to the function.
-    
-    Arguments:
-            geo_type : Type of geometry (osm layer) to search for.
-            key_col : A list of keys/columns that should be selected from the layer.
-            val_constraint : A dictionary of constraints for the values. e.g. WHERE 'value'>20 or 'value'='constraint'
-    Returns:
-        string: A SQL query string.
-    """
-    query = "SELECT osm_id"
-    
-    for column in key_col:
-        query += ", " + column
-
-    query += " FROM " + geo_type + " WHERE "
-
-    if val_constraint:
-        constraint_clauses = []
-        for key, values in val_constraint.items():
-            for value in values:
-                constraint_clauses.append(f"{key} {value}")
-        query += " AND ".join(constraint_clauses) + " AND "
+def match_raster_to_vector(hazard,landuse,lu_crs,haz_crs,resolution,hazard_col):
         
-    query += f"{key_col[0]} IS NOT NULL"
-    return query
-
-
-def retrieve(osm_path, geo_type, key_col, **val_constraint):
-    """
-    Function to extract specified geometry and keys/values from OpenStreetMap.
+    """ Matches the resolution and extent of a raster to a vector file.
 
     Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.     
-        *geo_type* : Type of Geometry to retrieve. e.g. lines, multipolygons, etc.
-        *key_col* : These keys will be returned as columns in the dataframe.
-        ***val_constraint: A dictionary specifying the value constraints.  
-        A key can have multiple values (as a list) for more than one constraint for key/value.  
+        *hazard* : netCDF4 with hazard intensity per grid cell.
+        *landuse* : netCDF4 with land-use information per grid cell.
+        *lu_crs* : EPSG code of the land-use file.
+        *haz_crs* : EPSG code of the hazard file.
+        *resolution* : Desired resolution of the raster file.
+        *hazard_col* : Name of the column in the hazard file that contains the hazard intensity.
+
     Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all columns, geometries, and constraints specified.    
+        *hazard* : DataSet with hazard intensity per grid cell.
+        
+        *landuse* : DataSet with land-use information per grid cell.
+    
     """
-    driver = ogr.GetDriverByName('OSM')
-    data = driver.Open(osm_path)
-    query = query_b(geo_type, key_col, **val_constraint)
-    sql_lyr = data.ExecuteSQL(query)
-    features = []
+    # Set the crs of the hazard variable to haz_crs
+    hazard.rio.write_crs(haz_crs, inplace=True)
 
-    # cl = columns 
-    cl = ['osm_id'] 
-    for a in key_col: cl.append(a)
-    if data is not None:
-        for feature in sql_lyr:
-            try:
-                if feature.GetField(key_col[0]) is not None:
-                    shapely_geo = shapely.from_wkt(feature.geometry().ExportToWkt()) 
-                    if shapely_geo is None:
-                        continue
-                    # field will become a row in the dataframe.
-                    field = []
-                    for i in cl: field.append(feature.GetField(i))
-                    field.append(shapely_geo)   
-                    features.append(field)
-            except:
-                print("WARNING: skipped OSM feature")   
-    else:
-        print("ERROR: Nonetype error when requesting SQL. Check required.")    
-    cl.append('geometry')                   
-    if len(features) > 0:
-        return geopandas.GeoDataFrame(features, columns=cl, crs={'init': 'epsg:4326'})
-    else:
-        print("WARNING: No features or No Memory. returning empty GeoDataFrame") 
-        return geopandas.GeoDataFrame(columns=['osm_id','geometry'], crs={'init': 'epsg:4326'})
+    # Rename the latitude and longitude variables to 'y' and 'x' respectively
+    hazard = hazard.rename({'Latitude': 'y','Longitude': 'x'})
 
-def landuse(osm_path):
-    """
-    Function to extract land-use polygons from OpenStreetMap    
+    # Set the x and y dimensions in the hazard variable to 'x' and 'y' respectively
+    hazard.rio.set_spatial_dims(x_dim="x",y_dim="y", inplace=True)
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.        
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.    
-    """    
-    return(retrieve(osm_path,'multipolygons',['landuse']))
+    # Set the crs of the landuse variable to lu_crs
+    landuse.rio.write_crs(lu_crs,inplace=True)
 
-def buildings(osm_path):
-    """
-    Function to extract building polygons from OpenStreetMap    
+    # Reproject the landuse variable from EPSG:4326 to EPSG:3857
+    landuse = landuse.rio.reproject("EPSG:3857",resolution=resolution)
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.        
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique building polygons.    
-    """
-    return retrieve(osm_path, 'multipolygons',['building','amenity'])
+    # Get the minimum longitude and latitude values in the landuse variable
+    min_lon = landuse.x.min().to_dict()['data']
+    min_lat = landuse.y.min().to_dict()['data']
 
-def roads(osm_path):
-    """
-    Function to extract road linestrings from OpenStreetMap  
+    # Get the maximum longitude and latitude values in the landuse variable
+    max_lon = landuse.x.max().to_dict()['data']
+    max_lat = landuse.y.max().to_dict()['data']
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.        
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique road linestrings.
-    """   
-    return retrieve(osm_path,'lines',['highway']) 
- 
-def railway(osm_path):
-    """
-    Function to extract railway linestrings from OpenStreetMap
+    # Create a bounding box using the minimum and maximum latitude and longitude values
+    area = gpd.GeoDataFrame([shapely.box(min_lon,min_lat,max_lon, max_lat)],columns=['geometry'])
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.       
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.
-    """ 
-    return retrieve(osm_path,'lines',['railway','service'],**{"service":[" IS NOT NULL"]})
+    # Set the crs of the bounding box to EPSG:3857
+    area.crs = 'epsg:3857'
 
-def ferries(osm_path):
-    """
-    Function to extract road linestrings from OpenStreetMap
+    # Convert the crs of the bounding box to EPSG:4326
+    area = area.to_crs('epsg:4326')
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique road linestrings.
-    """
-    return retrieve(osm_path,'lines',['route'],**{"route":["='ferry'",]})
+    # Clip the hazard variable to the extent of the bounding box
+    hazard = hazard.rio.clip(area.geometry.values, area.crs)
 
-def electricity(osm_path):
-    """
-    Function to extract railway linestrings from OpenStreetMap
+    # Reproject the hazard variable to EPSG:3857 with the desired resolution
+    hazard = hazard.rio.reproject("EPSG:3857",resolution=resolution)
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.        
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique land-use polygons.   
-    """    
-    return retrieve(osm_path,'lines',['power','voltage'],**{'voltage':[" IS NULL"],})
+    # Clip the hazard variable again to the extent of the bounding box
+    hazard = hazard.rio.clip(area.geometry.values, area.crs)
 
-def mainRoads(osm_path):
-    """
-    Function to extract main road linestrings from OpenStreetMap  
+    # If the hazard variable has fewer columns and rows than the landuse variable, reproject 
+    # the landuse variable to match the hazard variable
+    if (len(hazard.x)<len(landuse.x)) & (len(hazard.y)<len(landuse.y)):
+        landuse= landuse.rio.reproject_match(hazard)
 
-    Arguments:
-        *osm_path* : file path to the .osm.pbf file of the region 
-        for which we want to do the analysis.        
-    Returns:
-        *GeoDataFrame* : a geopandas GeoDataFrame with all unique main road linestrings.   
-    """ 
-    return retrieve(osm_path,'lines',['highway','oneway','lanes','maxspeed'],**{'highway':["='primary' or ","='trunk' or ","='motorway' or ","='trunk_link' or ",
-                    "='primary_link' or ", "='secondary' or ","='tertiary' or ","='tertiary_link'"]})
+    # If the hazard variable has more columns and rows than the landuse variable, 
+    # reproject the hazard variable to match the landuse variable
 
+    elif (len(hazard.x)>len(landuse.x)) & (len(hazard.y)>len(landuse.y)):
+        hazard = hazard.rio.reproject_match(landuse)
+
+    # Convert the hazard and landuse variable to a numpy array
+    landuse = landuse['band_data'].to_numpy()[0,:,:]
+    hazard = hazard[hazard_col].to_numpy()[0,:,:]
+
+    return hazard,landuse
 
 def remove_overlap_openstreetmap(gdf):
     """
@@ -192,7 +105,7 @@ def remove_overlap_openstreetmap(gdf):
                 use_geom = use_geom.difference(match.geometry)
         new_landuse.append([use.osm_id,use.landuse,use_geom])
 
-    new_gdf  =  geopandas.GeoDataFrame(pandas.DataFrame(new_landuse,columns=['osm_id','landuse','geometry'])) 
+    new_gdf  =  gpd.GeoDataFrame(pandas.DataFrame(new_landuse,columns=['osm_id','landuse','geometry'])) 
     new_gdf.crs = {'init' : 'epsg:4326'}
     return new_gdf
 

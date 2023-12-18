@@ -14,113 +14,12 @@ import geopandas as gpd
 from affine import Affine
 import pyproj
 from tqdm import tqdm
-from os.path import join as p_join
 import warnings
+from pathlib import PurePath
 
-
-from damagescanner.vector import reproject,get_damage_per_object
-from damagescanner.raster import match
-
-
-def check_output_path(given_args):
-    """Ensures given output path exists.
-
-    Arguments:
-        *given_args* : dict, of keyword arguments.
-
-    Returns:
-        *str* : output_path, which may be empty string ('')
-    """
-    output_path = given_args.get('output_path', '')
-    if output_path != '' and not os.path.exists(output_path):
-        os.mkdir(output_path)
-    return output_path
-
-
-def check_scenario_name(given_args):
-    """Ensures given output path exists.
-
-    Arguments:
-        *given_args* : dict, of keyword arguments.
-
-    Returns:
-        *str* : scenario_name
-    """
-    scenario_name = given_args.get('scenario_name', False)
-    if not scenario_name:
-        raise ValueError("Required `scenario_name` not defined.")
-
-    return scenario_name
-
-def match_raster_to_vector(hazard,landuse,lu_crs,haz_crs,resolution,hazard_col):
-        
-    """ Matches the resolution and extent of a raster to a vector file.
-
-    Arguments:
-        *hazard* : netCDF4 with hazard intensity per grid cell.
-        *landuse* : netCDF4 with land-use information per grid cell.
-        *lu_crs* : EPSG code of the land-use file.
-        *haz_crs* : EPSG code of the hazard file.
-        *resolution* : Desired resolution of the raster file.
-        *hazard_col* : Name of the column in the hazard file that contains the hazard intensity.
-    """
-    # Set the crs of the hazard variable to haz_crs
-    hazard.rio.write_crs(haz_crs, inplace=True)
-
-    # Rename the latitude and longitude variables to 'y' and 'x' respectively
-    hazard = hazard.rename({'Latitude': 'y','Longitude': 'x'})
-
-    # Set the x and y dimensions in the hazard variable to 'x' and 'y' respectively
-    hazard.rio.set_spatial_dims(x_dim="x",y_dim="y", inplace=True)
-
-    # Set the crs of the landuse variable to lu_crs
-    landuse.rio.write_crs(lu_crs,inplace=True)
-
-    # Reproject the landuse variable from EPSG:4326 to EPSG:3857
-    landuse = landuse.rio.reproject("EPSG:3857",resolution=resolution)
-
-    # Get the minimum longitude and latitude values in the landuse variable
-    min_lon = landuse.x.min().to_dict()['data']
-    min_lat = landuse.y.min().to_dict()['data']
-
-    # Get the maximum longitude and latitude values in the landuse variable
-    max_lon = landuse.x.max().to_dict()['data']
-    max_lat = landuse.y.max().to_dict()['data']
-
-    # Create a bounding box using the minimum and maximum latitude and longitude values
-    area = gpd.GeoDataFrame([shapely.box(min_lon,min_lat,max_lon, max_lat)],columns=['geometry'])
-
-    # Set the crs of the bounding box to EPSG:3857
-    area.crs = 'epsg:3857'
-
-    # Convert the crs of the bounding box to EPSG:4326
-    area = area.to_crs('epsg:4326')
-
-    # Clip the hazard variable to the extent of the bounding box
-    hazard = hazard.rio.clip(area.geometry.values, area.crs)
-
-    # Reproject the hazard variable to EPSG:3857 with the desired resolution
-    hazard = hazard.rio.reproject("EPSG:3857",resolution=resolution)
-
-    # Clip the hazard variable again to the extent of the bounding box
-    hazard = hazard.rio.clip(area.geometry.values, area.crs)
-
-    # If the hazard variable has fewer columns and rows than the landuse variable, reproject 
-    # the landuse variable to match the hazard variable
-    if (len(hazard.x)<len(landuse.x)) & (len(hazard.y)<len(landuse.y)):
-        landuse= landuse.rio.reproject_match(hazard)
-
-    # If the hazard variable has more columns and rows than the landuse variable, 
-    # reproject the hazard variable to match the landuse variable
-
-    elif (len(hazard.x)>len(landuse.x)) & (len(hazard.y)>len(landuse.y)):
-        hazard = hazard.rio.reproject_match(landuse)
-
-    # Convert the hazard and landuse variable to a numpy array
-    landuse = landuse['band_data'].to_numpy()[0,:,:]
-    hazard = hazard[hazard_col].to_numpy()[0,:,:]
-
-    return hazard,landuse
+from vector import reproject,get_damage_per_object,match_raster_to_vector
+from raster import match_rasters
+from utils import check_output_path, check_scenario_name
 
 def RasterScanner(landuse_file,
                   hazard_file,
@@ -189,7 +88,7 @@ def RasterScanner(landuse_file,
      
     """
     # load land-use map
-    if isinstance(landuse_file, str):
+    if isinstance(landuse_file, PurePath):
         with rasterio.open(landuse_file) as src:
             landuse = src.read()[0, :, :]
             transform = src.transform
@@ -201,13 +100,13 @@ def RasterScanner(landuse_file,
     landuse_in = landuse.copy()
         
     # Load hazard map
-    if isinstance(hazard_file, str):
-        if (hazard_file.endswith('.tif') | hazard_file.endswith('.tiff')):      
+    if isinstance(hazard_file, PurePath):
+        if (hazard_file.parts[-1].endswith('.tif') | hazard_file.parts[-1].endswith('.tiff')):      
             with rasterio.open(hazard_file) as src:
                 hazard = src.read()[0, :, :]
                 transform = src.transform
                 
-        elif hazard_file.endswith('.nc'):
+        elif hazard_file.parts[-1].endswith('.nc'):
 
             # Open the hazard netcdf file and store it in the hazard variable
             hazard = xr.open_dataset(hazard_file)
@@ -234,14 +133,14 @@ def RasterScanner(landuse_file,
             "WARNING: landuse and hazard maps are not the same shape. Let's fix this first!"
         )
         
-        landuse, hazard, intersection = match(landuse_file, hazard_file)
+        landuse, hazard, intersection = match_rasters(landuse_file, hazard_file)
 
         # create the right affine for saving the output
         transform = Affine(transform[0], transform[1], intersection[0],
                            transform[3], transform[4], intersection[1])
 
     # set cellsize:
-    if isinstance(landuse_file, str) | isinstance(hazard_file, str):
+    if isinstance(landuse_file, PurePath) | isinstance(hazard_file, PurePath):
         cellsize = src.res[0] * src.res[1]
     else:
         try:
@@ -254,7 +153,7 @@ def RasterScanner(landuse_file,
         curves = curve_path.values
     elif isinstance(curve_path, np.ndarray):
         curves = curve_path
-    elif curve_path.endswith('.csv'):
+    elif curve_path.parts[-1].endswith('.csv'):
         curves = pd.read_csv(curve_path).values
     
     if ((curves>1).all()) or ((curves<0).all()):
@@ -265,7 +164,7 @@ def RasterScanner(landuse_file,
         maxdam = maxdam_path.values
     elif isinstance(maxdam_path, np.ndarray):
         maxdam = maxdam_path
-    elif maxdam_path.endswith('.csv'):
+    elif maxdam_path.parts[-1].endswith('.csv'):
         maxdam = pd.read_csv(maxdam_path).values
     
     if maxdam.shape[0] != (curves.shape[1]-1):
@@ -315,7 +214,7 @@ def RasterScanner(landuse_file,
         # If output path is not defined, will place file in current directory
         output_path = check_output_path(kwargs)
         scenario_name = check_scenario_name(kwargs)
-        path_prefix = p_join(output_path, scenario_name)
+        path_prefix = PurePath(output_path, scenario_name)
 
         damage_fn = '{}_damages.csv'.format(path_prefix)
         damage_df.to_csv(damage_fn)
@@ -397,9 +296,7 @@ def VectorScanner(exposure_file,
         *output_path* : Specify where files should be saved.
         
         *scenario_name*: Give a unique name for the files that are going to be saved.
-        
-        *print_tqdm*: Set to **False** when progress output is undesired.
-    
+            
     Raises:
         *ValueError* : on missing kwargs
     
@@ -409,7 +306,7 @@ def VectorScanner(exposure_file,
      
     """
     # load exposure data
-    if isinstance(exposure_file, str):
+    if isinstance(exposure_file, PurePath):
         exposure = gpd.read_file(exposure_file)
     
     elif (isinstance(exposure_file, gpd.GeoDataFrame) | isinstance(exposure_file, pd.DataFrame)):
@@ -421,8 +318,8 @@ def VectorScanner(exposure_file,
         )
 
     # load hazard file
-    if isinstance(hazard_file, str):       
-        if (hazard_file.endswith('.tif') | hazard_file.endswith('.tiff')): 
+    if isinstance(hazard_file, PurePath):       
+        if (hazard_file.parts[-1].endswith('.tif') | hazard_file.parts[-1].endswith('.tiff')): 
             
             #load dataset
             hazard_map = xr.open_dataset(hazard_file, engine="rasterio")
@@ -445,7 +342,7 @@ def VectorScanner(exposure_file,
             hazard.geometry= shapely.buffer(hazard.geometry,
                                                distance=cell_size/2,cap_style='square').values
             
-        elif hazard_file.endswith('.nc'):
+        elif hazard_file.parts[-1].endswith('.nc'):
            #load dataset
             hazard_map = xr.open_dataset(hazard_file)
             
@@ -465,7 +362,7 @@ def VectorScanner(exposure_file,
      
 
 
-        elif (hazard_file.endswith('.shp') | hazard_file.endswith('.gpkg')):
+        elif (hazard_file.parts[-1].endswith('.shp') | hazard_file.parts[-1].endswith('.gpkg')):
             hazard = gpd.read_file(hazard_file)
         else:
             print('ERROR: hazard data should either be a GeoTIFF, a netCDF4, a shapefile or a GeoPackage.'
@@ -516,11 +413,11 @@ def VectorScanner(exposure_file,
         raise ValueError(
             'ERROR: for the vector-based approach we use a pandas DataFrame, not a Numpy Array'
         )
-    elif curve_path.endswith('.csv'):
+    elif curve_path.parts[-1].endswith('.csv'):
         curves = pd.read_csv(curve_path, index_col=[0])
 
     # Load maximum damages
-    if isinstance(maxdam_path, str) and maxdam_path.endswith('.csv'):
+    if isinstance(maxdam_path, PurePath) and maxdam_path.parts[-1].endswith('.csv'):
         maxdam_path = pd.read_csv(maxdam_path)
     elif isinstance(maxdam_path, pd.DataFrame):
         maxdam = dict(zip(maxdam_path[object_col], maxdam_path['damage']))
@@ -528,9 +425,6 @@ def VectorScanner(exposure_file,
         maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))
     elif isinstance(maxdam_path, dict):
         maxdam = maxdam_path
-
-    # Check if we need to turn off tqdm:
-    tqdm_print = kwargs.get('print_tqdm', True)
 
     #overlay hazard and exposure data
     hazard_tree = shapely.STRtree(hazard.geometry.values)
@@ -559,7 +453,7 @@ def VectorScanner(exposure_file,
         # If output path is not defined, will place file in current directory
         output_path = check_output_path(kwargs)
         scenario_name = check_scenario_name(kwargs)
-        path_prefix = p_join(output_path, scenario_name)
+        path_prefix = PurePath(output_path, scenario_name)
 
         damage_fn = f'{path_prefix}_damages.csv'
         damaged_objects.to_csv(damage_fn)

@@ -5,8 +5,7 @@ Raster specific functions
 
 from osgeo import gdal
 
-
-def match(raster_in1,raster_in2):
+def match_rasters(raster_in1,raster_in2):
     """
     In case of a mismatch between two rasters, return only the intersecting parts.
     
@@ -77,3 +76,5 @@ def match(raster_in1,raster_in2):
         array2 = band2.ReadAsArray()
         
     return array1, array2, intersection
+
+
