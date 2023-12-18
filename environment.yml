@@ -17,4 +17,6 @@ dependencies:
         - pyproj
         - xarray
         - rioxarray   
+        - pip:
+            - osm-flex
           
