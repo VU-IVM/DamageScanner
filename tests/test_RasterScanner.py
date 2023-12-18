@@ -11,10 +11,10 @@ class TestRasterScanner(unittest.TestCase):
     def test_raster_scanner(self):
         # Define paths to example files
         data_path = Path(__file__).parent.parent / 'data'
-        landuse_file = str(data_path / 'landuse' / 'landuse_map.tif')
-        hazard_file = str(data_path / 'hazard' / 'inundation_map.tif')
-        curve_path = str(data_path / 'curves' / 'curves.csv')
-        maxdam_path = str(data_path / 'curves' / 'maxdam.csv')
+        landuse_file = data_path / 'landuse' / 'landuse_map.tif'
+        hazard_file = data_path / 'hazard' / 'inundation_map.tif'
+        curve_path = data_path / 'curves' / 'curves.csv'
+        maxdam_path = data_path / 'curves' / 'maxdam.csv'
 
         # Call the RasterScanner function
         damage_df, damagemap, landuse_in, hazard = RasterScanner(
