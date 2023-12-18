@@ -17,9 +17,9 @@ from tqdm import tqdm
 import warnings
 from pathlib import PurePath
 
-from vector import reproject,get_damage_per_object,match_raster_to_vector
-from raster import match_rasters
-from utils import check_output_path, check_scenario_name
+from damagescanner.vector import reproject,get_damage_per_object,match_raster_to_vector
+from damagescanner.raster import match_rasters
+from damagescanner.utils import check_output_path, check_scenario_name
 
 def RasterScanner(landuse_file,
                   hazard_file,
