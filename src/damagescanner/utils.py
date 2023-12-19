@@ -1,7 +1,7 @@
 """DamageScanner - a directe damage assessment toolkit
 """
 
-def check_output_path(given_args):
+def _check_output_path(given_args):
     """Ensures given output path exists.
 
     Arguments:
@@ -16,7 +16,7 @@ def check_output_path(given_args):
         output_path.mkdir(parents=True)
     return output_path
 
-def check_scenario_name(given_args):
+def _check_scenario_name(given_args):
     """Ensures given output path exists.
 
     Arguments:
