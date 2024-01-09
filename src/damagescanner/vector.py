@@ -132,7 +132,7 @@ def _extract_value_other_gdf(x,gdf,col_name):
     except:
         return None
 
-def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
+def _reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
     """
     Function to reproject a GeoDataFrame to a different CRS.
 
@@ -151,7 +151,7 @@ def reproject(df_ds,current_crs="epsg:4326",approximate_crs = "epsg:3035"):
     
     return shapely.set_coordinates(geometries.copy(), np.array(new_coords).T) 
 
-def _get_damage_per_asset(asset,hazard_numpified,asset_geom,hazard_intensity,fragility_values,maxdam_asset):
+def _get_damage_per_element(asset,hazard_numpified,asset_geom,hazard_intensity,fragility_values,maxdam_asset):
     """
     Calculate damage for a given asset based on hazard information.
     Arguments:
@@ -185,71 +185,20 @@ def _get_damage_per_asset(asset,hazard_numpified,asset_geom,hazard_intensity,fra
             return np.sum((np.interp(np.float16(get_hazard_points[:,0]),hazard_intensity,fragility_values))*maxdam_asset)
 
 
-##### THIS FUNCTION BELOW SHOULD BE FULLY REPLACED BY FUNCTION ABOVE IN CORE DEPENDENCY VECTORSCANNER #####
-def _get_damage_per_object(obj,df_ds,objects,curves,maxdam):
-    """"
-    Function to calculate the damage per object.
-
-    Args:
-        obj (tuple): The object for which we want to calculate the damage.
-        df_ds (pandas DataFrame): The dataframe with the hazard points.
-        objects (pandas DataFrame): The dataframe with the objects.
-        curves (pandas DataFrame): The dataframe with the vulnerability curves.
-        maxdam (dictionary): The dictionary with the maximum damage per object type.
-
-    Returns:
-        tuple: The damage per object.
-    """  
-
-    # find the exact hazard overlays:
-    get_hazard_points = df_ds.iloc[obj[1]['hazard_point'].values].reset_index()
-    get_hazard_points = get_hazard_points.loc[shapely.intersects(get_hazard_points.geometry.values,objects.iloc[obj[0]].geometry)]
-
-    # get the object type and the object geometry
-    object_type = objects.iloc[obj[0]].obj_type
-    object_geom = objects.iloc[obj[0]].geometry
-    
-    # get the maximum damage for the object type
-    maxdam_object = maxdam[object_type]
-
-    # get the vulnerability curves for the object type
-    hazard_intensity = curves[object_type].index.values
-    fragility_values = curves[object_type].values
-                
-    # if there are no hazard points, return 0 damage
-    if len(get_hazard_points) == 0:
-        return obj[0],0
-    else:
-        
-        # run the analysis for lines (object_type = 1, e.g. railway lines)
-        if shapely.get_type_id(object_geom) == 1:
-            get_hazard_points['overlay_meters'] = shapely.length(shapely.intersection(get_hazard_points.geometry.values,object_geom))
-            return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*get_hazard_points.overlay_meters*maxdam_object)
-        
-        # run the analysis for polygons (object_type = 2, e.g. buildings)
-        elif (shapely.get_type_id(object_geom) == 3) | (shapely.get_type_id(object_geom) == 6):
-            get_hazard_points['overlay_m2'] = shapely.area(shapely.intersection(get_hazard_points.geometry.values,object_geom))
-            return obj[0],get_hazard_points.apply(lambda x: np.interp(x.haz_val, hazard_intensity, fragility_values)*maxdam_object*x.overlay_m2,axis=1).sum()     
-        
-        # run the analysis for points (object_type = 0, e.g. hospitals)
-        else:
-            print(shapely.get_type_id(object_geom))
-            return obj[0],np.sum((np.interp(get_hazard_points.haz_val.values,hazard_intensity,fragility_values))*maxdam_object)
-        
-
-
 def VectorScanner(exposure_file,
-                  hazard_file,
-                  curve_path,
-                  maxdam_path,
-                  cell_size = 5,
-                  exp_crs=4326,
-                  haz_crs=4326,                   
-                  object_col='landuse',
-                  hazard_col='inun_val',
-                  centimeters=False,
-                  save=False,
-                  **kwargs):
+                hazard_file,
+                curve_path,
+                maxdam_path,
+                cell_size = 5,
+                exp_crs=4326,
+                haz_crs=4326,                   
+                object_col='landuse',
+                hazard_col='inun_val',
+                lat_col = 'y',
+                lon_col = 'x',                  
+                centimeters=False,
+                save=False,
+                **kwargs):
     """
     Vector based implementation of a direct damage assessment
     
@@ -315,6 +264,7 @@ def VectorScanner(exposure_file,
             'ERROR: exposure data should either be a shapefile, GeoPackage, a GeoDataFrame or a pandas Dataframe with a geometry column'
         )
 
+
     # load hazard file
     if isinstance(hazard_file, PurePath):       
         if (hazard_file.parts[-1].endswith('.tif') | hazard_file.parts[-1].endswith('.tiff')): 
@@ -329,8 +279,7 @@ def VectorScanner(exposure_file,
             hazard = hazard_map['band_data'].to_dataframe().reset_index()
             
             # drop all non values and zeros to reduce size
-            hazard = hazard.loc[~(hazard['band_data'].isna() 
-                                                      | hazard['band_data']<=0)].reset_index(drop=True)
+            hazard = hazard = hazard.loc[(hazard.band_data > 0) & (hazard.band_data < 100)]
                     
             # create geometry values and drop lat lon columns
             hazard['geometry'] = shapely.points(np.array(list(zip(hazard['x'],hazard['y']))))
@@ -342,23 +291,32 @@ def VectorScanner(exposure_file,
             
         elif hazard_file.parts[-1].endswith('.nc'):
            #load dataset
-            hazard_map = xr.open_dataset(hazard_file)
-            
+            with xr.open_dataset(hazard_file) as ds:
+                
+                # get bbox of the exposure data
+                bbox = exposure.to_crs(haz_crs).total_bounds
+
+                # convert data to WGS84 CRS
+                ds.rio.write_crs(haz_crs, inplace=True)
+                ds.rio.set_spatial_dims(x_dim=lon_col,y_dim=lat_col, inplace=True)
+
+                hazard_map = ds.rio.clip_box(minx=bbox[0], miny=bbox[1], maxx=bbox[2], maxy=bbox[3])
+             
             #convert to dataframe
             hazard = hazard_map[hazard_col].to_dataframe().reset_index()
             
             # drop all non values and below zeros to reduce size. Might cause issues for cold waves
-            hazard = hazard.loc[~(hazard[hazard_col].isna() | hazard[hazard_col]<=0)].reset_index(drop=True)
+            #hazard = hazard.loc[~(hazard[hazard_col].isna() | hazard[hazard_col]<=0)].reset_index(drop=True)
+            hazard = hazard.loc[~hazard[hazard_col].isna()].reset_index(drop=True)
             
            # create geometry values and drop lat lon columns
-            hazard['geometry'] = shapely.points(np.array(list(zip(hazard['x'],hazard['y']))))
-            hazard = hazard.drop(['x','y','band','spatial_ref'],axis=1)
+            hazard['geometry'] = shapely.points(np.array(list(zip(hazard[lon_col],hazard[lat_col]))))
+            hazard = hazard[[hazard_col,'geometry']]
 
             #and turn them into squares again:
             hazard.geometry= shapely.buffer(hazard.geometry,
                                                distance=cell_size/2,cap_style='square').values
      
-
 
         elif (hazard_file.parts[-1].endswith('.shp') | hazard_file.parts[-1].endswith('.gpkg')):
             hazard = gpd.read_file(hazard_file)
@@ -386,14 +344,14 @@ def VectorScanner(exposure_file,
 
     #reproject exposure and hazard data to the same CRS
     if exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'metre':
-        exposure.geometry = reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = f"epsg:{haz_crs}")
+        exposure.geometry = _reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = f"epsg:{haz_crs}")
     elif exp_crs_unit_name == 'degree' and haz_crs_unit_name == 'degree':
-         exposure.geometry = reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = "epsg:3857")  
+         exposure.geometry = _reproject(exposure,current_crs=f"epsg:{exp_crs}",approximate_crs = "epsg:3857")  
 
     if haz_crs_unit_name == 'degree' and exp_crs_unit_name == 'metre':
-        hazard.geometry = reproject(hazard,current_crs=haz_crs,approximate_crs = f"epsg:{exp_crs}")
+        hazard.geometry = _reproject(hazard,current_crs=haz_crs,approximate_crs = f"epsg:{exp_crs}")
     elif haz_crs_unit_name == 'degree' and exp_crs_unit_name == 'degree':
-        hazard.geometry = reproject(hazard,current_crs=haz_crs,approximate_crs = "epsg:3857")
+        hazard.geometry = _reproject(hazard,current_crs=haz_crs,approximate_crs = "epsg:3857")
          
     # rename inundation colum, set values to centimeters if required and to integers:
     hazard = hazard.rename(columns={hazard_col:'haz_val'})
@@ -401,9 +359,10 @@ def VectorScanner(exposure_file,
         hazard['haz_val'] = hazard.haz_val*100
         hazard['haz_val'] = hazard.haz_val.astype(int)
 
-    # rename object col to make sure everything is consistent:
-    exposure = exposure.rename({object_col:'obj_type'},axis=1)
-            
+    # set element column to element_type:
+    if 'landuse' in exposure.columns:
+        exposure = exposure.rename({'landuse':'element_type'},axis=1)
+
     # Load curves
     if isinstance(curve_path, pd.DataFrame):
         curves = curve_path.copy()
@@ -424,26 +383,37 @@ def VectorScanner(exposure_file,
     elif isinstance(maxdam_path, dict):
         maxdam = maxdam_path
 
-    #overlay hazard and exposure data
-    hazard_tree = shapely.STRtree(hazard.geometry.values)
-    
+    # create dicts for quicker lookup
+    geom_dict = exposure['geometry'].to_dict()
+    type_dict = exposure['element_type'].to_dict()
+
+    #overlay hazard and exposure data  
     if (shapely.get_type_id(exposure.iloc[0].geometry) == 3) | (shapely.get_type_id(exposure.iloc[0].geometry) == 6):
-        overlay = hazard_tree.query(exposure.geometry,predicate='intersects')    
+        overlay_assets = pd.DataFrame(_overlay_hazard_assets(hazard,exposure).T,columns=['asset','hazard_point'])
     else:
-        overlay = hazard_tree.query(shapely.buffer(exposure.geometry.values,distance=cell_size*2),predicate='intersects')
-    
-    overlay_exp_haz = pd.DataFrame(overlay.T,columns=['obj_type','hazard_point'])
-    
-    # Perform calculation
-    collect_output = []
-    
-    for obj in tqdm(overlay_exp_haz.groupby('obj_type'),total=len(overlay_exp_haz.obj_type.unique()),
-                                  desc='damage calculation'):
-        collect_output.append(_get_damage_per_object(obj,hazard,exposure,curves,maxdam))
-    
+        overlay_assets = pd.DataFrame(_overlay_hazard_assets(hazard,_buffer_assets(exposure)).T,columns=['asset','hazard_point'])
+
+    # convert dataframe to numpy array
+    hazard_numpified = hazard.to_numpy() 
+
+    # prepare calculations
+    hazard_intensity = curves.index.values
+
+    # Perform calculation  
+    collect_damage = {}
+    for asset in tqdm(overlay_assets.groupby('asset'),total=len(overlay_assets.asset.unique())): #group asset items for different hazard points per asset and get total number of unique assets
+        element_type = type_dict[asset[0]]
+        element_geom = geom_dict[asset[0]]
+        
+        curve = curves[element_type].values
+        fragility_values = (np.nan_to_num(curve,nan=(np.nanmax(curve)))).flatten()
+        maxdam_element = maxdam[element_type]
+        
+        collect_damage[asset[0]] = element_type,_get_damage_per_element(asset,hazard_numpified,element_geom,hazard_intensity,
+                                                                         fragility_values,maxdam_element)
+
     # Merge results
-    damaged_objects = exposure.merge(pd.DataFrame(collect_output,columns=['index','damage']),
-                                                          left_index=True,right_on='index')[['obj_type','geometry','damage']]
+    damaged_objects = pd.DataFrame(pd.DataFrame(collect_damage).T.values,columns=['element_type','damage']).groupby('element_type').sum()
 
     # Save output
     if save == True:
