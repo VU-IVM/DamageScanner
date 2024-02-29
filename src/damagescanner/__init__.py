@@ -1,2 +1,1 @@
-
-from core import DamageScanner
+from .core import DamageScanner

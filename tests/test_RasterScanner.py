@@ -3,18 +3,18 @@
 import unittest
 import numpy as np
 import pandas as pd
-from damagescanner.core import RasterScanner  
+from damagescanner.core import RasterScanner
 from pathlib import Path
 
-class TestRasterScanner(unittest.TestCase):
 
+class TestRasterScanner(unittest.TestCase):
     def test_raster_scanner(self):
         # Define paths to example files
-        data_path = Path(__file__).parent.parent / 'data'
-        landuse_file = data_path / 'landuse' / 'landuse_map.tif'
-        hazard_file = data_path / 'hazard' / 'inundation_map.tif'
-        curve_path = data_path / 'curves' / 'curves.csv'
-        maxdam_path = data_path / 'curves' / 'maxdam.csv'
+        data_path = Path(__file__).parent.parent / "data"
+        landuse_file = data_path / "landuse" / "landuse_map.tif"
+        hazard_file = data_path / "hazard" / "inundation_map.tif"
+        curve_path = data_path / "curves" / "curves.csv"
+        maxdam_path = data_path / "curves" / "maxdam.csv"
 
         # Call the RasterScanner function
         damage_df, damagemap, landuse_in, hazard = RasterScanner(
@@ -36,6 +36,7 @@ class TestRasterScanner(unittest.TestCase):
         self.assertIsInstance(hazard, np.ndarray)
 
         # Add more specific assertions based on your requirements
+
 
 if __name__ == "__main__":
     TESTS = unittest.TestLoader().loadTestsFromTestCase(TestRasterScanner)
