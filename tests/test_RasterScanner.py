@@ -11,15 +11,15 @@ from pathlib import Path
 class TestRasterScanner(unittest.TestCase):
     def test_raster_scanner(self):
         # Define paths to example files
-        data_path = Path(__file__).parent.parent / "data"
-        landuse_file = data_path / "landuse" / "landuse_map.tif"
+        data_path = Path(__file__).parent.parent / "data" / "kampen"
+        landuse_file = data_path / "exposure" / "landuse_map.tif"
         hazard_file = data_path / "hazard" / "inundation_map.tif"
-        curve_path = data_path / "curves" / "curves.csv"
-        maxdam_path = data_path / "curves" / "maxdam.csv"
+        curve_path = data_path / "vulnerability" / "curves.csv"
+        maxdam_path = data_path / "vulnerability" / "maxdam.csv"
 
         # Call the RasterScanner function
         damage_df, damagemap, landuse_in, hazard = RasterScanner(
-            landuse_file=landuse_file,
+            exposure_file=landuse_file,
             hazard_file=hazard_file,
             curve_path=curve_path,
             maxdam_path=maxdam_path,
