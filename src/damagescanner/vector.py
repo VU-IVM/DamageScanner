@@ -7,8 +7,64 @@ import geopandas as gpd
 import pyproj
 from tqdm import tqdm
 from pathlib import PurePath
+import osm_flex.extract as ex
 
 from .utils import _check_output_path, _check_scenario_name
+
+
+def landuse(self):
+    """ """
+    extracted_exposure = ex.extract(self.exposure_path, "multipolygons", ["landuse"])
+
+    extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)
+
+    return extracted_exposure
+
+
+def buildings(self):
+    """ """
+    extracted_exposure = ex.extract(self.exposure_path, "multipolygons", ["building"])
+
+    extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)
+
+    return extracted_exposure
+
+
+def cis(self, infra_type):
+    """ """
+    extracted_exposure = ex.extract_cis(self.exposure_path, infra_type)
+
+    if infra_type == "road":
+        extracted_exposure = extracted_exposure.loc[
+            extracted_exposure.geometry.geom_type == "LineString"
+        ]
+
+    extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)
+
+    return extracted_exposure
+
+
+def cis_all(self, to_exclude=[]):
+    """ """
+    cis = [
+        "healthcare",
+        "education",
+        "gas",
+        "oil",
+        "telecom",
+        "water",
+        "wastewater",
+        "power",
+        "rail",
+        "road",
+        "air",
+    ]
+    pass
+
+
+def download(self, country_code="JAM"):
+    """ """
+    pass
 
 
 def _overlay_hazard_assets(df_ds, assets):
@@ -326,6 +382,7 @@ def VectorScanner(
         if hazard_file.parts[-1].endswith(".tif") | hazard_file.parts[-1].endswith(
             ".tiff"
         ):
+
             # load dataset
             hazard_map = xr.open_dataset(hazard_file, engine="rasterio")
 
@@ -354,6 +411,7 @@ def VectorScanner(
         elif hazard_file.parts[-1].endswith(".nc"):
             # load dataset
             with xr.open_dataset(hazard_file) as ds:
+
                 # get bbox of the exposure data
                 bbox = exposure.to_crs(haz_crs).total_bounds
 
