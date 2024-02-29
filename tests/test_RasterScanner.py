@@ -1,5 +1,6 @@
 """Test core objects/concepts
 """
+
 import unittest
 import numpy as np
 import pandas as pd
@@ -25,7 +26,7 @@ class TestRasterScanner(unittest.TestCase):
             lu_crs=28992,
             haz_crs=4326,
             dtype=np.int32,
-            save=False
+            save=False,
             # Add any other required parameters or kwargs here
         )
 
