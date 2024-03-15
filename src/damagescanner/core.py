@@ -6,230 +6,206 @@ Copyright (C) 2023 Elco Koks. All versions released under the MIT license.
 # Get all the needed modules
 import shapely
 import pandas as pd
-import geopandas as gpd
-from tqdm import tqdm
 from pathlib import Path
-import osm_flex.extract as ex
 
-from vector import VectorScanner
-from raster import RasterScanner
+from .vector import VectorScanner, buildings, landuse, cis
+from .raster import RasterScanner
+
 
 class DamageScanner(object):
-    """DamageScanner - a directe damage assessment toolkit	
-    """
-    def prepare(self, assessment_type, data_path, curves = pd.DataFrame(), maxdam = dict(),osm_pbf=False,**kwargs):
-        """Prepare the input for a damage assessment
-        """
+    """DamageScanner - a directe damage assessment toolkit"""
 
-        self.assessment_type = assessment_type
-        
-        self.data_path = data_path       
+    def __init__(self, data_path, exposure_data, hazard_data, curves=None, maxdam=None):
+        """Prepare the input for a damage assessment"""
 
-        # Collect exposure data
-        try:
-            if self.assessment_type == 'raster':
-                self.exposure_data =  list(p.resolve() for p in Path(data_path / 'exposure').glob("**/*") if p.suffix in {".tif", ".tiff", ".nc"})[0]
-            elif self.assessment_type == 'vector':
-                get_data = list(p.resolve() for p in Path(data_path / 'exposure').glob("**/*") if p.suffix in {".gpkg", ".shp", ".geoparquet",".feather",".pbf"})
-                if osm_pbf:
-                    self.exposure_data =  list(p.resolve() for p in Path(data_path / 'exposure').glob("**/*") if p.suffix in {".pbf"})[0]
-                    self.osm_pbf = osm_pbf
-                elif len(get_data) > 0:
-                    self.exposure_data =  [p for p in get_data if p.suffix in {".gpkg", ".shp", ".geoparquet",".feather"}][0]
-                    self.osm_pbf = False
-                elif len([p for p in get_data if p.suffix in {".gpkg", ".shp", ".geoparquet",".feather"}]) == 0:
-                    self.exposure_data =  list(p.resolve() for p in Path(data_path / 'exposure').glob("**/*") if p.suffix in {".pbf"})[0]     
-                    self.osm_pbf = osm_pbf
-        except:
-            raise ImportError(": No exposure data found. Either use the download() function to download OpenStreetMap data, or manually add data to the exposure folder")
-        
-        # Collect hazard data
-        self.hazard_data = list(p.resolve() for p in Path(data_path / 'hazard').glob("**/*") if p.suffix in {".tif", ".tiff", ".nc"})
+        # specify the basics
+        self.data_path = data_path
+        self.osm = False
+        self.default_curves = False
+        self.default_maxdam = False
 
-        if len(self.hazard_data) == 0:
-            raise ImportError("NOTE: No hazard data found. Add data to the hazard folder first")
+        # Specify paths to exposure data
+        self.exposure_path = Path(data_path / "exposure" / exposure_data)
+
+        if self.exposure_path.suffix in [".tif", ".tiff", ".nc"]:
+            self.assessment_type = "raster"
+
+        elif self.exposure_path.suffix in [
+            ".shp",
+            ".gpkg",
+            ".pbf",
+            ".geofeather",
+            ".geoparquet",
+        ]:
+            self.assessment_type = "vector"
+
+            if self.exposure_path.suffix == ".pbf":
+                self.osm = True
+        else:
+            raise ImportError(
+                ": The exposure data should be a a shapefile, geopackage, geoparquet, osm.pbf, geotiff or netcdf file."
+            )
+
+        # Specify path to hazard data
+        if not isinstance(hazard_data, list):
+            self.hazard_path = Path(data_path / "hazard" / hazard_data)
+        else:
+            self.hazard_path = [Path(data_path / "hazard" / x) for x in hazard_data]
 
         # Collect vulnerability curves
-        if len(curves) > 0:
+        if curves is None:
+
+            self.curves = "https://zenodo.org/records/10203846/files/Table_D2_Multi-Hazard_Fragility_and_Vulnerability_Curves_V1.0.0.xlsx?download=1"
+
+            raise ImportWarning(
+                "You have decided to choose the default set of curves. Make sure the exposure data aligns with these curves: https://zenodo.org/records/10203846"
+            )
+            self.default_curves = True
+
+        elif isinstance(curves, pd.DataFrame):
             self.curves = curves
         else:
-            self.curves = list(p.resolve() for p in Path(data_path / 'vulnerability').glob("**/*") if 'curve' in str(p).lower())[0]
+            self.curves = Path(data_path / "vulnerability" / curves)
 
         # Collect maxdam information
-        if len(maxdam) > 0:
+        if maxdam is None:
+            self.maxdam = "https://zenodo.org/records/10203846/files/Table_D3_Costs_V1.0.0.xlsx?download=1"
+
+            raise ImportWarning(
+                "You have decided to choose the default set of maximum damages. Make sure the exposure data aligns with these maximum damages: https://zenodo.org/records/10203846"
+            )
+            self.default_maxdam = True
+
+        elif isinstance(maxdam, dict):
             self.maxdam = maxdam
         else:
-            self.maxdam = list(p.resolve() for p in Path(data_path / 'vulnerability').glob("**/*") if (('dam' in str(p).lower()) |
-                                                                                                       ('cost' in str(p).lower()))) [0]
-       
-        
-    def single_event(self,hazard_type='',hazard_file='',return_period='',save_output=False,vector_landuse=True,**kwargs):
-        """Damage assessment for a single event. Can be a specific hazard event, or a specific single hazard footprint 
-        """
+            self.maxdam = Path(data_path / "vulnerability" / maxdam)
 
-        if not hasattr(self, 'assessment_type'):
-            raise ImportError('ERROR: Please run .prepare() first to set up the assessment')
+    # def exposure(self):
 
-        if hazard_file != '':
-            self.hazard_map = [x for x in self.hazard_data if hazard_file in str(x)][0]
-        else:      
-            if hazard_type == '':
-                if len(self.hazard_data) == 1:
-                    self.hazard_map = self.hazard_data[0]
-                else:
-                    raise RuntimeError('Multiple events require the .multiple_events() function!')     
-            elif hazard_type != '':
-                if hazard_type == 'flood':
-                    hazard_characteristics = ['inun','flood','fluvial','pluvial','coastal','fd','pd']
-                elif hazard_type == 'windstorm':
-                    hazard_characteristics = ['storm','wind','cyclone','tc']
-                elif hazard_type == 'earthquake':
-                    hazard_characteristics = ['eq','earthquake']
-                elif hazard_type == 'landslide':
-                    hazard_characteristics = ['ls','landslide']
-                
-                hazard_maps = [x for x in self.hazard_data if any(y in str(x).lower() for y in hazard_characteristics)]
-                
-                if return_period != '':
-                    self.hazard_map = [x for x in hazard_maps if return_period in str(x)].lower()[0]
-                
-                elif return_period == '':
-                    self.hazard_map = hazard_maps[0]
-                
-                else:
-                    raise RuntimeError('Specify filename or flood type and return period to be able to run a single event analysis. Multiple events require the .multiple_events() function.')           
-            
-        if self.assessment_type == 'raster':
+    # def vulnerability(self):
+
+    def calculate(self, hazard_type=None, save_output=False, **kwargs):
+        """Damage assessment. Can be a specific hazard event, or a specific single hazard footprint, or a list of events/footprints."""
+
+        if not hasattr(self, "assessment_type"):
+            raise ImportError("Please run .prepare() first to set up the assessment")
+
+        if self.assessment_type == "raster":
 
             return RasterScanner(
-                            exposure_file = self.exposure_data,
-                            hazard_file = self.hazard_map,
-                            curve_path = self.curves,
-                            maxdam_path = self.maxdam,
-                            save=save_output)
+                exposure_file=self.exposure_path,
+                hazard_file=self.hazard_path,
+                curve_path=self.curves,
+                maxdam_path=self.maxdam,
+                save=save_output,
+            )
 
-        elif self.assessment_type == 'vector':
+        elif self.assessment_type == "vector":
+
+            if self.default_curves:
+                if hazard_type == "flood":
+                    sheet_name = "F_Vuln_Depth"
+                elif hazard_type == "windstorm":
+                    sheet_name = "W_Vuln_V10m"
 
             # specificy essential data input characteristics
-            if 'cell_size' in kwargs:
-                self.cell_size = kwargs.get('cell_size')#0.01666,
+            if "cell_size" in kwargs:
+                self.cell_size = kwargs.get("cell_size")  # 0.01666,
             else:
                 self.cell_size = 5
-    
-            if 'exp_crs' in kwargs:
-                self.exp_crs = kwargs.get('exp_crs')
+
+            if "exp_crs" in kwargs:
+                self.exp_crs = kwargs.get("exp_crs")
             else:
                 self.exp_crs = 4326
-    
-            if 'haz_crs' in kwargs:
-                self.haz_crs = kwargs.get('haz_crs')
+
+            if "haz_crs" in kwargs:
+                self.haz_crs = kwargs.get("haz_crs")
             else:
                 self.haz_crs = 4326
-    
-            if 'object_col' in kwargs:
-                self.object_col = kwargs.get('object_col')
+
+            if "object_col" in kwargs:
+                self.object_col = kwargs.get("object_col")
             else:
-                self.object_col = 'landuse'
-    
-            if 'hazard_col' in kwargs:
-                self.hazard_col = kwargs.get('hazard_col')
+                self.object_col = "landuse"
+
+            if "hazard_col" in kwargs:
+                self.hazard_col = kwargs.get("hazard_col")
             else:
-                self.hazard_col = 'inun_val'
-    
-            if 'lat_col' in kwargs:
-                self.lat_col = kwargs.get('lat_col')
+                self.hazard_col = "inun_val"
+
+            if "lat_col" in kwargs:
+                self.lat_col = kwargs.get("lat_col")
             else:
-                self.lat_col = 'y'
-    
-            if 'lon_col' in kwargs:
-                self.lon_col = kwargs.get('lon_col')
+                self.lat_col = "y"
+
+            if "lon_col" in kwargs:
+                self.lon_col = kwargs.get("lon_col")
             else:
-                self.lon_col = 'x'
-    
-            if 'centimers' in kwargs:
-                self.centimers = kwargs.get('centimers')#0.01666,#5,
+                self.lon_col = "x"
+
+            if "centimers" in kwargs:
+                self.centimers = kwargs.get("centimers")  # 0.01666,#5,
             else:
                 self.centimers = False
-            
-            if self.osm_pbf:
-                if 'buildings' in kwargs:
-                    self.exposure_data = DamageScanner.buildings(self)                  
-                    self.exposure_data = self.exposure_data.rename({'building':'element_type'},axis=1)       
-                    
-                elif 'roads' in kwargs:
-                    self.exposure_data = DamageScanner.cis(self,infra_type='road')
-                    self.exposure_data = self.exposure_data.rename({'highway':'element_type'},axis=1)       
-                
-                elif vector_landuse:
-                    self.exposure_data = DamageScanner.landuse(self)
-                    self.exposure_data = self.exposure_data.rename({'landuse':'element_type'},axis=1)       
 
-            
+            if self.osm:
+                if "buildings" in kwargs:
+                    self.exposure_data = buildings(self)
+                    self.exposure_data = self.exposure_data.rename(
+                        {"building": "element_type"}, axis=1
+                    )
+
+                elif "roads" in kwargs:
+                    self.exposure_data = cis(self, infra_type="road")
+                    self.exposure_data = self.exposure_data.rename(
+                        {"highway": "element_type"}, axis=1
+                    )
+
+                elif "landuse" in kwargs:
+                    self.exposure_data = landuse(self)
+                    self.exposure_data = self.exposure_data.rename(
+                        {"landuse": "element_type"}, axis=1
+                    )
+                else:
+                    raise RuntimeError(
+                        "When using OSM data, you need to specify the object type (e.g. road, buildings, landuse)"
+                    )
+            else:
+                self.exposure_data = self.exposure_path
+
             return VectorScanner(
-                            exposure_file = self.exposure_data,
-                            hazard_file = self.hazard_map,
-                            curve_path = self.curves,
-                            maxdam_path = self.maxdam,
-                            cell_size = self.cell_size, #0.01666,#5,
-                            exp_crs = self.exp_crs, #28992,
-                            haz_crs = self.haz_crs, #4326,
-                            object_col= self.object_col, #'landuse',
-                            hazard_col= self.hazard_col,
-                            lat_col = self.lat_col,
-                            lon_col = self.lon_col,
-                            centimeters= self.centimers, #False,
-                            save=save_output)  
-
-                
-    def multiple_events(self):
-        """Damage assessment for multiple events. Also the input for the risk assessment
-        """
-        pass
+                exposure_file=self.exposure_data,
+                hazard_file=self.hazard_path,
+                curve_path=self.curves,
+                maxdam_path=self.maxdam,
+                cell_size=self.cell_size,  # 0.01666,#5,
+                exp_crs=self.exp_crs,  # 28992,
+                haz_crs=self.haz_crs,  # 4326,
+                object_col=self.object_col,  #'landuse',
+                hazard_col=self.hazard_col,
+                lat_col=self.lat_col,
+                lon_col=self.lon_col,
+                centimeters=self.centimers,  # False,
+                save=save_output,
+            )
 
     def risk(self):
-        """Risk assessment
-        """
+        """Risk assessment"""
         pass
 
-    def landuse(self):
-        """
-        """
-        extracted_exposure = ex.extract(
-                            	self.exposure_data, 'multipolygons', ['landuse'])    
-        
-        extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)        
 
-        return extracted_exposure
-    
-    def buildings(self):
-        """
-        """
-        extracted_exposure = ex.extract(
-                            	self.exposure_data, 'multipolygons', ['building'])    
-        
-        extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)        
+if __name__ == "__main__":
 
-        return extracted_exposure
+    data_path = Path("..")
 
-    def cis(self,infra_type):
-        """
-        """
-        extracted_exposure = ex.extract_cis(self.exposure_data, infra_type)
+    kampen = DamageScanner(
+        data_path=data_path / "data" / "kampen",
+        exposure_data="landuse_map.tif",
+        hazard_data="inundation_map.tif",
+        curves="curves.csv",
+        maxdam="maxdam.csv",
+    )
 
-        if infra_type == 'road':
-            extracted_exposure = extracted_exposure.loc[extracted_exposure.geometry.geom_type == 'LineString']
-        
-        extracted_exposure.geometry = shapely.make_valid(extracted_exposure.geometry)        
-
-        return extracted_exposure
-        
-    def cis_all(self,to_exclude=[]):
-        """
-        """
-        cis = ['healthcare', 'education', 'gas', 'oil', 'telecom', 'water', 'wastewater', 'power', 'rail', 'road', 'air']
-        pass
-
-    def download(self, country_code='JAM'):
-        """
-        """        
-        pass
+    output = kampen.calculate()

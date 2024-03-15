@@ -1,31 +1,32 @@
 """Test core objects/concepts
 """
+
 import unittest
 import numpy as np
 import pandas as pd
-from damagescanner.core import RasterScanner  
+from damagescanner.core import RasterScanner
 from pathlib import Path
 
-class TestRasterScanner(unittest.TestCase):
 
+class TestRasterScanner(unittest.TestCase):
     def test_raster_scanner(self):
         # Define paths to example files
-        data_path = Path(__file__).parent.parent / 'data'
-        landuse_file = data_path / 'landuse' / 'landuse_map.tif'
-        hazard_file = data_path / 'hazard' / 'inundation_map.tif'
-        curve_path = data_path / 'curves' / 'curves.csv'
-        maxdam_path = data_path / 'curves' / 'maxdam.csv'
+        data_path = Path(__file__).parent.parent / "data" / "kampen"
+        landuse_file = data_path / "exposure" / "landuse_map.tif"
+        hazard_file = data_path / "hazard" / "inundation_map.tif"
+        curve_path = data_path / "vulnerability" / "curves.csv"
+        maxdam_path = data_path / "vulnerability" / "maxdam.csv"
 
         # Call the RasterScanner function
         damage_df, damagemap, landuse_in, hazard = RasterScanner(
-            landuse_file=landuse_file,
+            exposure_file=landuse_file,
             hazard_file=hazard_file,
             curve_path=curve_path,
             maxdam_path=maxdam_path,
             lu_crs=28992,
             haz_crs=4326,
             dtype=np.int32,
-            save=False
+            save=False,
             # Add any other required parameters or kwargs here
         )
 
@@ -36,6 +37,7 @@ class TestRasterScanner(unittest.TestCase):
         self.assertIsInstance(hazard, np.ndarray)
 
         # Add more specific assertions based on your requirements
+
 
 if __name__ == "__main__":
     TESTS = unittest.TestLoader().loadTestsFromTestCase(TestRasterScanner)
