@@ -7,7 +7,6 @@ dependencies:
   - cartopy
   - geopandas
   - rasterio
-  - gdal
   - numpy
   - shapely>=2.0
   - pandas
