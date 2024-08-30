@@ -4,19 +4,16 @@ channels:
     - conda-forge
 
 dependencies:
-        - python=3.11
-        - gdal
-        - numpy
-        - geopandas
-        - rasterio
-        - matplotlib
-        - tqdm
-        - pip
-        - jupyterlab
-        - xlrd
-        - pyproj
-        - xarray
-        - rioxarray   
-        - pip:
-            - osm-flex
-          
+    - python=3.11
+    - numpy
+    - geopandas
+    - rasterio
+    - matplotlib
+    - tqdm
+    - pip
+    - jupyterlab
+    - xlrd
+    - pyproj
+    - xarray
+    - rioxarray
+        

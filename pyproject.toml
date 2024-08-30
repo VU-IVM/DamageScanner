@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "damagescanner"
-version = "0.7"
+version = "0.8"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
 ]
@@ -33,7 +33,7 @@ dependencies = [
     "pandas",
     "shapely >= 2.0",
     "tqdm",
-    "osm-flex",
+    "pyyaml",
 ]
 
 [tool.setuptools.package-data]
@@ -42,6 +42,7 @@ dependencies = [
 [project.optional-dependencies]
 tests = ["pytest"]
 docs = ["jupyter"]
+examples = ["osm-flex"]
 
 [project.urls]
 "Homepage" = "https://github.com/ElcoK/DamageScanner"
