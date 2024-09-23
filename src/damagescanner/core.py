@@ -15,6 +15,7 @@ import pyproj
 from tqdm import tqdm
 import warnings
 from pathlib import PurePath
+from exactextract import exact_extract
 
 from damagescanner.vector import (
     reproject,
@@ -263,6 +264,62 @@ def RasterScanner(
 
     # return output
     return damage_df, damagemap, landuse_in, hazard
+
+
+def calculate_damage_per_object(objects, hazard, curves, maximum_damage, column):
+    """
+    Function to calculate the damage per object.
+    
+    Arguments:
+        *objects* : GeoDataFrame with the objects for which we want to calculate the damage.
+        *hazard* : RasterObject (e.g., xarray dataset or array with crs or rasterio dataset with crs) with the hazard intensity per grid cell.
+        *curves* : DataFrame with the vulnerability curves.
+        *maximum_damage* : DataFrame with the maximum damage per object type.
+        *column* : The column name that specifies the object type. This is used to get the
+        associated maximum damage and curve for the object type.
+
+    Returns:
+        *damage* : The damage per object.
+        
+    """
+    if isinstance(hazard, rasterio.io.DatasetReader):
+        hazard_crs = hazard.crs
+    elif isinstance(hazard, (xr.Dataset, xr.DataArray)):
+        hazard_crs = hazard.rio.crs
+    else:
+        raise ValueError(f"Hazard should be a raster object, {type(hazard)} given")
+    
+    # make sure crs are identical
+    assert hazard_crs == objects.crs
+    # make sure crs is in meters
+    assert pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre"
+    
+    # reset the index to make sure we can use the index to assign the damage in the end
+    objects = objects.reset_index(drop=True)
+
+    # get the mean severity of the hazard per object
+    objects['severity'] = exact_extract(
+        hazard, objects, ["mean"], output="pandas"
+    )['mean']
+
+    # create an array to store the damage
+    damage = np.full_like(objects['severity'], fill_value=np.nan, dtype=np.float64)
+    
+    # iterate over the unique object types and calculate the damage for each object
+    for group_label, group_data in objects.groupby(column):
+        # get the curves for the specific object type
+        group_curves = curves[group_label]
+        # the the maximum damage for the specific object type
+        group_maxdam = maximum_damage.loc[group_label, 'damage']
+        # calculate the damage ratio. On the left of the curve we assume no damage, on the right we assume the maximum damage
+        group_damage_ratio = np.interp(
+            group_data['severity'], group_curves.index, group_curves.values, left=0, right=group_curves.values[-1]
+        ) 
+        # calculate and assign damage
+        group_damage = group_damage_ratio * group_maxdam * group_data.area
+        damage[group_data.index] = group_damage
+    return damage
+
 
 
 def VectorScanner(

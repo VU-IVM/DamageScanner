@@ -16,4 +16,5 @@ dependencies:
     - pyproj
     - xarray
     - rioxarray
+    - exactextract
         
