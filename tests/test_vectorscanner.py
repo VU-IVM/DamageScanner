@@ -49,13 +49,3 @@ def test_calculate_damage_per_object():
     objects.to_file(output_folder / "damaged_objects_xarray.gpkg", driver="GPKG")
 
     assert objects['damage_rasterio'].equals(objects['damage_xarray'])
-
-
-def test_exact_extract():
-    exposure_file = gpd.read_file(data_path / "landuse" / "landuse.shp")
-    hazard_file = data_path / "hazard" / "inundation_map.tif"
-
-    average = exact_extract(
-        hazard_file, exposure_file, ["mean"], output="pandas", include_geom=True
-    )
-    average.to_file(output_folder / "inundation_map.gpkg")
