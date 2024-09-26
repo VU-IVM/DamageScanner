@@ -4,10 +4,9 @@ import geopandas as gpd
 import pandas as pd
 import rasterio
 import rioxarray as rxr
-from exactextract import exact_extract
 
 
-def test_calculate_damage_per_object():
+def test_calculate_damage_per_object_polygon():
     objects = gpd.read_file(data_path / "landuse" / "landuse.shp")
     objects = objects[objects['landuse'].isin([
         'residential',
@@ -49,3 +48,25 @@ def test_calculate_damage_per_object():
     objects.to_file(output_folder / "damaged_objects_xarray.gpkg", driver="GPKG")
 
     assert objects['damage_rasterio'].equals(objects['damage_xarray'])
+
+
+def test_calculate_damage_per_object_line():
+    hazard = rasterio.open(data_path / "hazard" / "inundation_map.tif")
+    objects = gpd.read_file(data_path / "landuse" / "kampen.osm.pbf", layer="lines")
+    objects = objects[objects['highway'].isin([
+        'residential',
+        'secondary',
+        'tertiary',
+        'unclassified',
+        'track',
+    ])]
+    objects = objects.to_crs(epsg=hazard.crs)
+    curves = None
+    maximum_damage = None
+    objects['damage'] = calculate_damage_per_object(
+        objects=objects,
+        hazard=hazard,
+        curves=curves,
+        maximum_damage=maximum_damage,
+        column='landuse',
+    )

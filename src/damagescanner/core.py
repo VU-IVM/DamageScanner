@@ -298,9 +298,9 @@ def calculate_damage_per_object(objects, hazard, curves, maximum_damage, column)
     objects = objects.reset_index(drop=True)
 
     # get the mean severity of the hazard per object
-    objects['severity'] = exact_extract(
-        hazard, objects, ["mean"], output="pandas"
-    )['mean']
+    values_and_coverage_per_object = exact_extract(
+        hazard, objects, ["coverage", "values"], output="pandas"
+    )
 
     # create an array to store the damage
     damage = np.full_like(objects['severity'], fill_value=np.nan, dtype=np.float64)
