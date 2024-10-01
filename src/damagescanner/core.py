@@ -5,6 +5,7 @@ Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
 
 # Get all the needed modules
 import rasterio
+import rasterio.sample
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -261,7 +262,7 @@ def RasterScanner(
     return damage_df, damagemap, landuse_in, hazard
 
 
-def _get_damage_per_object(asset, curve, maximum_damage, cell_area_m2):
+def _get_damage_per_object(asset, curves, cell_area_m2):
     """
     Calculate damage for a given asset based on hazard information.
     Arguments:
@@ -277,28 +278,40 @@ def _get_damage_per_object(asset, curve, maximum_damage, cell_area_m2):
         coverage = asset["coverage"] * cell_area_m2
     elif asset.geometry.geom_type in ("LineString", "MultiLineString"):
         coverage = asset["coverage"]
+    elif asset.geometry.geom_type in ("Point"):
+        coverage = 1
     else:
         raise ValueError(f"Geometry type {asset.geometry.geom_type} not supported")
 
     return (
-        np.sum(np.interp(asset["values"], curve.index, curve.values) * coverage)
-        * maximum_damage
+        np.sum(
+            np.interp(
+                asset["values"], curves.index, curves[asset["object_type"]].values
+            )
+            * coverage
+        )
+        * asset["maximum_damage"]
     )
 
 
-def VectorScanner(objects, hazard, curve, maximum_damage):
+def object_scanner(objects, hazard, curves):
     """
     Function to calculate the damage per object.
 
-    Arguments:
-        *objects* : GeoDataFrame with the objects for which we want to calculate the damage.
-        *hazard* : RasterObject (e.g., xarray dataset or array with crs or rasterio dataset with crs) with the hazard intensity per grid cell.
-        *curves* : Vulnerability curve.
-        *maximum_damage* : Float with the maximum damage for the object type.
+    Arguments
+    ----------
+    objects : GeoDataFrame
+        GeoDataFrame with the objects for which to calculate the damage. It should contain the following columns: 'object_type' and 'maximum_damage'.
+        The maximum damage is the total damage for points, the damage per meter for lines and the damage per square meter for polygons.
+    hazard : rasterio.io.DatasetReader or xr.DataArray
+        The hazard raster.
+    curves : pandas.DataFrame
+        The curves to use for the damage calculation. The index should be the values of the hazard raster and the columns should be the object types
 
-    Returns:
-        *damage* : The damage per object.
-
+    Returns
+    -------
+    pandas.Series
+        Series with the damage per object
     """
 
     if isinstance(hazard, rasterio.io.DatasetReader):
@@ -315,16 +328,54 @@ def VectorScanner(objects, hazard, curve, maximum_damage):
     # make sure crs is in meters
     assert pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre"
 
-    values_and_coverage_per_object = exact_extract(
-        hazard, objects, ["coverage", "values"], output="pandas"
+    area_and_line_objects = objects.geom_type.isin(
+        ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
     )
+    point_objects = objects.geom_type == "Point"
 
-    objects["coverage"] = values_and_coverage_per_object["coverage"].values
-    objects["values"] = values_and_coverage_per_object["values"].values
+    assert area_and_line_objects.sum() + point_objects.sum() == len(objects)
+
+    if area_and_line_objects.sum() > 0:
+        values_and_coverage_per_area_and_line_object = exact_extract(
+            hazard,
+            objects[area_and_line_objects],
+            ["coverage", "values"],
+            output="pandas",
+        )
+
+        objects.loc[area_and_line_objects, "coverage"] = (
+            values_and_coverage_per_area_and_line_object["coverage"].values
+        )
+        objects.loc[area_and_line_objects, "values"] = (
+            values_and_coverage_per_area_and_line_object["values"].values
+        )
+
+    if point_objects.sum() > 0:
+        if isinstance(hazard, rasterio.io.DatasetReader):
+            values = np.array(
+                [
+                    value[0]
+                    for value in rasterio.sample.sample_gen(
+                        hazard,
+                        [
+                            (point.x, point.y)
+                            for point in objects[point_objects].geometry
+                        ],
+                    )
+                ]
+            )
+        else:
+            values = hazard.sel(
+                {
+                    "x": xr.DataArray(objects[point_objects].geometry.x),
+                    "y": xr.DataArray(objects[point_objects].geometry.y),
+                },
+                method="nearest",
+            ).values[0]
+        objects.loc[point_objects, "values"] = values
+
     damage = objects.apply(
-        lambda asset: _get_damage_per_object(
-            asset, curve, maximum_damage, cell_area_m2
-        ),
+        lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
         axis=1,
     )
     return damage
