@@ -367,8 +367,8 @@ def object_scanner(objects, hazard, curves):
         else:
             values = hazard.sel(
                 {
-                    "x": xr.DataArray(objects[point_objects].geometry.x),
-                    "y": xr.DataArray(objects[point_objects].geometry.y),
+                    hazard.rio.x_dim: xr.DataArray(objects[point_objects].geometry.x),
+                    hazard.rio.y_dim: xr.DataArray(objects[point_objects].geometry.y),
                 },
                 method="nearest",
             ).values[0]
