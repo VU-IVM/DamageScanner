@@ -10,10 +10,10 @@ def test_match_and_load_rasters():
     landuse_file = data_path / "landuse" / "landuse_map.tif"
     hazard_file = data_path / "hazard" / "inundation_map.tif"
 
-    with rasterio.open(landuse_file) as src1, rasterio.open(hazard_file) as src2:
+    with rasterio.open(landuse_file) as src:
         # Read the data and transform from the landuse file
-        landuse_data = src1.read(1)
-        landuse_transform = src1.transform
+        landuse_data = src.read(1)
+        landuse_transform = src.transform
 
         # Extend the landuse data in all directions
         extended_landuse_data = np.pad(
@@ -40,7 +40,7 @@ def test_match_and_load_rasters():
             width=extended_landuse_data.shape[1],
             count=1,
             dtype=extended_landuse_data.dtype,
-            crs=src1.crs,
+            crs=src.crs,
             transform=new_transform,
         ) as dst:
             dst.write(extended_landuse_data, 1)

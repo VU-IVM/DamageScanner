@@ -5,20 +5,17 @@ Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
 
 # Get all the needed modules
 import rasterio
+import rasterio.sample
 import xarray as xr
 import numpy as np
-import shapely
 import pandas as pd
-import geopandas as gpd
 from affine import Affine
 import pyproj
-from tqdm import tqdm
 import warnings
 from pathlib import PurePath
+from exactextract import exact_extract
 
 from damagescanner.vector import (
-    reproject,
-    get_damage_per_object,
     match_raster_to_vector,
 )
 from damagescanner.raster import match_and_load_rasters
@@ -265,262 +262,120 @@ def RasterScanner(
     return damage_df, damagemap, landuse_in, hazard
 
 
-def VectorScanner(
-    exposure_file,
-    hazard_file,
-    curve_path,
-    maxdam_path,
-    cell_size=5,
-    exp_crs=4326,
-    haz_crs=4326,
-    object_col="landuse",
-    hazard_col="inun_val",
-    centimeters=False,
-    save=False,
-    **kwargs,
-):
+def _get_damage_per_object(asset, curves, cell_area_m2):
     """
-    Vector based implementation of a direct damage assessment
-
+    Calculate damage for a given asset based on hazard information.
     Arguments:
-        *exposure_file* : Shapefile, Pandas DataFrame or Geopandas GeoDataFrame
-        with land-use information of the area.
-
-        *hazard_file* : GeoTiff with inundation depth per grid cell. Make sure
-        that the unit of the inundation map corresponds with the unit of the
-        first column of the curves file.
-
-        *curve_path* : File with the stage-damage curves of the different
-        land-use classes. Can also be a pandas DataFrame (but not a numpy Array).
-
-        *maxdam_path* : File with the maximum damages per land-use class
-        (in euro/m2). Can also be a pandas DataFrame (but not a numpy Array).
-
-    Optional Arguments:
-        *cell_size* : Specify the cell size of the hazard map.
-
-        *exp_crs* : Specify the coordinate reference system of the exposure. Default is
-        set to **4326**. A preferred CRS system is in meters. Please note that the function
-        only accepts the CRS system in the form of an integer EPSG code.
-
-        *haz_crs* : Specify the cooordinate reference system of the hazard. Default is
-        set to **4326**.  A preferred CRS system is in meters.Please note that the function
-        only accepts the CRS system in the form of an integer EPSG code.
-
-        *centimeters* : Set to True if the inundation map and curves are in
-        centimeters
-
-        *object_col* : Specify the column name of the unique object id's.
-        Default is set to **landuse**.
-
-        *hazard_col* : Specify the column name of the hazard intensity
-        Default is set to **inun_val**.
-
-        *save* : Set to True if you would like to save the output. Requires
-        several **kwargs**
-
-    kwargs:
-        *output_path* : Specify where files should be saved.
-
-        *scenario_name*: Give a unique name for the files that are going to be saved.
-
-    Raises:
-        *ValueError* : on missing kwargs
-
+        *asset*: Tuple containing information about the asset. It includes:
+            - Index or identifier of the asset (asset[0]).
+            - Asset-specific information, including hazard points (asset[1]['hazard_point']).
+        *maxdam_dict*: Maximum damage value.
     Returns:
-     *damagebin* : Table with the land-use class names (1st column) and the
-     damage for that land-use class (2nd column).
-
+        *tuple*: A tuple containing the asset index or identifier and the calculated damage.
     """
-    # load exposure data
-    if isinstance(exposure_file, PurePath):
-        exposure = gpd.read_file(exposure_file)
 
-    elif isinstance(exposure_file, gpd.GeoDataFrame) | isinstance(
-        exposure_file, pd.DataFrame
-    ):
-        exposure = gpd.GeoDataFrame(exposure_file.copy())
-
+    if asset.geometry.geom_type in ("Polygon", "MultiPolygon"):
+        coverage = asset["coverage"] * cell_area_m2
+    elif asset.geometry.geom_type in ("LineString", "MultiLineString"):
+        coverage = asset["coverage"]
+    elif asset.geometry.geom_type in ("Point"):
+        coverage = 1
     else:
-        print(
-            "ERROR: exposure data should either be a shapefile, GeoPackage, a GeoDataFrame or a pandas Dataframe with a geometry column"
+        raise ValueError(f"Geometry type {asset.geometry.geom_type} not supported")
+
+    return (
+        np.sum(
+            np.interp(
+                asset["values"], curves.index, curves[asset["object_type"]].values
+            )
+            * coverage
+        )
+        * asset["maximum_damage"]
+    )
+
+
+def object_scanner(objects, hazard, curves):
+    """
+    Function to calculate the damage per object.
+
+    Arguments
+    ----------
+    objects : GeoDataFrame
+        GeoDataFrame with the objects for which to calculate the damage. It should contain the following columns: 'object_type' and 'maximum_damage'.
+        The maximum damage is the total damage for points, the damage per meter for lines and the damage per square meter for polygons.
+    hazard : rasterio.io.DatasetReader or xr.DataArray
+        The hazard raster.
+    curves : pandas.DataFrame
+        The curves to use for the damage calculation. The index should be the values of the hazard raster and the columns should be the object types
+
+    Returns
+    -------
+    pandas.Series
+        Series with the damage per object
+    """
+
+    if isinstance(hazard, rasterio.io.DatasetReader):
+        hazard_crs = hazard.crs
+        cell_area_m2 = hazard.res[0] * hazard.res[1]
+    elif isinstance(hazard, (xr.Dataset, xr.DataArray)):
+        hazard_crs = hazard.rio.crs
+        cell_area_m2 = abs(hazard.rio.resolution()[0]) * abs(hazard.rio.resolution()[1])
+    else:
+        raise ValueError(f"Hazard should be a raster object, {type(hazard)} given")
+
+    # make sure crs are identical
+    assert hazard_crs == objects.crs
+    # make sure crs is in meters
+    assert pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre"
+
+    area_and_line_objects = objects.geom_type.isin(
+        ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
+    )
+    point_objects = objects.geom_type == "Point"
+
+    assert area_and_line_objects.sum() + point_objects.sum() == len(objects)
+
+    if area_and_line_objects.sum() > 0:
+        values_and_coverage_per_area_and_line_object = exact_extract(
+            hazard,
+            objects[area_and_line_objects],
+            ["coverage", "values"],
+            output="pandas",
         )
 
-    # load hazard file
-    if isinstance(hazard_file, PurePath):
-        if hazard_file.parts[-1].endswith(".tif") | hazard_file.parts[-1].endswith(
-            ".tiff"
-        ):
-            # load dataset
-            hazard_map = xr.open_dataset(hazard_file, engine="rasterio")
+        objects.loc[area_and_line_objects, "coverage"] = (
+            values_and_coverage_per_area_and_line_object["coverage"].values
+        )
+        objects.loc[area_and_line_objects, "values"] = (
+            values_and_coverage_per_area_and_line_object["values"].values
+        )
 
-            # specify hazard_col
-            hazard_col = "band_data"
-
-            # convert to dataframe
-            hazard = hazard_map["band_data"].to_dataframe().reset_index()
-
-            # drop all non values and zeros to reduce size
-            hazard = hazard.loc[
-                ~(hazard["band_data"].isna() | hazard["band_data"] <= 0)
-            ].reset_index(drop=True)
-
-            # create geometry values and drop lat lon columns
-            hazard["geometry"] = shapely.points(
-                np.array(list(zip(hazard["x"], hazard["y"])))
+    if point_objects.sum() > 0:
+        if isinstance(hazard, rasterio.io.DatasetReader):
+            values = np.array(
+                [
+                    value[0]
+                    for value in rasterio.sample.sample_gen(
+                        hazard,
+                        [
+                            (point.x, point.y)
+                            for point in objects[point_objects].geometry
+                        ],
+                    )
+                ]
             )
-            hazard = hazard.drop(["x", "y", "band", "spatial_ref"], axis=1)
-
-            # and turn them into squares again:
-            hazard.geometry = shapely.buffer(
-                hazard.geometry, distance=cell_size / 2, cap_style="square"
-            ).values
-
-        elif hazard_file.parts[-1].endswith(".nc"):
-            # load dataset
-            hazard_map = xr.open_dataset(hazard_file)
-
-            # convert to dataframe
-            hazard = hazard_map[hazard_col].to_dataframe().reset_index()
-
-            # drop all non values and below zeros to reduce size. Might cause issues for cold waves
-            hazard = hazard.loc[
-                ~(hazard[hazard_col].isna() | hazard[hazard_col] <= 0)
-            ].reset_index(drop=True)
-
-            # create geometry values and drop lat lon columns
-            hazard["geometry"] = shapely.points(
-                np.array(list(zip(hazard["x"], hazard["y"])))
-            )
-            hazard = hazard.drop(["x", "y", "band", "spatial_ref"], axis=1)
-
-            # and turn them into squares again:
-            hazard.geometry = shapely.buffer(
-                hazard.geometry, distance=cell_size / 2, cap_style="square"
-            ).values
-
-        elif hazard_file.parts[-1].endswith(".shp") | hazard_file.parts[-1].endswith(
-            ".gpkg"
-        ):
-            hazard = gpd.read_file(hazard_file)
         else:
-            print(
-                "ERROR: hazard data should either be a GeoTIFF, a netCDF4, a shapefile or a GeoPackage."
-            )
+            values = hazard.sel(
+                {
+                    hazard.rio.x_dim: xr.DataArray(objects[point_objects].geometry.x),
+                    hazard.rio.y_dim: xr.DataArray(objects[point_objects].geometry.y),
+                },
+                method="nearest",
+            ).values[0]
+        objects.loc[point_objects, "values"] = values
 
-    elif isinstance(hazard_file, gpd.GeoDataFrame) | isinstance(
-        hazard_file, pd.DataFrame
-    ):
-        hazard = gpd.GeoDataFrame(hazard_file.copy())
-    else:
-        raise ValueError(
-            "ERROR: hazard data should be a GeoTiff, a netCDF4, a shapefile, a GeoDataFrame \
-              or any other georeferenced format that can be read by xarray or geopandas"
-        )
-
-    print("PROGRESS: Exposure and hazard data loaded")
-
-    # check if exposure and hazard data are in the same CRS and in a CRS in meters
-    CRS_exposure = pyproj.CRS.from_epsg(exp_crs)
-    CRS_hazard = pyproj.CRS.from_epsg(haz_crs)
-
-    # get the unit name of the CRS
-    exp_crs_unit_name = CRS_exposure.axis_info[0].unit_name
-    haz_crs_unit_name = CRS_hazard.axis_info[0].unit_name
-
-    # reproject exposure and hazard data to the same CRS
-    if exp_crs_unit_name == "degree" and haz_crs_unit_name == "metre":
-        exposure.geometry = reproject(
-            exposure, current_crs=f"epsg:{exp_crs}", approximate_crs=f"epsg:{haz_crs}"
-        )
-    elif exp_crs_unit_name == "degree" and haz_crs_unit_name == "degree":
-        exposure.geometry = reproject(
-            exposure, current_crs=f"epsg:{exp_crs}", approximate_crs="epsg:3857"
-        )
-
-    if haz_crs_unit_name == "degree" and exp_crs_unit_name == "metre":
-        hazard.geometry = reproject(
-            hazard, current_crs=haz_crs, approximate_crs=f"epsg:{exp_crs}"
-        )
-    elif haz_crs_unit_name == "degree" and exp_crs_unit_name == "degree":
-        hazard.geometry = reproject(
-            hazard, current_crs=haz_crs, approximate_crs="epsg:3857"
-        )
-
-    # rename inundation colum, set values to centimeters if required and to integers:
-    hazard = hazard.rename(columns={hazard_col: "haz_val"})
-    if not centimeters:
-        hazard["haz_val"] = hazard.haz_val * 100
-        hazard["haz_val"] = hazard.haz_val.astype(int)
-
-    # rename object col to make sure everything is consistent:
-    exposure = exposure.rename({object_col: "obj_type"}, axis=1)
-
-    # Load curves
-    if isinstance(curve_path, pd.DataFrame):
-        curves = curve_path.copy()
-    elif isinstance(curve_path, np.ndarray):
-        raise ValueError(
-            "ERROR: for the vector-based approach we use a pandas DataFrame, not a Numpy Array"
-        )
-    elif curve_path.parts[-1].endswith(".csv"):
-        curves = pd.read_csv(curve_path, index_col=[0])
-
-    # Load maximum damages
-    if isinstance(maxdam_path, PurePath) and maxdam_path.parts[-1].endswith(".csv"):
-        maxdam_path = pd.read_csv(maxdam_path)
-    elif isinstance(maxdam_path, pd.DataFrame):
-        maxdam = dict(zip(maxdam_path[object_col], maxdam_path["damage"]))
-    elif isinstance(maxdam_path, np.ndarray):
-        maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))
-    elif isinstance(maxdam_path, dict):
-        maxdam = maxdam_path
-
-    # overlay hazard and exposure data
-    hazard_tree = shapely.STRtree(hazard.geometry.values)
-
-    if (shapely.get_type_id(exposure.iloc[0].geometry) == 3) | (
-        shapely.get_type_id(exposure.iloc[0].geometry) == 6
-    ):
-        overlay = hazard_tree.query(exposure.geometry, predicate="intersects")
-    else:
-        overlay = hazard_tree.query(
-            shapely.buffer(exposure.geometry.values, distance=cell_size * 2),
-            predicate="intersects",
-        )
-
-    overlay_exp_haz = pd.DataFrame(overlay.T, columns=["obj_type", "hazard_point"])
-
-    # Perform calculation
-    collect_output = []
-
-    for obj in tqdm(
-        overlay_exp_haz.groupby("obj_type"),
-        total=len(overlay_exp_haz.obj_type.unique()),
-        desc="damage calculation",
-    ):
-        collect_output.append(
-            get_damage_per_object(obj, hazard, exposure, curves, maxdam)
-        )
-
-    # Merge results
-    damaged_objects = exposure.merge(
-        pd.DataFrame(collect_output, columns=["index", "damage"]),
-        left_index=True,
-        right_on="index",
-    )[["obj_type", "geometry", "damage"]]
-
-    # Save output
-    if save is True:
-        # requires adding output_path and scenario_name to function call
-        # If output path is not defined, will place file in current directory
-        output_path = check_output_path(kwargs)
-        scenario_name = check_scenario_name(kwargs)
-        path_prefix = PurePath(output_path, scenario_name)
-
-        damage_fn = f"{path_prefix}_damages.csv"
-        damaged_objects.to_csv(damage_fn)
-        return damaged_objects
-
-    else:
-        return damaged_objects
+    damage = objects.apply(
+        lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
+        axis=1,
+    )
+    return damage

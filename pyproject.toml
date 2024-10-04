@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "damagescanner"
-version = "0.8"
+version = "0.8-beta.1"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
 ]
@@ -34,6 +34,7 @@ dependencies = [
     "shapely >= 2.0",
     "tqdm",
     "pyyaml",
+    "exactextract",
 ]
 
 [tool.setuptools.package-data]

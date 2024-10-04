@@ -1,12 +1,14 @@
+# Custom
+development
+data/inundation_maps
+tests/tmp
+tests/output
+*aux.xml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Development folder
-development
-data/inundation_maps
-tests/tmp
 
 # C extensions
 *.so
