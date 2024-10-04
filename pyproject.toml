@@ -7,6 +7,7 @@ name = "damagescanner"
 version = "0.8-beta.1"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
+    {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
 ]
 
 license = {text = "MIT License"}
