@@ -232,13 +232,14 @@ if __name__ == "__main__":
     # estimate exposure
 
     exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
-        asset_type="roads"
+        asset_type="power"
     )
 
     #exposed_features.to_parquet("main_roads.parquet")
-    print(exposed_features[["coverage", "values"]])
+    print(exposed_features[["geometry","coverage","values"]])
 
     #initiate the damage scanner and calculate the damages
     # print(
     #     DamageScanner(hazard, exposure, curves, maxdam).calculate(asset_type="main_roads").damage.sum()
+
     # )

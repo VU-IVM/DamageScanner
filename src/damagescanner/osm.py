@@ -1,4 +1,5 @@
 import os
+import re
 import pandas as pd
 import geopandas as gpd
 
@@ -148,6 +149,17 @@ DICT_CIS_OSM = {
 }
 
 
+def extract_value(text, key):
+    pattern = rf'"{key}"=>"([^"]+)"'
+    try:
+        match = re.search(pattern, text)
+        if match:
+            return match.group(1)
+        return None
+    except:
+        return None
+
+
 def _extract(osm_path, geom_type, osm_keys, osm_query):
     """
     Extracts data from the given osm.pbf file based on the given osm_keys and
@@ -168,15 +180,19 @@ def _extract(osm_path, geom_type, osm_keys, osm_query):
     gdf : geopandas.GeoDataFrame
         geodataframe containing the extracted data
     """
-    exposure = gpd.read_file(osm_path, layer=geom_type, engine="pyogrio")
+    features = gpd.read_file(osm_path, layer=geom_type, engine="pyogrio")
+    
+    for key in osm_keys:
+        if key not in features.columns:
+            features[key] = features['other_tags'].apply(lambda x: extract_value(x, key))
+    
+    features = features[features[osm_keys[0]].isin(osm_query)]
 
-    exposure = exposure[exposure[osm_keys[0]].isin(osm_query)]
+    features = features[["osm_id", "geometry"] + osm_keys]
 
-    exposure = exposure[["osm_id", "geometry"] + osm_keys]
+    features.rename(columns={osm_keys[0]: "object_type"}, inplace=True)
 
-    exposure.rename(columns={osm_keys[0]: "object_type"}, inplace=True)
-
-    return exposure
+    return features
 
 
 def read_osm_data(osm_path, asset_type):
