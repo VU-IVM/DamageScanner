@@ -12,6 +12,7 @@ from tqdm import tqdm
 from pathlib import Path
 from scipy import integrate
 
+
 from vector import VectorScanner, VectorExposure
 from raster import RasterScanner
 
@@ -230,11 +231,14 @@ if __name__ == "__main__":
 
     # estimate exposure
 
-    print(
-        DamageScanner(hazard, exposure, curves, maxdam).exposure(asset_type="roads")
+    exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
+        asset_type="roads"
     )
 
-    # initiate the damage scanner and calculate the damages
+    #exposed_features.to_parquet("main_roads.parquet")
+    print(exposed_features[["coverage", "values"]])
+
+    #initiate the damage scanner and calculate the damages
     # print(
-    #     DamageScanner(hazard, exposure, curves, maxdam).calculate(asset_type="roads")
+    #     DamageScanner(hazard, exposure, curves, maxdam).calculate(asset_type="main_roads").damage.sum()
     # )

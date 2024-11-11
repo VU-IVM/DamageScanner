@@ -12,12 +12,29 @@ from pathlib import PurePath
 import osm_flex.extract as ex
 import rasterio
 from exactextract import exact_extract
+from pyproj import Geod
+from shapely.geometry import Point, LineString
+
 import traceback
 
 from utils import _check_output_path, _check_scenario_name
 from osm import read_osm_data
 
-def _create_grid(bbox,height):
+
+def _cover_to_meters(feature):
+    line_string = feature.geometry
+    geod = Geod(ellps="WGS84")
+    coverage_meters = []
+    for cover in feature.coverage:
+        new_for_length = LineString(
+            [Point(line_string.coords[0]), line_string.interpolate(cover)]
+        )
+        coverage_meters.append(geod.geometry_length(new_for_length))
+
+    return coverage_meters
+
+
+def _create_grid(bbox, height):
     """Create a vector-based grid
 
     Args:
@@ -26,15 +43,15 @@ def _create_grid(bbox,height):
 
     Returns:
         [type]: [description]
-    """    
+    """
 
     # set xmin,ymin,xmax,and ymax of the grid
-    xmin, ymin = shapely.total_bounds(bbox)[0],shapely.total_bounds(bbox)[1]
-    xmax, ymax = shapely.total_bounds(bbox)[2],shapely.total_bounds(bbox)[3]
-    
-    #estimate total rows and columns
-    rows = int(np.ceil((ymax-ymin) / height))
-    cols = int(np.ceil((xmax-xmin) / height))
+    xmin, ymin = shapely.total_bounds(bbox)[0], shapely.total_bounds(bbox)[1]
+    xmax, ymax = shapely.total_bounds(bbox)[2], shapely.total_bounds(bbox)[3]
+
+    # estimate total rows and columns
+    rows = int(np.ceil((ymax - ymin) / height))
+    cols = int(np.ceil((xmax - xmin) / height))
 
     # set corner points
     x_left_origin = xmin
@@ -48,10 +65,16 @@ def _create_grid(bbox,height):
         y_top = y_top_origin
         y_bottom = y_bottom_origin
         for countrows in range(rows):
-            res_geoms.append((
-                ((x_left_origin, y_top), (x_right_origin, y_top),
-                (x_right_origin, y_bottom), (x_left_origin, y_bottom)
-                )))
+            res_geoms.append(
+                (
+                    (
+                        (x_left_origin, y_top),
+                        (x_right_origin, y_top),
+                        (x_right_origin, y_bottom),
+                        (x_left_origin, y_bottom),
+                    )
+                )
+            )
             y_top = y_top - height
             y_bottom = y_bottom - height
         x_left_origin = x_left_origin + height
@@ -60,31 +83,48 @@ def _create_grid(bbox,height):
     # return grid as shapely polygons
     return shapely.polygons(res_geoms)
 
-def _reproject(df_ds, current_crs="epsg:4326", approximate_crs="epsg:3857"):
+
+def _reproject(hazard, features, hazard_crs):
     """
-    Function to reproject a GeoDataFrame to a different CRS.
+    Function to reproject to the same CRS in meters.
 
     Args:
-        df_ds (pandas DataFrame): _description_
-        current_crs (str, optional): _description_. Defaults to "epsg:4326".
-        approximate_crs (str, optional): _description_. Defaults to "epsg:3035".
+
 
     Returns:
         _type_: _description_
     """
-    geometries = df_ds["geometry"]
-    coords = shapely.get_coordinates(geometries)
-    transformer = pyproj.Transformer.from_crs(
-        current_crs, approximate_crs, always_xy=True
-    )
-    new_coords = transformer.transform(coords[:, 0], coords[:, 1])
 
-    return shapely.set_coordinates(geometries.copy(), np.array(new_coords).T)
+    bounds = features.total_bounds
+
+    bbox = shapely.box(bounds[0], bounds[1], bounds[2], bounds[3])
+
+    centre_point = bbox.centroid
+    lat = shapely.get_y(centre_point)
+    lon = shapely.get_x(centre_point)
+
+    # formula below based on :https://gis.stackexchange.com/a/190209/80697
+
+    approximate_crs = "EPSG:" + str(
+        int(32700 - np.round((45 + lat) / 90, 0) * 100 + np.round((183 + lon) / 6, 0))
+    )
+
+    # reproject if needed
+    if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+        hazard = hazard.rio.reproject(approximate_crs)
+
+    if (
+        not pyproj.CRS.from_epsg(features.crs.to_epsg()).axis_info[0].unit_name
+        == "metre"
+    ):
+        features = features.to_crs(approximate_crs)
+
+    return hazard, features, approximate_crs
 
 
 def _overlay_raster_vector(
-    hazard, features, hazard_crs, hazard_col="band_data", nodata=-9999 ,gridded=True
-    ):
+    hazard, features, hazard_crs, hazard_col="band_data", nodata=-9999, gridded=True
+):
     """
     Function to overlay a raster with a vector file.
 
@@ -117,17 +157,8 @@ def _overlay_raster_vector(
     assert area_and_line_objects.sum() + point_objects.sum() == len(features)
 
     if not gridded:
-        
         # reproject if needed
-        if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-            hazard = hazard.rio.reproject("EPSG:3857")
-
-        if (
-            not pyproj.CRS.from_epsg(features.crs.to_epsg()).axis_info[0].unit_name
-            == "metre"
-        ):
-            features = features.to_crs(3857)
-        
+        # hazard, features, approximate_crs = _reproject(hazard, features, hazard_crs)
 
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
@@ -144,64 +175,67 @@ def _overlay_raster_vector(
                 values_and_coverage_per_area_and_line_object["values"].values
             )
 
+        features = features[features["values"].apply(lambda x: len(x) > 0)]
+
+        tqdm.pandas(desc="convert coverage to meters")
+        features["coverage"] = features.progress_apply(
+            lambda feature: _cover_to_meters(feature), axis=1
+        )
+
     elif gridded:
-
         if area_and_line_objects.sum() > 0:
-
-            grid_cell_size = 0.5 # in degrees
+            grid_cell_size = 0.5  # in degrees
 
             # create grid
-            bbox = shapely.box(hazard.rio.bounds()[0],hazard.rio.bounds()[1],hazard.rio.bounds()[2],
-                                                hazard.rio.bounds()[3])
-            
-            #bbox.buffer(0.1)
-            
-            gridded = _create_grid(bbox,grid_cell_size)
+            bbox = shapely.box(
+                hazard.rio.bounds()[0],
+                hazard.rio.bounds()[1],
+                hazard.rio.bounds()[2],
+                hazard.rio.bounds()[3],
+            )
 
+            # bbox.buffer(0.1)
+
+            gridded = _create_grid(bbox, grid_cell_size)
 
             # get all bounds
-            all_bounds = gpd.GeoDataFrame(gridded,columns=['geometry']).bounds
+            all_bounds = gpd.GeoDataFrame(gridded, columns=["geometry"]).bounds
 
             collect_overlay = []
 
             # loop over all grids
-            for bounds in tqdm(all_bounds.itertuples(),total=len(all_bounds),desc='Overlay raster with vector'):
+            for bounds in tqdm(
+                all_bounds.itertuples(),
+                total=len(all_bounds),
+                desc="Overlay raster with vector",
+            ):
                 try:
                     # subset hazard
                     subset_hazard = hazard.rio.clip_box(
-                    minx=bounds.minx,
-                    miny=bounds.miny,
-                    maxx=bounds.maxx,
-                    maxy=bounds.maxy,
+                        minx=bounds.minx,
+                        miny=bounds.miny,
+                        maxx=bounds.maxx,
+                        maxy=bounds.maxy,
                     )
 
-                    sub_bbox = shapely.box(bounds.minx,bounds.miny,bounds.maxx,bounds.maxy)
-                   
-                    #subset features
-                    subset_features = gpd.clip(features, sub_bbox) #list(bounds)[1:])
+                    sub_bbox = shapely.box(
+                        bounds.minx, bounds.miny, bounds.maxx, bounds.maxy
+                    )
+
+                    # subset features
+                    subset_features = gpd.clip(features, sub_bbox)  # list(bounds)[1:])
                     subset_area_and_line_objects = subset_features.geom_type.isin(
                         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
-                    )           
+                    ).values
 
                     if len(subset_features) == 0:
                         continue
-                    
-                    centre_point = sub_bbox.centroid
-                    lat = shapely.get_y(centre_point)
-                    lon = shapely.get_x(centre_point)
 
-                    # formula below based on :https://gis.stackexchange.com/a/190209/80697 
-                    approximate_crs = "EPSG:" + str(int(32700-np.round((45+lat)/90,0)*100+np.round((183+lon)/6,0)))
-                   
-                    # reproject if needed
-                    if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-                        subset_hazard = subset_hazard.rio.reproject(approximate_crs)
-
-                    if (
-                        not pyproj.CRS.from_epsg(subset_features.crs.to_epsg()).axis_info[0].unit_name
-                        == "metre"
-                    ):
-                        subset_features = subset_features.to_crs(approximate_crs)
+                    # subset_hazard, subset_features, approximate_crs = _reproject(
+                    #     hazard=subset_hazard,
+                    #     features=subset_features,
+                    #     hazard_crs=hazard_crs,
+                    # )
 
                     values_and_coverage_per_area_and_line_object = exact_extract(
                         subset_hazard,
@@ -211,33 +245,55 @@ def _overlay_raster_vector(
                     )
 
                     # make sure we can connect the results with the features
-                    values_and_coverage_per_area_and_line_object.index = subset_features.index
+                    values_and_coverage_per_area_and_line_object.index = (
+                        subset_features[subset_area_and_line_objects].index
+                    )
                     collect_overlay.append(values_and_coverage_per_area_and_line_object)
-                
+
                 except:
-                    traceback.print_exc() 
+                    traceback.print_exc()
 
             df = pd.concat(collect_overlay).sort_index()
 
-            df = df[df['values'].apply(lambda x: len(x) > 0)]
-            
+            df = df[df["values"].apply(lambda x: len(x) > 0)]
+
             no_duplicates = []
             for row in df.groupby(level=0):
                 if len(row[1]) == 1:
-                    no_duplicates.append([row[0],row[1]['coverage'].values[0],row[1]['values'].values[0]])
+                    no_duplicates.append(
+                        [
+                            row[0],
+                            row[1]["coverage"].values[0],
+                            row[1]["values"].values[0],
+                        ]
+                    )
                 elif len(row[1]) > 1:
                     # concatenate coverage column lists
                     import itertools
-                    cov_all = list(itertools.chain.from_iterable(row[1]['coverage'].values))
-                    #concatenate values column lists
-                    val_all = list(itertools.chain.from_iterable(row[1]['values'].values))
 
-                    #append to no_duplicates with new cov_sum and val_sum
-                    no_duplicates.append([row[0],cov_all,val_all])
-            
-            df_no_duplicates = pd.DataFrame(no_duplicates,columns=['index','coverage','values']).set_index('index')
+                    cov_all = list(
+                        itertools.chain.from_iterable(row[1]["coverage"].values)
+                    )
+                    # concatenate values column lists
+                    val_all = list(
+                        itertools.chain.from_iterable(row[1]["values"].values)
+                    )
 
-            features = features.merge(df_no_duplicates,left_index=True,right_index=True)
+                    # append to no_duplicates with new cov_sum and val_sum
+                    no_duplicates.append([row[0], cov_all, val_all])
+
+            df_no_duplicates = pd.DataFrame(
+                no_duplicates, columns=["index", "coverage", "values"]
+            ).set_index("index")
+
+            features = features.merge(
+                df_no_duplicates, left_index=True, right_index=True
+            )
+
+            tqdm.pandas(desc="convert coverage to meters")
+            features["coverage"] = features.progress_apply(
+                lambda feature: _cover_to_meters(feature), axis=1
+            )
 
     if point_objects.sum() > 0:
         if isinstance(hazard, rasterio.io.DatasetReader):
@@ -268,7 +324,9 @@ def _overlay_raster_vector(
     return features
 
 
-def _overlay_vector_vector(hazard, exposure):
+def _overlay_vector_vector(
+    hazard, exposure, hazard_col="band_data", nodata=-9999, gridded=False
+):
     """
     Function to overlay a vector with another vector file.
 
@@ -279,7 +337,29 @@ def _overlay_vector_vector(hazard, exposure):
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with the hazard and exposure information.
     """
-    return exposure
+    # make sure the hazard data has a crs
+    if hazard_crs.to_epsg() == None:
+        RuntimeWarning(
+            "Hazard crs is not correctly defined. We will now assume it is EPSG:4326"
+        )
+        hazard = hazard.rio.set_crs("EPSG:4326")
+        hazard_crs = pyproj.CRS.from_epsg(4326)
+
+    hazard[hazard_col].rio.write_nodata(nodata, inplace=True)
+
+    area_and_line_objects = features.geom_type.isin(
+        ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
+    )
+    point_objects = features.geom_type == "Point"
+
+    # Check if the exposure data contains any area or line objects
+    assert area_and_line_objects.sum() + point_objects.sum() == len(features)
+
+    if not gridded:
+        # reproject if needed
+        hazard, features, approximate_crs = _reproject(hazard, features, hazard_crs)
+
+    return features
 
 
 def _estimate_damage(exposure, curves, cell_area_m2):
@@ -462,7 +542,7 @@ def VectorScanner(
 
     # Load hazard and exposure data, and perform the overlay
     exposure, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-        hazard_file, exposure_file, asset_type="roads"
+        hazard_file, exposure_file, asset_type
     )
 
     # Load curves
