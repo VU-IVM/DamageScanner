@@ -488,7 +488,6 @@ def VectorExposure(hazard_file, feature_file, asset_type="roads"):
         # if exposure_file is an osm.pbf file
         elif feature_file.suffix == ".pbf":
             features = read_osm_data(feature_file, asset_type)
-            features.to_parquet("osm.parquet")
             object_col = "object_type"
         else:
             raise ValueError(
