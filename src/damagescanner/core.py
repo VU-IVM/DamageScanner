@@ -24,18 +24,18 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 class DamageScanner(object):
     """DamageScanner - a directe damage assessment toolkit"""
 
-    def __init__(self, hazard_data, exposure_data, curves, maxdam):
+    def __init__(self, hazard_data, feature_data, curves, maxdam):
         """Prepare the input for a damage assessment"""
 
         # Collect the input data
         self.hazard_data = hazard_data
-        self.exposure_data = exposure_data
+        self.feature_data = feature_data
         self.curves = curves
         self.maxdam = maxdam
 
         # Convert the input to a Path object if it is a string
-        if isinstance(self.exposure_data, str):
-            self.exposure_path = Path(exposure_data)
+        if isinstance(self.feature_data, str):
+            self.feature_path = Path(feature_data)
 
         if isinstance(self.hazard_data, str):
             self.hazard_data = Path(hazard_data)
@@ -47,11 +47,11 @@ class DamageScanner(object):
             self.maxdam = Path(maxdam)
 
         # Check the type of the exposure data
-        if isinstance(self.exposure_data, Path):
-            if self.exposure_data.suffix in [".tif", ".tiff", ".nc"]:
-                self.assessment_type = "raster"
+        if isinstance(self.feature_data, Path):
+            if self.feature_data.suffix in [".tif", ".tiff", ".nc"]:
+                self.feature_data = "raster"
 
-            elif self.exposure_data.suffix in [
+            elif self.feature_data.suffix in [
                 ".shp",
                 ".gpkg",
                 ".pbf",
@@ -60,7 +60,7 @@ class DamageScanner(object):
             ]:
                 self.assessment_type = "vector"
 
-                if self.exposure_data.suffix == ".pbf":
+                if self.feature_data.suffix == ".pbf":
                     self.osm = True
             else:
                 raise ImportError(
@@ -69,9 +69,9 @@ class DamageScanner(object):
                 )
 
         else:
-            if isinstance(self.exposure_data, (xr.DataArray, xr.Dataset)):
+            if isinstance(self.feature_data, (xr.DataArray, xr.Dataset)):
                 self.assessment_type = "raster"
-            elif isinstance(self.exposure_data, (gpd.GeoDataFrame, pd.DataFrame)):
+            elif isinstance(self.feature_data, (gpd.GeoDataFrame, pd.DataFrame)):
                 self.assessment_type = "vector"
 
         # Collect vulnerability curves
@@ -107,7 +107,7 @@ class DamageScanner(object):
 
             exposed_assets = VectorExposure(
                 hazard_file=self.hazard_data,
-                exposure_file=self.exposure_data,
+                feature_file=self.feature_data,
                 asset_type=self.asset_type,
             )[0]
 
@@ -138,7 +138,7 @@ class DamageScanner(object):
 
             return VectorScanner(
                 hazard_file=self.hazard_data,
-                exposure_file=self.exposure_data,
+                feature_file=self.exposure_data,
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
                 asset_type=self.asset_type,  #'landuse',
@@ -230,19 +230,33 @@ if __name__ == "__main__":
     maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
 
     # estimate exposure
-    asset_types = ['roads', 'main_roads', 'rail', 'air', 'telecom', 
-                   'water_supply', 'waste_solid', 'waste_water', 'education', 
-                   'healthcare', 'power', 'gas', 'food', 'oil', 'wastewater', 'buildings']
-    
+    asset_types = [
+        "main_roads",
+        "rail",
+        "air",
+        "telecom",
+        "water_supply",
+        "waste_solid",
+        "waste_water",
+        "education",
+        "healthcare",
+        "power",
+        "gas",
+        "food",
+        "oil",
+        "wastewater",
+        "buildings",
+    ]
+
     for asset_type in asset_types:
         exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
             asset_type=asset_type
         )
 
-        #exposed_features.to_parquet("main_roads.parquet")
-        print(exposed_features[["object_type","coverage","values"]])
+        # exposed_features.to_parquet("main_roads.parquet")
+        print(exposed_features[["object_type", "coverage", "values"]])
 
-    #initiate the damage scanner and calculate the damages
+    # #initiate the damage scanner and calculate the damages
     # print(
     #     DamageScanner(hazard, exposure, curves, maxdam).calculate(asset_type="main_roads").damage.sum()
 

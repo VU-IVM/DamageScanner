@@ -163,16 +163,24 @@ def _reproject(hazard, features, hazard_crs):
     )
 
     # reproject if needed
-    if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-        hazard = hazard.rio.reproject(approximate_crs)
 
-    if (
-        not pyproj.CRS.from_epsg(features.crs.to_epsg()).axis_info[0].unit_name
-        == "metre"
-    ):
-        features = features.to_crs(approximate_crs)
+    if hazard_crs.to_epsg() == features.crs.to_epsg():
+        return hazard, features, approximate_crs
 
-    return hazard, features, approximate_crs
+    else:
+        features = features.to_crs(hazard_crs)
+        return hazard, features, approximate_crs
+
+    # if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+    #     hazard = hazard.rio.reproject(approximate_crs)
+
+    # if (
+    #     not pyproj.CRS.from_epsg(features.crs.to_epsg()).axis_info[0].unit_name
+    #     == "metre"
+    # ):
+    #     features = features.to_crs(approximate_crs)
+
+    # return hazard, features, approximate_crs
 
 
 def _overlay_raster_vector(
@@ -204,7 +212,11 @@ def _overlay_raster_vector(
     area_and_line_objects = features.geom_type.isin(
         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
     )
+
     point_objects = features.geom_type == "Point"
+
+    # make sure they are both in the same coordinate system
+    hazard, features, approximate_crs = _reproject(hazard, features, hazard_crs)
 
     # Check if the exposure data contains any area or line objects
     assert area_and_line_objects.sum() + point_objects.sum() == len(features)
@@ -248,11 +260,6 @@ def _overlay_raster_vector(
         features.loc[point_objects, "values"] = features.loc[
             point_objects, "values"
         ].apply(lambda x: [x] if x > 0 else [])
-
-        # add coverage of 1 as list
-        features.loc[point_objects, "coverage"] = features.loc[
-            point_objects, "coverage"
-        ].apply(lambda x: [1])
 
     if not gridded:
         if area_and_line_objects.sum() > 0:
@@ -350,23 +357,28 @@ def _overlay_raster_vector(
             features.loc[df_no_duplicates.index, "coverage"] = df_no_duplicates[
                 "coverage"
             ]
+
             features.loc[df_no_duplicates.index, "values"] = df_no_duplicates["values"]
 
             # only keep features with values
             features = features[features["values"].apply(lambda x: len(x) > 0)]
 
-            # convert coverage to meters
-            tqdm.pandas(desc="convert coverage to meters")
+            # convert coverage to meters, only do this if the crs is not in meters
+            if (
+                not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
+                == "metre"
+            ):
+                tqdm.pandas(desc="convert coverage to meters")
 
-            features.loc[:, "coverage"] = features.progress_apply(
-                lambda feature: _cover_to_meters(feature), axis=1
-            )
+                features.loc[:, "coverage"] = features.progress_apply(
+                    lambda feature: _cover_to_meters(feature), axis=1
+                )
 
     return features
 
 
 def _overlay_vector_vector(
-    hazard, exposure, hazard_col="band_data", nodata=-9999, gridded=False
+    hazard, features, hazard_col="band_data", nodata=-9999, gridded=False
 ):
     """
     Function to overlay a vector with another vector file.
@@ -405,7 +417,7 @@ def _overlay_vector_vector(
     return features
 
 
-def _estimate_damage(exposure, curves, cell_area_m2):
+def _estimate_damage(features, curves, cell_area_m2):
     """
     Function to estimate the damage based on the hazard and exposure information.
 
@@ -417,11 +429,11 @@ def _estimate_damage(exposure, curves, cell_area_m2):
         gpd.GeoDataFrame: GeoDataFrame with the hazard, exposure and damage information.
     """
 
-    exposure["damage"] = exposure.progress_apply(
+    features["damage"] = features.progress_apply(
         lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
         axis=1,
     )
-    return exposure
+    return features
 
 
 def _get_damage_per_object(asset, curves, cell_area_m2):
@@ -456,7 +468,7 @@ def _get_damage_per_object(asset, curves, cell_area_m2):
     )
 
 
-def VectorExposure(hazard_file, exposure_file, asset_type="roads"):
+def VectorExposure(hazard_file, feature_file, asset_type="roads"):
     """
     Function to assess the exposure of objects.
 
@@ -468,24 +480,25 @@ def VectorExposure(hazard_file, exposure_file, asset_type="roads"):
         gpd.GeoDataFrame: GeoDataFrame with the hazard and exposure information.
     """
     # load exposure data
-    if isinstance(exposure_file, PurePath):
+    if isinstance(feature_file, PurePath):
         # if exposure_file is a shapefile, geopackage or parquet file
-        if exposure_file.suffix in [".shp", ".gpkg", "parquet"]:
-            exposure = gpd.read_file(exposure_file)
+        if feature_file.suffix in [".shp", ".gpkg", "parquet"]:
+            features = gpd.read_file(feature_file)
 
         # if exposure_file is an osm.pbf file
-        elif exposure_file.suffix == ".pbf":
-            exposure = read_osm_data(exposure_file, asset_type)
+        elif feature_file.suffix == ".pbf":
+            features = read_osm_data(feature_file, asset_type)
+            features.to_parquet("osm.parquet")
             object_col = "object_type"
         else:
             raise ValueError(
                 "exposure data should either be a shapefile, geopackage, parquet or osm.pbf file"
             )
 
-    elif isinstance(exposure_file, gpd.GeoDataFrame) | isinstance(
-        exposure_file, pd.DataFrame
+    elif isinstance(feature_file, gpd.GeoDataFrame) | isinstance(
+        feature_file, pd.DataFrame
     ):
-        exposure = gpd.GeoDataFrame(exposure_file.copy())
+        features = gpd.GeoDataFrame(feature_file.copy())
 
     else:
         raise ValueError(
@@ -524,16 +537,16 @@ def VectorExposure(hazard_file, exposure_file, asset_type="roads"):
 
     # Run exposure overlay
     if isinstance(hazard, (rasterio.io.DatasetReader, xr.Dataset, xr.DataArray)):
-        exposure = _overlay_raster_vector(hazard, exposure, hazard_crs)
+        features = _overlay_raster_vector(hazard, features, hazard_crs)
     elif isinstance(hazard, (gpd.GeoDataFrame, pd.DataFrame)):
-        exposure = _overlay_vector_vector(hazard, exposure)
+        features = _overlay_vector_vector(hazard, features)
 
-    return exposure, object_col, hazard_crs, cell_area_m2
+    return features, object_col, hazard_crs, cell_area_m2
 
 
 def VectorScanner(
     hazard_file,
-    exposure_file,
+    feature_file,
     curve_path,
     maxdam_path,
     asset_type="roads",
@@ -584,8 +597,8 @@ def VectorScanner(
     """
 
     # Load hazard and exposure data, and perform the overlay
-    exposure, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-        hazard_file, exposure_file, asset_type
+    features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
+        hazard_file, feature_file, asset_type
     )
 
     # Load curves
@@ -610,11 +623,11 @@ def VectorScanner(
         maxdam = maxdam_path
 
     # convert exposure column with asset types to object_type
-    exposure = exposure.rename(columns={object_col: "object_type"})
+    features = features.rename(columns={object_col: "object_type"})
 
     # connect maxdam to exposure
     try:
-        exposure["maximum_damage"] = exposure.apply(
+        features["maximum_damage"] = features.apply(
             lambda x: maxdam[x["object_type"]], axis=1
         )
     except KeyError:
@@ -624,7 +637,7 @@ def VectorScanner(
 
     # Calculate damage
     tqdm.pandas(desc="Calculating damage")
-    exposure = _estimate_damage(exposure, curves, cell_area_m2)
+    features = _estimate_damage(features, curves, cell_area_m2)
 
     # # Save output
     # if save == True:
@@ -641,4 +654,4 @@ def VectorScanner(
     # else:
     #     return damaged_objects
 
-    return exposure
+    return features
