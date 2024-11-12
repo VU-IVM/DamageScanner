@@ -98,6 +98,7 @@ def _create_grid(bbox, height):
     # return grid as shapely polygons
     return shapely.polygons(res_geoms)
 
+
 def _remove_duplicates(df):
     """Remove duplicates from a dataframe.
 
@@ -119,17 +120,12 @@ def _remove_duplicates(df):
                 ]
             )
         elif len(row[1]) > 1:
-
             # concatenate coverage column lists
             import itertools
 
-            cov_all = list(
-                itertools.chain.from_iterable(row[1]["coverage"].values)
-            )
+            cov_all = list(itertools.chain.from_iterable(row[1]["coverage"].values))
             # concatenate values column lists
-            val_all = list(
-                itertools.chain.from_iterable(row[1]["values"].values)
-            )
+            val_all = list(itertools.chain.from_iterable(row[1]["values"].values))
 
             # append to no_duplicates with new cov_sum and val_sum
             no_duplicates.append([row[0], cov_all, val_all])
@@ -139,6 +135,7 @@ def _remove_duplicates(df):
     ).set_index("index")
 
     return df_no_duplicates
+
 
 def _reproject(hazard, features, hazard_crs):
     """
@@ -213,7 +210,6 @@ def _overlay_raster_vector(
     assert area_and_line_objects.sum() + point_objects.sum() == len(features)
 
     if point_objects.sum() > 0:
-
         # if hazard data is a rasterio object:
         if isinstance(hazard, rasterio.io.DatasetReader):
             values = np.array(
@@ -234,15 +230,19 @@ def _overlay_raster_vector(
             hazard_for_points = hazard[hazard_col]
             values = hazard_for_points.sel(
                 {
-                    hazard_for_points.rio.x_dim: xr.DataArray(features[point_objects].geometry.x),
-                    hazard_for_points.rio.y_dim: xr.DataArray(features[point_objects].geometry.y),
+                    hazard_for_points.rio.x_dim: xr.DataArray(
+                        features[point_objects].geometry.x
+                    ),
+                    hazard_for_points.rio.y_dim: xr.DataArray(
+                        features[point_objects].geometry.y
+                    ),
                 },
                 method="nearest",
             ).values[0]
 
         # add values to the features
         features.loc[point_objects, "values"] = values
-        features.loc[point_objects, "coverage"] = [1]*len(values)
+        features.loc[point_objects, "coverage"] = [1] * len(values)
 
         # turn values into lists
         features.loc[point_objects, "values"] = features.loc[
@@ -253,10 +253,8 @@ def _overlay_raster_vector(
         features.loc[point_objects, "coverage"] = features.loc[
             point_objects, "coverage"
         ].apply(lambda x: [1])
-            
-    
+
     if not gridded:
- 
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
                 hazard,
@@ -276,7 +274,7 @@ def _overlay_raster_vector(
         features = features[features["values"].apply(lambda x: len(x) > 0)]
 
         tqdm.pandas(desc="convert coverage to meters")
-        features.loc[:,"coverage"] = features.progress_apply(
+        features.loc[:, "coverage"] = features.progress_apply(
             lambda feature: _cover_to_meters(feature), axis=1
         )
 
@@ -291,7 +289,6 @@ def _overlay_raster_vector(
                 hazard.rio.bounds()[2],
                 hazard.rio.bounds()[3],
             )
-
 
             gridded = _create_grid(bbox, grid_cell_size)
 
@@ -350,21 +347,23 @@ def _overlay_raster_vector(
             df_no_duplicates = _remove_duplicates(df)
 
             ## add features to the original features
-            features.loc[df_no_duplicates.index, "coverage"] = df_no_duplicates["coverage"]
+            features.loc[df_no_duplicates.index, "coverage"] = df_no_duplicates[
+                "coverage"
+            ]
             features.loc[df_no_duplicates.index, "values"] = df_no_duplicates["values"]
 
             # only keep features with values
             features = features[features["values"].apply(lambda x: len(x) > 0)]
 
-
             # convert coverage to meters
             tqdm.pandas(desc="convert coverage to meters")
 
-            features["coverage"] = features.progress_apply(
+            features.loc[:, "coverage"] = features.progress_apply(
                 lambda feature: _cover_to_meters(feature), axis=1
             )
 
     return features
+
 
 def _overlay_vector_vector(
     hazard, exposure, hazard_col="band_data", nodata=-9999, gridded=False

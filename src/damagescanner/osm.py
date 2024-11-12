@@ -1,12 +1,14 @@
 import os
 import re
+import functools
+import operator
 import pandas as pd
 import geopandas as gpd
 
 DICT_CIS_OSM = {
     "roads": {
         "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface"],
-        "osm_query": [
+        "osm_query": {'highway': [
             "motorway",
             "motorway_link",
             "trunk",
@@ -21,11 +23,11 @@ DICT_CIS_OSM = {
             "road",
             "unclassified",
             "track",
-        ],
+        ] }
     },
     "main_roads": {
         "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface"],
-        "osm_query": [
+        "osm_query": {'highway': [
             "primary",
             "primary_link",
             "secondary",
@@ -36,65 +38,59 @@ DICT_CIS_OSM = {
             "trunk_link",
             "motorway",
             "motorway_link",
-        ],
+        ] }
     },
     "rail": {
         "osm_keys": ["railway", "name", "gauge", "electrified", "voltage"],
-        "osm_query": ["rail", "narrow_gauge"],
+        "osm_query": {"railway": ["rail", "narrow_gauge"]}
     },
     "air": {
         "osm_keys": ["aeroway", "name"],
-        "osm_query": ["aerodrome", "terminal", "runway"],
+        "osm_query": {"aeroway":["aerodrome", "terminal", "runway"]}
     },
     "telecom": {
         "osm_keys": ["man_made", "tower_type", "name"],
-        "osm_query": """tower_type='communication' or man_made='mast' or man_made='communications_tower'""",
+        "osm_query": {"man_made": ["mast", "communications_tower"],
+                      "tower_type": ["communication"]}
     },
     "water_supply": {
         "osm_keys": ["man_made", "name"],
-        "osm_query": [
+        "osm_query": {"man_made":[
             "water_works",
             "water_well",
             "water_tower",
             "reservoir_covered",
             "storage_tank",
-        ],
+        ]}
     },
     "waste_solid": {
         "osm_keys": ["amenity", "name"],
-        "osm_query": ["waste_transfer_station"],
+        "osm_query": {"amenity": ["waste_transfer_station"]}
     },
     "waste_water": {
         "osm_keys": ["man_made", "name"],
-        "osm_query": ["wastewater_plant"],
+        "osm_query": {"man_made":["wastewater_plant"]}
     },
     "education": {
         "osm_keys": ["amenity", "building", "name"],
-        "osm_query": """building='school' or amenity='school' or
-                             building='kindergarten' or 
-                             amenity='kindergarten' or
-                             building='college' or amenity='college' or
-                             building='university' or amenity='university' or
-                             building='library' or amenity='library'""",
-    },
+        "osm_query" : {'building' : ['school','kindergarten',
+                                     'college','university',
+                                     'library'],
+                        'amenity' : ['school','kindergarten',
+                                     'college','university',
+                                     'library']}
+        },
     "healthcare": {
         "osm_keys": ["amenity", "building", "healthcare", "name"],
-        "osm_query": ["hospital", "clinic", "doctors", "dentist", "pharmacy"],
-    },
-    #  or healthcare='hospital' or
-    #                  building='hospital' or building='clinic' or
-    #                  amenity='clinic' or healthcare='clinic' or
-    #                  amenity='doctors' or healthcare='doctors' or
-    #                  amenity='dentist' or amenity='pharmacy' or
-    #                  healthcare='pharmacy' or healthcare='dentist' or
-    #                  healthcare='physiotherapist' or healthcare='alternative' or
-    #                  healthcare='laboratory' or healthcare='optometrist' or
-    #                  healthcare='rehabilitation' or healthcare='blood_donation' or
-    #                  healthcare='birthing_center'
-    #                  """},
+        "osm_query": {"amenity": ["hospital", "clinic", "doctors", "dentist", "pharmacy"],
+                        "building": ["hospital", "clinic"],
+                        "healthcare": ["pharmacy", "dentist", "physiotherapist", 
+                        "alternative", "laboratory", "optometrist", 
+                        "rehabilitation", "blood_donation", "birthing_center"]}
+},
     "power": {
         "osm_keys": ["power", "voltage", "utility", "name"],
-        "osm_query": [
+        "osm_query": {"power" :[
             "line",
             "cable",
             "minor_line",
@@ -108,30 +104,35 @@ DICT_CIS_OSM = {
             "terminal",
             "switch",
             "catenary_mast",
-        ],
+        ]}
     },
     "gas": {
-        "osm_keys": ["man_made", "pipeline", "utility", "name"],
-        "osm_query": """(man_made='pipeline' and substance='gas') or
-                              (pipeline='substation' and substance='gas') or
-                              (man_made='storage_tank' and content='gas') or
-                              utility='gas'""",
+        "osm_keys": ["man_made", "pipeline", "utility", "name","substance","content"],
+        "osm_query" : {"man_made": ["pipeline", "storage_tank"],
+                        "pipeline": ["substation"],
+                        "utility": ["gas"],
+                        "substance": ["gas"],
+                        "content": ["gas"]}
+    },
+    "food": {
+        "osm_keys": ["amenity", "building", "name"],
+        "osm_query": {"amenity": ["restaurant", "fast_food", "cafe", "pub", "bar"],
+                        "building": ["restaurant", "fast_food", "cafe", "pub", "bar"]}
     },
     "oil": {
-        "osm_keys": ["pipeline", "man_made", "amenity", "name"],
-        "osm_query": """(pipeline='substation' and substance='oil') or
-                              (man_made='pipeline' and substance='oil') or
-                              man_made='petroleum_well' or 
-                              man_made='oil_refinery' or
-                              amenity='fuel'""",
-    },
+        "osm_keys": ["pipeline", "man_made", "amenity", "name","substance"],
+        "osm_query": {"pipeline": ["substation"],
+                      "man_made": ["pipeline", "petroleum_well", "oil_refinery"],
+                        "amenity": ["fuel"],
+                        "substance": ["oil"]}},
     "wastewater": {
         "osm_keys": ["man_made", "amenity", "name"],
-        "osm_query": """amenity='waste_transfer_station' or man_made='wastewater_plant'""",
+        "osm_query": {"man_made": ["wastewater_plant"],
+                        "amenity": ["waste_transfer_station"]}
     },
     "buildings": {
         "osm_keys": ["building", "amenity", "name"],
-        "osm_query": [
+        "osm_query": {"building": [
             "yes",
             "house",
             "residential",
@@ -140,14 +141,9 @@ DICT_CIS_OSM = {
             "industrial",
             "shed",
             "apartments",
-        ],
+        ]}
     },
-    # 'osm_query' : """building='yes' or building='house' or
-    #                 building='residential' or building='detached' or
-    #                 building='hut' or building='industrial' or
-    #                 building='shed' or building='apartments'"""}
 }
-
 
 def extract_value(text, key):
     pattern = rf'"{key}"=>"([^"]+)"'
@@ -186,7 +182,21 @@ def _extract(osm_path, geom_type, osm_keys, osm_query):
         if key not in features.columns:
             features[key] = features['other_tags'].apply(lambda x: extract_value(x, key))
     
-    features = features[features[osm_keys[0]].isin(osm_query)]
+    # build query
+    collect_indices = []
+    for query_key in osm_query.keys():
+        collect_indices.append(
+            features[features[query_key].isin(
+                osm_query[query_key])].index.values)
+    
+    # get complete list
+    collect_indices = functools.reduce(
+        operator.iconcat, collect_indices, [])
+
+    # remove duplicates from list
+    collect_indices = list(set(collect_indices))
+
+    features = features.iloc[collect_indices]
 
     features = features[["osm_id", "geometry"] + osm_keys]
 

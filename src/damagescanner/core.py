@@ -230,13 +230,17 @@ if __name__ == "__main__":
     maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
 
     # estimate exposure
+    asset_types = ['roads', 'main_roads', 'rail', 'air', 'telecom', 
+                   'water_supply', 'waste_solid', 'waste_water', 'education', 
+                   'healthcare', 'power', 'gas', 'food', 'oil', 'wastewater', 'buildings']
+    
+    for asset_type in asset_types:
+        exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
+            asset_type=asset_type
+        )
 
-    exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
-        asset_type="power"
-    )
-
-    #exposed_features.to_parquet("main_roads.parquet")
-    print(exposed_features[["geometry","coverage","values"]])
+        #exposed_features.to_parquet("main_roads.parquet")
+        print(exposed_features[["object_type","coverage","values"]])
 
     #initiate the damage scanner and calculate the damages
     # print(
