@@ -347,7 +347,7 @@ def _overlay_raster_vector(
 
                 except:
                     get_error = traceback.format_exc()
-                    error_to_ignore = 'At least one of the clipped raster x,y coordinates has only one point.'
+                    error_to_ignore = "At least one of the clipped raster x,y coordinates has only one point."
                     if error_to_ignore not in get_error:
                         traceback.print_exc()
 
