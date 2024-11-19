@@ -20,7 +20,7 @@ from utils import _check_output_path, _check_scenario_name
 from osm import read_osm_data
 
 
-def _cover_to_meters(feature):
+def _convert_to_meters(feature):
     """Convert coverage to meters for each individual row in the dataframe.
 
 
@@ -282,7 +282,7 @@ def _overlay_raster_vector(
 
         tqdm.pandas(desc="convert coverage to meters")
         features.loc[:, "coverage"] = features.progress_apply(
-            lambda feature: _cover_to_meters(feature), axis=1
+            lambda feature: _convert_to_meters(feature), axis=1
         )
 
     elif gridded:
@@ -346,7 +346,10 @@ def _overlay_raster_vector(
                     collect_overlay.append(values_and_coverage_per_area_and_line_object)
 
                 except:
-                    traceback.print_exc()
+                    get_error = traceback.format_exc()
+                    error_to_ignore = 'At least one of the clipped raster x,y coordinates has only one point.'
+                    if error_to_ignore not in get_error:
+                        traceback.print_exc()
 
             df = pd.concat(collect_overlay).sort_index()
 
@@ -371,7 +374,7 @@ def _overlay_raster_vector(
                 tqdm.pandas(desc="convert coverage to meters")
 
                 features.loc[:, "coverage"] = features.progress_apply(
-                    lambda feature: _cover_to_meters(feature), axis=1
+                    lambda feature: _convert_to_meters(feature), axis=1
                 )
 
     return features

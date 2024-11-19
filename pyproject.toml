@@ -4,9 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "damagescanner"
-version = "0.7"
+version = "0.9-beta.1"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
+    {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
 ]
 
 license = {text = "MIT License"}
@@ -33,7 +34,8 @@ dependencies = [
     "pandas",
     "shapely >= 2.0",
     "tqdm",
-    "osm-flex",
+    "pyyaml",
+    "exactextract",
 ]
 
 [tool.setuptools.package-data]
@@ -42,6 +44,7 @@ dependencies = [
 [project.optional-dependencies]
 tests = ["pytest"]
 docs = ["jupyter"]
+examples = ["osm-flex"]
 
 [project.urls]
 "Homepage" = "https://github.com/ElcoK/DamageScanner"

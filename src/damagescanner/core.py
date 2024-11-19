@@ -12,7 +12,6 @@ from tqdm import tqdm
 from pathlib import Path
 from scipy import integrate
 
-
 from vector import VectorScanner, VectorExposure
 from raster import RasterScanner
 
@@ -35,7 +34,7 @@ class DamageScanner(object):
 
         # Convert the input to a Path object if it is a string
         if isinstance(self.feature_data, str):
-            self.feature_path = Path(feature_data)
+            self.feature_data = Path(feature_data)
 
         if isinstance(self.hazard_data, str):
             self.hazard_data = Path(hazard_data)
@@ -122,7 +121,7 @@ class DamageScanner(object):
 
         if self.assessment_type == "raster":
             return RasterScanner(
-                exposure_file=self.exposure_data,
+                exposure_file=self.feature_data,
                 hazard_file=self.hazard_data,
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
@@ -138,7 +137,7 @@ class DamageScanner(object):
 
             return VectorScanner(
                 hazard_file=self.hazard_data,
-                feature_file=self.exposure_data,
+                feature_file=self.feature_data,
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
                 asset_type=self.asset_type,  #'landuse',
@@ -224,7 +223,7 @@ if __name__ == "__main__":
     data_path = Path("..") / ".." / "data" / "jamaica"
 
     # define the input data
-    exposure = data_path / "exposure" / "jamaica-latest.osm.pbf"
+    features = data_path / "exposure" / "jamaica-latest.osm.pbf"
     hazard = data_path / "hazard" / "FD_1in1000.tif"
     curves = data_path / "vulnerability" / "curves_osm.csv"
     maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
@@ -249,15 +248,16 @@ if __name__ == "__main__":
     ]
 
     for asset_type in asset_types:
-        exposed_features = DamageScanner(hazard, exposure, curves, maxdam).exposure(
+        
+        exposed_features = DamageScanner(hazard, features, curves, maxdam).exposure(
             asset_type=asset_type
         )
 
         # exposed_features.to_parquet("main_roads.parquet")
         print(exposed_features[["object_type", "coverage", "values"]])
-
+    
     # #initiate the damage scanner and calculate the damages
-    # print(
-    #     DamageScanner(hazard, exposure, curves, maxdam).calculate(asset_type="main_roads").damage.sum()
+    print(
+        DamageScanner(hazard, features, curves, maxdam).calculate(asset_type="main_roads").damage.sum()
 
-    # )
+    )
