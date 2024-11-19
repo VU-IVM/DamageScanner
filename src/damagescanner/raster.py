@@ -13,7 +13,7 @@ from affine import Affine
 import warnings
 from pathlib import PurePath
 import shapely
-from utils import _check_output_path, _check_scenario_name
+from damagescanner.utils import _check_output_path, _check_scenario_name
 
 
 def _match_rasters(raster_in1, raster_in2):

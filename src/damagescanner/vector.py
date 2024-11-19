@@ -16,8 +16,8 @@ from shapely.geometry import Point, LineString
 
 import traceback
 
-from utils import _check_output_path, _check_scenario_name
-from osm import read_osm_data
+from damagescanner.utils import _check_output_path, _check_scenario_name
+from damagescanner.osm import read_osm_data
 
 
 def _convert_to_meters(feature):

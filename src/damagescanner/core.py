@@ -12,8 +12,8 @@ from tqdm import tqdm
 from pathlib import Path
 from scipy import integrate
 
-from vector import VectorScanner, VectorExposure
-from raster import RasterScanner
+from damagescanner.vector import VectorScanner, VectorExposure
+from damagescanner.raster import RasterScanner
 
 import warnings
 
