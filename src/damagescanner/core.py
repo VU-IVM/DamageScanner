@@ -133,7 +133,7 @@ class DamageScanner(object):
             if "asset_type" in kwargs:
                 self.asset_type = kwargs.get("asset_type")
             else:
-                self.asset_type = "landuse"
+                self.asset_type = None
 
             return VectorScanner(
                 hazard_file=self.hazard_data,
@@ -141,11 +141,12 @@ class DamageScanner(object):
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
                 asset_type=self.asset_type,  #'landuse',
+                multi_curves=kwargs.get("multi_curves", None),
                 sub_types=kwargs.get("subtypes", None),
                 save=save_output,
             )
 
-    def risk(hazard_dict, exposure, curves, maxdam):
+    def risk(self, hazard_dict, **kwargs):
         """
         Calculate the risk for a list of hazard events
         """
@@ -153,23 +154,96 @@ class DamageScanner(object):
         RP_list = list(hazard_dict.keys())
 
         risk = {}
-        for key, value in tqdm(
+        for key, hazard_map in tqdm(
             hazard_dict.items(), total=len(hazard_dict), desc="Risk Calculation"
         ):
-            risk[key] = DamageScanner(value, exposure, curves, maxdam).calculate()[0]
+            if self.assessment_type == "raster":
+                risk[key] = DamageScanner(
+                    hazard_map, self.feature_data, self.curves, self.maxdam
+                ).calculate()[0]
+            else:
+                if kwargs.get("asset_type", None) is not None:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate(asset_type=kwargs.get("asset_type"))
+                elif kwargs.get("multi_curves", None) is not None:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate(multi_curves=kwargs.get("multi_curves"))
+                else:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate()
 
+        # Collect the risk for each RP
         df_risk = pd.concat(risk, axis=1)
 
-        RPS = [1 / x for x in RP_list]
+        if (len(df_risk) == 0) or (df_risk.isnull().all().all()):
+            return None
 
-        risk = pd.DataFrame(
-            df_risk.apply(
-                lambda x: integrate.simpson(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
-            ),
-            columns=["tot_risk"],
-        )
+        # Get the dataframe of the largest RP
+        largest_rp = df_risk.loc[:, pd.IndexSlice[RP_list[-1], :]]
 
-        return risk
+        if kwargs.get("multi_curves", None) is None:
+            # only keep the damage values
+            df_risk = df_risk.loc[:, pd.IndexSlice[RP_list, "damage"]].fillna(0)
+
+            RPS = [1 / x for x in RP_list]
+
+            risk = pd.DataFrame(
+                df_risk.apply(
+                    lambda x: integrate.simpson(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                ),
+                columns=["tot_risk"],
+            )
+
+            # save output when tot_risk returns negative values
+            if risk.tot_risk.min() < 0:
+                df_risk.to_csv("df_risk.csv")
+                risk.to_csv("risk.csv")
+
+            # Save the risk to the largest RP
+            largest_rp.columns = largest_rp.columns.get_level_values(1)
+            largest_rp = largest_rp.drop("damage", axis=1)
+            largest_rp.loc[:, "risk"] = risk.values
+
+            # return the risk in a concise dataframe
+            return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
+
+        else:
+            multi_curves = kwargs.get("multi_curves")
+
+            # only keep the damage values
+            df_risk = df_risk.loc[
+                :, pd.IndexSlice[RP_list, multi_curves.keys()]
+            ].fillna(0)
+
+            RPS = [1 / x for x in RP_list]
+
+            # estimate risks
+            collect_risks = {}
+
+            for curve in multi_curves.keys():
+                subrisk = df_risk.loc[:, pd.IndexSlice[:, curve]]
+                collect_risks[curve] = subrisk.apply(
+                    lambda x: integrate.simpson(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                ).values
+
+                # save output when tot_risk returns negative values
+                if any(subrisk.min() < 0):
+                    df_risk.to_csv("df_risk.csv")
+                    subrisk.to_csv("risk.csv")
+
+            all_risks = pd.DataFrame.from_dict(collect_risks)
+
+            largest_rp.columns = largest_rp.columns.get_level_values(1)
+            largest_rp = largest_rp.drop(multi_curves.keys(), axis=1)
+            largest_rp.loc[:, multi_curves.keys()] = all_risks.values
+
+            # return the risk in a concise dataframe
+            return largest_rp[
+                ["osm_id", "object_type", "geometry"] + list(multi_curves.keys())
+            ]
 
 
 if __name__ == "__main__":
@@ -241,7 +315,6 @@ if __name__ == "__main__":
         "healthcare",
         "power",
         "gas",
-        "food",
         "oil",
         "wastewater",
         "buildings",

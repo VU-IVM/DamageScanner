@@ -287,7 +287,13 @@ def _overlay_raster_vector(
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
-            grid_cell_size = 0.5  # in degrees
+            if (
+                pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
+                == "metre"
+            ):
+                grid_cell_size = 50000  # in meters
+            else:
+                grid_cell_size = 0.5  # in degrees
 
             # create grid
             bbox = shapely.box(
@@ -471,7 +477,9 @@ def _get_damage_per_object(asset, curves, cell_area_m2):
     )
 
 
-def VectorExposure(hazard_file, feature_file, asset_type="roads"):
+def VectorExposure(
+    hazard_file, feature_file, asset_type="roads", object_col="object_type"
+):
     """
     Function to assess the exposure of objects.
 
@@ -523,13 +531,16 @@ def VectorExposure(hazard_file, feature_file, asset_type="roads"):
             raise ValueError(
                 "hazard data should either be a geotiff, netcdf, shapefile, geopackage or parquet file"
             )
-    elif isinstance(hazard, rasterio.io.DatasetReader):
+    elif isinstance(hazard_file, rasterio.io.DatasetReader):
+        hazard = hazard_file.copy()
         hazard_crs = hazard.crs
         cell_area_m2 = hazard.res[0] * hazard.res[1]
-    elif isinstance(hazard, (xr.Dataset, xr.DataArray)):
+    elif isinstance(hazard_file, (xr.Dataset, xr.DataArray)):
+        hazard = hazard_file.copy()
         hazard_crs = hazard.rio.crs
         cell_area_m2 = abs(hazard.rio.resolution()[0]) * abs(hazard.rio.resolution()[1])
     elif isinstance(hazard, gpd.GeoDataFrame):
+        hazard = hazard_file.copy()
         hazard_crs = hazard.crs
         cell_area_m2 = 1
     else:

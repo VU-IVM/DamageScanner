@@ -238,7 +238,6 @@ def _filter_dataframe(features, column_names_lst):
     else:
         print("Warning: column_names_lst should contain 2 or 3 items")
     features = features.drop(columns=column_names_lst, axis=1)  # drop columns
-    features = _remove_contained_assets(features)
 
     return features
 
@@ -251,7 +250,6 @@ def _remove_contained_assets(features):
     Returns:
         geopandas.GeoDataFrame: Processed GeoDataFrame with updated asset geometries.
     """
-
     features = _remove_contained_polys(
         _remove_contained_points(features)
     )  # remove points and polygons within a (larger) polygon
@@ -522,7 +520,6 @@ def read_osm_data(osm_path, asset_type):
                 ),
             ]
         )
-
     else:
         return ImportWarning("feature not in DICT_CIS_OSM. Returning empty gdf")
-    return gdf
+    return _remove_contained_assets(gdf)
