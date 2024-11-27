@@ -7,6 +7,8 @@ from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 import pandas as pd
 import geopandas as gpd
 
+from damagescanner.base_values import DICT_CIS_VULNERABILITY_FLOOD
+
 DICT_CIS_OSM = {
     "roads": {
         "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface"],
@@ -520,6 +522,13 @@ def read_osm_data(osm_path, asset_type):
                 ),
             ]
         )
+
     else:
         return ImportWarning("feature not in DICT_CIS_OSM. Returning empty gdf")
-    return _remove_contained_assets(gdf)
+
+    features = _remove_contained_assets(gdf)
+
+    # remove features that are not in the asset_type list
+    unique_objects_in_asset_type = list(DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys())
+
+    return features[features["object_type"].isin(unique_objects_in_asset_type)]

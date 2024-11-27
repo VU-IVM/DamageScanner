@@ -4,6 +4,7 @@ Copyright (C) 2023 Elco Koks. All versions released under the MIT license.
 """
 
 # Get all the needed modules
+import os
 import shapely
 import xarray as xr
 import pandas as pd
@@ -91,7 +92,7 @@ class DamageScanner(object):
                      as a directory path to a csv file"
             )
 
-    def exposure(self, **kwargs):
+    def exposure(self, disable_progress=False, **kwargs):
         """Exposure data"""
 
         if self.assessment_type == "raster":
@@ -108,11 +109,12 @@ class DamageScanner(object):
                 hazard_file=self.hazard_data,
                 feature_file=self.feature_data,
                 asset_type=self.asset_type,
+                disable_progress=disable_progress,
             )[0]
 
             return exposed_assets
 
-    def calculate(self, save_output=False, **kwargs):
+    def calculate(self, disable_progress=False, save_output=False, **kwargs):
         """Damage assessment. Can be a specific hazard event, or a specific \
             single hazard footprint, or a list of events/footprints."""
 
@@ -143,6 +145,7 @@ class DamageScanner(object):
                 asset_type=self.asset_type,  #'landuse',
                 multi_curves=kwargs.get("multi_curves", None),
                 sub_types=kwargs.get("subtypes", None),
+                disable_progress=disable_progress,
                 save=save_output,
             )
 
@@ -160,20 +163,24 @@ class DamageScanner(object):
             if self.assessment_type == "raster":
                 risk[key] = DamageScanner(
                     hazard_map, self.feature_data, self.curves, self.maxdam
-                ).calculate()[0]
+                ).calculate(disable_progress=True)[0]
             else:
                 if kwargs.get("asset_type", None) is not None:
                     risk[key] = DamageScanner(
                         hazard_map, self.feature_data, self.curves, self.maxdam
-                    ).calculate(asset_type=kwargs.get("asset_type"))
+                    ).calculate(
+                        disable_progress=True, asset_type=kwargs.get("asset_type")
+                    )
                 elif kwargs.get("multi_curves", None) is not None:
                     risk[key] = DamageScanner(
                         hazard_map, self.feature_data, self.curves, self.maxdam
-                    ).calculate(multi_curves=kwargs.get("multi_curves"))
+                    ).calculate(
+                        disable_progress=True, multi_curves=kwargs.get("multi_curves")
+                    )
                 else:
                     risk[key] = DamageScanner(
                         hazard_map, self.feature_data, self.curves, self.maxdam
-                    ).calculate()
+                    ).calculate(disable_progress=True)
 
         # Collect the risk for each RP
         df_risk = pd.concat(risk, axis=1)
