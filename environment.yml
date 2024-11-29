@@ -1,11 +1,10 @@
-name: damagescanner
+name: pygis
 
 channels:
     - conda-forge
 
 dependencies:
         - python=3.11
-        - gdal
         - numpy
         - geopandas
         - rasterio
@@ -17,6 +16,8 @@ dependencies:
         - pyproj
         - xarray
         - rioxarray   
+        - igraph
         - pip:
             - osm-flex
+            - contextily
           
