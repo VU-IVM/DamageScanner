@@ -15,7 +15,7 @@ import logging
 from pathlib import Path
 import urllib.request
 from urllib.parse import urljoin
-from osm_flex.config import DICT_GEOFABRIK, GEOFABRIK_URL, PLANET_URL, OSM_DATA_DIR
+from damagescanner.config import DICT_GEOFABRIK, GEOFABRIK_URL, PLANET_URL, OSM_DATA_DIR
 
 LOGGER = logging.getLogger(__name__)
 
@@ -152,6 +152,7 @@ def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
 
     download_url =  f'{GEOFABRIK_URL}{region.lower()}-latest.osm.pbf'
     filepath = Path(save_path, Path(download_url).name)
+    filepath.parent.mkdir(exist_ok=True, parents=True)
     _download_file(download_url, filepath, overwrite)
 
     return filepath

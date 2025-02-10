@@ -1,7 +1,5 @@
 # Get all the needed modules
 import xarray as xr
-import os
-import rioxarray
 import numpy as np
 import shapely
 import pandas as pd
@@ -16,10 +14,8 @@ from shapely.geometry import Point, LineString
 
 import traceback
 
-from damagescanner.utils import _check_output_path, _check_scenario_name
 from damagescanner.osm import read_osm_data
 from damagescanner.base_values import DICT_CIS_VULNERABILITY_FLOOD
-
 
 def _convert_to_meters(feature):
     """Convert coverage to meters for each individual row in the dataframe.
@@ -38,6 +34,9 @@ def _convert_to_meters(feature):
     if line_string.geom_type not in ["LineString", "MultiLineString"]:
         return feature.coverage
 
+    if line_string.geom_type == "MultiLineString":
+        line_string = line_string[0]
+
     geod = Geod(ellps="WGS84")
     coverage_meters = []
     for cover in feature.coverage:
@@ -48,25 +47,23 @@ def _convert_to_meters(feature):
 
     return coverage_meters
 
-
-def _get_cell_area_m2(features, hazard_resolution):
+def _get_cell_area_m2(features,hazard_resolution):
+    
     geod = Geod(ellps="WGS84")
 
     asset_point = features.geometry.iloc[0]
-    new_geom = asset_point.centroid.buffer(hazard_resolution, cap_style="square")
+    new_geom = asset_point.centroid.buffer(hazard_resolution,cap_style='square')
 
-    line_string = shapely.shortest_line(
-        Point(shapely.get_coordinates(new_geom)[0]),
-        Point(shapely.get_coordinates(new_geom)[1]),
-    )
+    line_string = shapely.shortest_line(Point(shapely.get_coordinates(new_geom)[0]),Point(shapely.get_coordinates(new_geom)[1]))
+
 
     new_for_length = LineString(
-        [Point(line_string.coords[0]), line_string.interpolate(hazard_resolution)]
-    )
+                [Point(line_string.coords[0]), line_string.interpolate(hazard_resolution)]
+            )
 
     resolution = geod.geometry_length(new_for_length)
-
-    return resolution * resolution
+    
+    return resolution*resolution
 
 
 def _create_grid(bbox, height):
@@ -204,13 +201,7 @@ def _reproject(hazard, features, hazard_crs):
 
 
 def _overlay_raster_vector(
-    hazard,
-    features,
-    hazard_crs,
-    hazard_col="band_data",
-    nodata=-9999,
-    gridded=True,
-    disable_progress=False,
+    hazard, features, hazard_crs, hazard_col="band_data", nodata=-9999, gridded=True, disable_progress=False
 ):
     """
     Function to overlay a raster with a vector file.
@@ -303,20 +294,22 @@ def _overlay_raster_vector(
                 values_and_coverage_per_area_and_line_object["values"].values
             )
 
-        # only keep features with values
-        features = features[features["values"].apply(lambda x: len(x) > 0)]
+            # convert coverage to meters, only do this if the crs is not in meters
+            if (
+                not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
+                == "metre"
+            ):
+                tqdm.pandas(desc="convert coverage to meters",disable=disable_progress)
 
-        tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
-        features.loc[:, "coverage"] = features.progress_apply(
-            lambda feature: _convert_to_meters(feature), axis=1
-        )
+                features.loc[:, "coverage"] = features.progress_apply(
+                    lambda feature: _convert_to_meters(feature), axis=1
+                )
+
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
-            if (
-                pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-                == "metre"
-            ):
+
+            if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
                 grid_cell_size = 50000  # in meters
             else:
                 grid_cell_size = 0.5  # in degrees
@@ -340,8 +333,7 @@ def _overlay_raster_vector(
             for bounds in tqdm(
                 all_bounds.itertuples(),
                 total=len(all_bounds),
-                desc="Overlay raster with vector",
-                disable=disable_progress,
+                desc="Overlay raster with vector",disable=disable_progress
             ):
                 try:
                     # subset hazard
@@ -397,8 +389,8 @@ def _overlay_raster_vector(
             features.loc[df_no_duplicates.index, "values"] = df_no_duplicates["values"]
 
             # Sometimes, with large datasets, a feature may have been excluded from the bbox
-            # this has resulted in a null value for the coverage and values. We remove these features.
-            features = features[~features["values"].isnull()]
+            # this has resulted in a null value for the coverage and values. We remove these features.	
+            features = features[~features['values'].isnull()]
 
             # only keep features with values
             features = features[features["values"].apply(lambda x: len(x) > 0)]
@@ -408,7 +400,7 @@ def _overlay_raster_vector(
                 not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
                 == "metre"
             ):
-                tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
+                tqdm.pandas(desc="convert coverage to meters",disable=disable_progress)
 
                 features.loc[:, "coverage"] = features.progress_apply(
                     lambda feature: _convert_to_meters(feature), axis=1
@@ -468,11 +460,12 @@ def _estimate_damage(features, curves, cell_area_m2):
     Returns:
         gpd.GeoDataFrame: GeoDataFrame with the hazard, exposure and damage information.
     """
-
+    
     features["damage"] = features.progress_apply(
         lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
         axis=1,
     )
+
 
     return features
 
@@ -509,13 +502,7 @@ def _get_damage_per_object(asset, curves, cell_area_m2):
     )
 
 
-def VectorExposure(
-    hazard_file,
-    feature_file,
-    asset_type="roads",
-    object_col="object_type",
-    disable_progress=False,
-):
+def VectorExposure(hazard_file, feature_file, asset_type="roads",object_col="object_type", disable_progress=False):
     """
     Function to assess the exposure of objects.
 
@@ -554,14 +541,20 @@ def VectorExposure(
     if len(features) == 0:
         hazard_crs = None
         cell_area_m2 = None
-        return features, object_col, hazard_crs, cell_area_m2
+        return features, object_col, hazard_crs , cell_area_m2
 
     # load hazard data
     if isinstance(hazard_file, PurePath):
         if hazard_file.suffix in [".tif", ".tiff", ".nc"]:
             hazard = xr.open_dataset(hazard_file, engine="rasterio")
             hazard_crs = hazard.rio.crs
-            cell_area_m2 = _get_cell_area_m2(features, abs(hazard.rio.resolution()[0]))
+
+            # check if crs is already in meters
+            if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+                cell_area_m2 = (hazard.x[1].values - hazard.x[0].values) * (hazard.y[0].values - hazard.y[1].values)
+            else:
+                cell_area_m2 = _get_cell_area_m2(features,abs(hazard.rio.resolution()[0]))
+
         elif hazard_file.suffix in [".shp", ".gpkg", ".pbf"]:
             hazard = gpd.read_file(hazard_file)
             hazard_crs = hazard.crs
@@ -573,11 +566,19 @@ def VectorExposure(
     elif isinstance(hazard_file, rasterio.io.DatasetReader):
         hazard = hazard_file.copy()
         hazard_crs = hazard.crs
-        cell_area_m2 = _get_cell_area_m2(features, abs(hazard.res[0]))
-    elif isinstance(hazard_file, (xr.Dataset, xr.DataArray)):
+        cell_area_m2 = _get_cell_area_m2(features,abs(hazard.res[0]))
+    elif isinstance(hazard_file, (xr.Dataset, xr.DataArray)):   
         hazard = hazard_file.copy()
         hazard_crs = hazard.rio.crs
-        cell_area_m2 = _get_cell_area_m2(features, abs(hazard.rio.resolution()[0]))
+
+        # check if crs is already in meters
+        if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+            cell_area_m2 = (hazard.x[1].values - hazard.x[0].values) * (hazard.y[0].values - hazard.y[1].values)
+
+        # if not, extract it more cumbersome
+        else:
+            cell_area_m2 = _get_cell_area_m2(features,abs(hazard.rio.resolution()[0]))
+
     elif isinstance(hazard, gpd.GeoDataFrame):
         hazard = hazard_file.copy()
         hazard_crs = hazard.crs
@@ -589,14 +590,11 @@ def VectorExposure(
 
     # Run exposure overlay
     if isinstance(hazard, (rasterio.io.DatasetReader, xr.Dataset, xr.DataArray)):
-        features = _overlay_raster_vector(
-            hazard, features, hazard_crs, disable_progress=disable_progress
-        )
-    elif isinstance(hazard, (gpd.GeoDataFrame, pd.DataFrame)):
-        features = _overlay_vector_vector(hazard, features)  ## NOT WORKING YET
+        features = _overlay_raster_vector(hazard, features, hazard_crs, disable_progress=disable_progress)
+    elif isinstance(hazard, (gpd.GeoDataFrame, pd.DataFrame)): 
+        features = _overlay_vector_vector(hazard, features) ## NOT WORKING YET
 
     return features, object_col, hazard_crs, cell_area_m2
-
 
 def VectorScanner(
     hazard_file,
@@ -684,10 +682,8 @@ def VectorScanner(
 
     # remove features that are not part of this object type
     if asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
-        unique_objects_in_asset_type = list(
-            DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
-        )
-        features = features[features["object_type"].isin(unique_objects_in_asset_type)]
+        unique_objects_in_asset_type = list(DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys())
+        features = features[features['object_type'].isin(unique_objects_in_asset_type)]
 
     # connect maxdam to exposure
     try:
@@ -695,31 +691,30 @@ def VectorScanner(
             lambda x: maxdam[x["object_type"]], axis=1
         )
     except KeyError:
+        missing_object_types = [i for i in features.object_type.unique() if i not in maxdam.keys()]
         raise KeyError(
-            "Not all object types in the exposure are included in the maximum damage file"
+           f"Not all object types in the exposure are included in the maximum damage file: {missing_object_types}"
         )
-
-    tqdm.pandas(desc="Calculating damage", disable=disable_progress)
+        
+    tqdm.pandas(desc="Calculating damage",disable=disable_progress)
 
     # Calculate damage
     if not multi_curves:
         features = _estimate_damage(features, curves, cell_area_m2)
     else:
-        collect_sub_outcomes = []
+        collect_sub_outcomes  = []
         for curve_id in multi_curves:
             curves = multi_curves[curve_id]
-            collect_sub_outcomes.append(
-                _estimate_damage(features, curves, cell_area_m2)["damage"]
-            )
-
-        all_curve_damages = pd.concat(collect_sub_outcomes, axis=1)
+            collect_sub_outcomes.append(_estimate_damage(features, curves, cell_area_m2)['damage'])
+        
+        all_curve_damages = pd.concat(collect_sub_outcomes,axis=1)
         all_curve_damages.columns = multi_curves.keys()
 
         # add all curve damages to the features dataframe
-        features.loc[:, all_curve_damages.columns] = all_curve_damages
+        features.loc[:,all_curve_damages.columns] = all_curve_damages
 
-        if "damage" in features.columns:
-            features = features.drop(columns="damage")
+        if 'damage' in features.columns:
+            features = features.drop(columns='damage')
 
     # # Save output
     # if save == True:
