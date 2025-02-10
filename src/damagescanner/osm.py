@@ -53,8 +53,8 @@ DICT_CIS_OSM = {
         "osm_query": {"railway": ["rail", "narrow_gauge"]},
     },
     "air": {
-        "osm_keys": ["aeroway", "name"],
-        "osm_query": {"aeroway": ["aerodrome", "terminal", "runway"]},
+        "osm_keys": ["aeroway", "name",""],
+        "osm_query": {"aeroway": ["aerodrome","apron", "terminal", "runway"]},
     },
     "telecom": {
         "osm_keys": ["man_made", "tower_type", "name"],
@@ -152,13 +152,6 @@ DICT_CIS_OSM = {
             "man_made": ["pipeline", "petroleum_well", "oil_refinery"],
             "amenity": ["fuel"],
             "substance": ["oil"],
-        },
-    },
-    "wastewater": {
-        "osm_keys": ["man_made", "amenity", "name"],
-        "osm_query": {
-            "man_made": ["wastewater_plant"],
-            "amenity": ["waste_transfer_station"],
         },
     },
     "buildings": {

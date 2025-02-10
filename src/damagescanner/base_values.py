@@ -112,7 +112,7 @@ DICT_CIS_VULNERABILITY_FLOOD = {
         "oil_refinery" : ['F1.4'] # uses the curve of thermal power plants
         },
 
-    "wastewater": {
+    "waste_water": {
             "wastewater_plant" : ['F18.1', 'F18.2', 'F18.3', 'F18.4', 'F18.5', 'F18.6'],
             "waste_transfer_station": ['F18.1'],
         },
