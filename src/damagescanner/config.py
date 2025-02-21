@@ -81,6 +81,7 @@ DICT_GEOFABRIK = {
    'MLI' : ('africa', 'mali'),
    'MRT' : ('africa', 'mauritania'),
    'MAR' : ('africa', 'morocco'),
+    'ESH' : ('africa', 'morocco'), # DOES INCLUDE THE WESTERN SAHARA
    'MOZ' : ('africa', 'mozambique'),
    'NAM' : ('africa', 'namibia'),
    'NER' : ('africa', 'niger'),
@@ -91,7 +92,8 @@ DICT_GEOFABRIK = {
    'SEN' : ('africa', 'senegal-and-gambia'),  #TOGETHER WITH THE GAMBIA
    'SYC' : ('africa', 'seychelles'),
    'SLE' : ('africa', 'sierra-leone'),
-   'SOM' : ('africa', 'somalia'),
+   'SOM' : ('africa', 'somalia'), #TOGETHER WITH SOMALILAND
+    'SOL' : ('africa', 'somaliland'), #TOGETHER WITH SOMALIA
    'ZAF' : ('africa', 'south-africa'),
    'SDN' : ('africa', 'sudan'),
    'SSD' : ('africa', 'south-sudan'),
@@ -102,6 +104,7 @@ DICT_GEOFABRIK = {
    'UGA' : ('africa', 'uganda'),
    'ZMB' : ('africa', 'zambia'),
    'ZWE' : ('africa', 'zimbabwe'),
+    'MUS' : ('africa', 'mauritius'),
    'ARM' : ('asia', 'armenia'),
    'AZE' : ('asia', 'azerbaijan'),
    'BGD' : ('asia', 'bangladesh'),
@@ -143,6 +146,7 @@ DICT_GEOFABRIK = {
    'TWN' : ('asia', 'taiwan'),
    'TJK' : ('asia', 'tajikistan'),
    'THA' : ('asia', 'thailand'),
+    'TLS' : ('asia', 'east-timor'), 
    'TKM' : ('asia', 'turkmenistan'),
    'UZB' : ('asia', 'uzbekistan'),
    'VNM' : ('asia', 'vietnam'),
@@ -158,6 +162,7 @@ DICT_GEOFABRIK = {
    'NIC' : ('central-america', 'nicaragua'),
    'SLV' : ('central-america', 'el-salvador'),
    'CRI' : ('central-america', 'costa-rica'),
+    'PAN' : ('central-america', 'panama'),
    'AUT' : ('europe', 'austria'),
    'BLR' : ('europe', 'belarus'),
    'BEL' : ('europe', 'belgium'),
@@ -165,11 +170,14 @@ DICT_GEOFABRIK = {
    'BGR' : ('europe', 'bulgaria'),
    'HRV' : ('europe', 'croatia'),
    'CYP' : ('europe', 'cyprus'),
+    'XAD' : ('europe', 'cyprus'), # DOES INCLUDE AKROTIRI AND DHEKELIA
+    'ZNC' : ('europe', 'cyprus'), # DOES INCLUDE NORTHERN CYPRUS
    'CZE' : ('europe', 'czech-republic'),
    'DNK' : ('europe', 'denmark'),
    'EST' : ('europe', 'estonia'),
    'FRO' : ('europe', 'faroe-islands'),
    'FIN' : ('europe', 'finland'),
+    'ALA' : ('europe', 'finland'), # TOGETHER WITH ALAND
    'FRA' : ('europe', 'france'),
    'GEO' : ('europe', 'georgia'),
    'DEU' : ('europe', 'germany'),
@@ -191,6 +199,7 @@ DICT_GEOFABRIK = {
    'MNE' : ('europe', 'montenegro'),
    'NLD' : ('europe', 'netherlands'),
    'NOR' : ('europe', 'norway'),
+    'SJM' : ('europe', 'norway'), #DOES INCLUDE SVALBARD AND JAN MAYEN
    'POL' : ('europe', 'poland'),
    'PRT' : ('europe', 'portugal'),
    'ROU' : ('europe', 'romania'),
@@ -203,11 +212,21 @@ DICT_GEOFABRIK = {
    'CHE' : ('europe', 'switzerland'),
    'TUR' : ('europe', 'turkey'),
    'UKR' : ('europe', 'ukraine'),
+    'XKO' : ('europe', 'kosovo'),
+    'SMR' : ('europe', 'italy'), # DOES INCLUDE SAN MARINO
+    'VAT' : ('europe', 'italy'), # DOES INCLUDE VATICAN CITY
+    'GGY' : ('europe', 'guernsey-jersey'), # TOGETHER WITH JERSEY
+    'JEY' : ('europe', 'guernsey-jersey'), # TOGETHER WITH GUERNSEY
    'CAN' : ('north-america', 'canada'),
+    'SPM' : ('north-america', 'canada'), # DOES INCLUDE SAINT PIERRE AND MIQUELON
    'GRL' : ('north-america', 'greenland'),
    'MEX' : ('north-america', 'mexico'),
    'USA' : ('north-america', 'us'),
    'AUS' : ('australia-oceania', 'australia'),
+    'CXR' : ('australia-oceania', 'australia'), #DOES INCLUDE CHRISTMAS ISLAND
+    'CCK' : ('australia-oceania', 'australia'), #DOES INCLUDE COCOS ISLAND
+    'HMD' : ('australia-oceania', 'australia'), #DOES INCLUDE HEARD ISLAND AND MCDONALD ISLAND
+    'NFK' : ('australia-oceania', 'australia'), #DOES INCLUDE HEARD NORFOLK ISLAND
    'COK' : ('australia-oceania', 'cook-islands'),
    'FJI' : ('australia-oceania', 'fiji'),
    'KIR' : ('australia-oceania', 'kiribati'),
@@ -225,12 +244,16 @@ DICT_GEOFABRIK = {
    'TON' : ('australia-oceania', 'tonga'),
    'TUV' : ('australia-oceania', 'tuvalu'),
    'VUT' : ('australia-oceania', 'vanuatu'),
+    'PYF' : ('australia-oceania', 'polynesie-francaise'),
+    'GUM' : ('australia-oceania', 'american-oceania'), #DOES INCLUDE GUAM
+    'MNP' : ('australia-oceania', 'american-oceania'), #DOES INCLUDE NORTHERN MARIANA ISLANDS
    'ARG' : ('south-america', 'argentina'),
    'BOL' : ('south-america', 'bolivia'),
    'BRA' : ('south-america', 'brazil'),
    'CHL' : ('south-america', 'chile'),
    'COL' : ('south-america', 'colombia'),
    'ECU' : ('south-america', 'ecuador'),
+    'GUY' : ('south-america', 'guyana'),
    'PRY' : ('south-america', 'paraguay'),
    'PER' : ('south-america', 'peru'),
    'SUR' : ('south-america', 'suriname'),

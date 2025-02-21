@@ -93,6 +93,7 @@ def _download_file(download_url: str, filepath: Path, overwrite: bool = True):
         LOGGER.info(f"Skip existing file: {filepath}")
 
 # TODO: decide whether to issue warnings for multi-country files
+
 def get_country_geofabrik(iso3, file_format='pbf', save_path=OSM_DATA_DIR,
                           overwrite=False):
     """
@@ -126,6 +127,7 @@ def get_country_geofabrik(iso3, file_format='pbf', save_path=OSM_DATA_DIR,
 
     download_url = _create_gf_download_url(iso3, file_format)
     filepath = Path(save_path, Path(download_url).name)
+    filepath.parent.mkdir(exist_ok=True, parents=True)
     _download_file(download_url, filepath, overwrite)
 
     return filepath

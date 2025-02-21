@@ -361,6 +361,9 @@ def extract(osm_path, geom_type, osm_keys, osm_query):
     """
     features = gpd.read_file(osm_path, layer=geom_type, engine="pyogrio")
 
+    if 'osm_way_id' in features.columns:
+        features['osm_id'] = features['osm_id'].fillna(features['osm_way_id'])
+
     for key in osm_keys:
         if key not in features.columns:
             features[key] = features["other_tags"].apply(
