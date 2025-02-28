@@ -3,7 +3,8 @@ import re
 import functools
 import operator
 import numpy as np
-from shapely.geometry import Point, LineString, Polygon, MultiPolygon
+import shapely
+from shapely.geometry import Point, LineString, Polygon, MultiPolygon, GeometryCollection
 import pandas as pd
 import geopandas as gpd
 
@@ -251,6 +252,18 @@ def _remove_contained_assets(features):
 
     return features
 
+def extract_first_geom(geom):
+    """
+    Extract the first geometry from a GeometryCollection.
+    Args:
+        geom (shapely.geometry): A geometry object.
+    Returns:
+        shapely.geometry: The first geometry from the GeometryCollection.
+    """
+    if isinstance(geom, GeometryCollection) and len(geom.geoms) > 0:
+        return geom.geoms[0]
+    
+    return geom
 
 def _remove_contained_points(gdf_p_mp):
     """
@@ -522,7 +535,15 @@ def read_osm_data(osm_path, asset_type):
     else:
         return ImportWarning("feature not in DICT_CIS_OSM. Returning empty gdf")
 
+    # make all geometries valid
+    gdf["geometry"] = shapely.make_valid(gdf["geometry"])
+    gdf = gdf[gdf.geometry.is_valid] 
+
+    # only keep assets with unique geometries
     features = _remove_contained_assets(gdf)
+
+    # remove potential geometrycollections to avoid errors later on
+    features['geometry'] = features['geometry'].apply(extract_first_geom)
 
     # remove features that are not in the asset_type list
     unique_objects_in_asset_type = list(DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys())
