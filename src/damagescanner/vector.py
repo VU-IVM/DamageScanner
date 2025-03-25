@@ -605,7 +605,6 @@ def VectorScanner(
     multi_curves=dict(),
     object_col="object_type",
     disable_progress=False,
-    save=False,
     **kwargs,
 ):
     """
@@ -631,14 +630,6 @@ def VectorScanner(
         Default is set to **landuse**.
 
         *sub_types* : List of subtypes that should be included in the analysis.
-
-        *save* : Set to True if you would like to save the output. Requires
-        several **kwargs**
-
-    kwargs:
-        *output_path* : Specify where files should be saved.
-
-        *scenario_name*: Give a unique name for the files that are going to be saved.
 
     Raises:
         *ValueError* : on missing kwargs
@@ -715,20 +706,5 @@ def VectorScanner(
 
         if 'damage' in features.columns:
             features = features.drop(columns='damage')
-
-    # # Save output
-    # if save == True:
-    #     # requires adding output_path and scenario_name to function call
-    #     # If output path is not defined, will place file in current directory
-    #     output_path = _check_output_path(kwargs)
-    #     scenario_name = _check_scenario_name(kwargs)
-    #     path_prefix = PurePath(output_path, scenario_name)
-
-    #     damage_fn = f'{path_prefix}_damages.csv'
-    #     damaged_objects.to_csv(damage_fn)
-    #     return damaged_objects
-
-    # else:
-    #     return damaged_objects
 
     return features
