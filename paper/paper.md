@@ -8,28 +8,26 @@ tags:
   - risk
 authors:
   - name: Elco E. Koks
+    corresponding: true # (This is how to denote the corresponding author)
     orcid: 0000-0002-4953-4527
     affiliation: 1 # (Multiple affiliations must be quoted)
   - given-names: Hans
     dropping-particle: de
     surname: Moel
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0002-6826-1974
     affiliation: 1 # (Multiple affiliations must be quoted)
   - name: Sadhana Nirandjan
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0002-2967-7782
     affiliation: 1
-  - name: Jens de Bruijn
-    corresponding: true # (This is how to denote the corresponding author)
-    affiliation: "1,2"
   - given-names: Jens
     dropping-particle: de
     surname: Bruijn
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0003-3961-6382
     affiliation: "1,2"
 affiliations:
  - name: Water & Climate Risk, Institute for Environmental Studies, Vrije Universiteit Amsterdam, The Netherlands
    index: 1
- - name: IIASA, Vienna, Austria
+ - name: International Institute for Applied Systems Analysis (IIASA), Laxenburg, Austria
    index: 2
 date: 20 March 2025
 bibliography: paper.bib
