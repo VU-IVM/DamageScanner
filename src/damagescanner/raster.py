@@ -279,7 +279,7 @@ def RasterScanner(
             "WARNING: landuse and hazard maps are not the same shape. Let's fix this first!"
         )
 
-        landuse, hazard, intersection = _match_rasters(exposure_file, hazard_file)
+        landuse, hazard, intersection = match_and_load_rasters(exposure_file, hazard_file)
 
         # create the right affine for saving the output
         transform = Affine(

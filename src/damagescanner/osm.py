@@ -10,7 +10,7 @@ from shapely.geometry import (
 import pandas as pd
 import geopandas as gpd
 
-from damagescanner.base_values import DICT_CIS_VULNERABILITY_FLOOD
+from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
 DICT_CIS_OSM = {
     "roads": {
