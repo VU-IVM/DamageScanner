@@ -23,6 +23,7 @@ LOGGER = logging.getLogger(__name__)
 #  DOWNLOAD METHODS
 # =============================================================================
 
+
 def _create_gf_download_url(iso3, file_format):
     """
     create string with download-url from geofabrik
@@ -73,6 +74,7 @@ def _create_gf_download_url(iso3, file_format):
     # Join to URL
     return urljoin(GEOFABRIK_URL, f"{continent}/{country}-latest{ext}")
 
+
 def _download_file(download_url: str, filepath: Path, overwrite: bool = True):
     """Download a file located at an URL to a local file path
 
@@ -92,10 +94,13 @@ def _download_file(download_url: str, filepath: Path, overwrite: bool = True):
     else:
         LOGGER.info(f"Skip existing file: {filepath}")
 
+
 # TODO: decide whether to issue warnings for multi-country files
 
-def get_country_geofabrik(iso3, file_format='pbf', save_path=OSM_DATA_DIR,
-                          overwrite=False):
+
+def get_country_geofabrik(
+    iso3, file_format="pbf", save_path=OSM_DATA_DIR, overwrite=False
+):
     """
     Download country files with all OSM map info from the provider
     Geofabrik.de.
@@ -132,12 +137,13 @@ def get_country_geofabrik(iso3, file_format='pbf', save_path=OSM_DATA_DIR,
 
     return filepath
 
+
 # TODO: allow for several spelling options like "Central America", "Australia", ...
 def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
     """
     Download regions files with all OSM map info from the provider
     Geofabrik.de
-    
+
     Parameters
     ----------
     region: str
@@ -152,7 +158,7 @@ def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
         The path to the downloaded file
     """
 
-    download_url =  f'{GEOFABRIK_URL}{region.lower()}-latest.osm.pbf'
+    download_url = f"{GEOFABRIK_URL}{region.lower()}-latest.osm.pbf"
     filepath = Path(save_path, Path(download_url).name)
     filepath.parent.mkdir(exist_ok=True, parents=True)
     _download_file(download_url, filepath, overwrite)
@@ -160,8 +166,9 @@ def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
     return filepath
 
 
-def get_planet_file(save_path=Path(OSM_DATA_DIR,'planet-latest.osm.pbf'),
-                    overwrite=False):
+def get_planet_file(
+    save_path=Path(OSM_DATA_DIR, "planet-latest.osm.pbf"), overwrite=False
+):
     """
     Download the entire planet file from the OSM server (ca. 60 GB).
 

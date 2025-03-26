@@ -1,10 +1,12 @@
-import os
 import re
 import functools
 import operator
 import numpy as np
 import shapely
-from shapely.geometry import Point, LineString, Polygon, MultiPolygon, GeometryCollection
+from shapely.geometry import (
+    MultiPolygon,
+    GeometryCollection,
+)
 import pandas as pd
 import geopandas as gpd
 
@@ -54,8 +56,8 @@ DICT_CIS_OSM = {
         "osm_query": {"railway": ["rail", "narrow_gauge"]},
     },
     "air": {
-        "osm_keys": ["aeroway", "name",""],
-        "osm_query": {"aeroway": ["aerodrome","apron", "terminal", "runway"]},
+        "osm_keys": ["aeroway", "name", ""],
+        "osm_query": {"aeroway": ["aerodrome", "apron", "terminal", "runway"]},
     },
     "telecom": {
         "osm_keys": ["man_made", "tower_type", "name"],
@@ -252,6 +254,7 @@ def _remove_contained_assets(features):
 
     return features
 
+
 def extract_first_geom(geom):
     """
     Extract the first geometry from a GeometryCollection.
@@ -262,8 +265,9 @@ def extract_first_geom(geom):
     """
     if isinstance(geom, GeometryCollection) and len(geom.geoms) > 0:
         return geom.geoms[0]
-    
+
     return geom
+
 
 def _remove_contained_points(gdf_p_mp):
     """
@@ -374,8 +378,8 @@ def extract(osm_path, geom_type, osm_keys, osm_query):
     """
     features = gpd.read_file(osm_path, layer=geom_type, engine="pyogrio")
 
-    if 'osm_way_id' in features.columns:
-        features['osm_id'] = features['osm_id'].fillna(features['osm_way_id'])
+    if "osm_way_id" in features.columns:
+        features["osm_id"] = features["osm_id"].fillna(features["osm_way_id"])
 
     for key in osm_keys:
         if key not in features.columns:
@@ -537,13 +541,13 @@ def read_osm_data(osm_path, asset_type):
 
     # make all geometries valid
     gdf["geometry"] = shapely.make_valid(gdf["geometry"])
-    gdf = gdf[gdf.geometry.is_valid] 
+    gdf = gdf[gdf.geometry.is_valid]
 
     # only keep assets with unique geometries
     features = _remove_contained_assets(gdf)
 
     # remove potential geometrycollections to avoid errors later on
-    features['geometry'] = features['geometry'].apply(extract_first_geom)
+    features["geometry"] = features["geometry"].apply(extract_first_geom)
 
     # remove features that are not in the asset_type list
     unique_objects_in_asset_type = list(DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys())

@@ -17,6 +17,7 @@ from rasterio.windows import Window
 
 from damagescanner.utils import _check_output_path, _check_scenario_name
 
+
 def match_and_load_rasters(raster_in1, raster_in2):
     """
     In case of a mismatch between two rasters, return only the intersecting parts.
@@ -79,6 +80,7 @@ def match_and_load_rasters(raster_in1, raster_in2):
         )
 
     return data1, data2, transform
+
 
 def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard_col):
     """Matches the resolution and extent of a raster to a vector file.
@@ -156,6 +158,7 @@ def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard
     hazard = hazard[hazard_col].to_numpy()[0, :, :]
 
     return hazard, landuse
+
 
 def RasterScanner(
     exposure_file,

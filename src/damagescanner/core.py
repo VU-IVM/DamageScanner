@@ -4,8 +4,6 @@ Copyright (C) 2023 Elco Koks. All versions released under the MIT license.
 """
 
 # Get all the needed modules
-import os
-import shapely
 import xarray as xr
 import pandas as pd
 import geopandas as gpd
