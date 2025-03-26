@@ -436,7 +436,7 @@ def _overlay_vector_vector(
     WIP: This function is not yet finished. It is currently only able to overlay point objects.
     """
     # make sure the hazard data has a crs
-    if hazard_crs.to_epsg() == None:
+    if hazard.crs.to_epsg() is None:
         RuntimeWarning(
             "Hazard crs is not correctly defined. We will now assume it is EPSG:4326"
         )

@@ -185,9 +185,9 @@ def _combine_columns(a, b):
     - str or None: A string of 'a', 'b' or combination. If both 'a' and 'b' are None, return None.
     """
 
-    if pd.notna(a) and pd.notna(b) == False:  # if only a contains a string
+    if pd.notna(a) and not pd.notna(b):  # if only a contains a string
         return f"{a}"
-    elif pd.notna(b) and pd.notna(a) == False:  # if only b contains a string
+    elif pd.notna(b) and not pd.notna(a):  # if only b contains a string
         return f"{b}"
     elif pd.notna(a) and pd.notna(b):  # if both values contain a string
         if a == b:

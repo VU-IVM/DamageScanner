@@ -18,6 +18,7 @@ import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
+
 class DamageScanner(object):
     """DamageScanner - a directe damage assessment toolkit"""
 
@@ -99,7 +100,7 @@ class DamageScanner(object):
             # specificy essential data input characteristics
             if "asset_type" in kwargs:
                 self.asset_type = kwargs.get("asset_type")
-            else: ## DO WE WANT THIS?!?! or should this always be defined?!
+            else:  ## DO WE WANT THIS?!?! or should this always be defined?!
                 self.asset_type = "landuse"
 
             exposed_assets = VectorExposure(
@@ -115,7 +116,6 @@ class DamageScanner(object):
         """Damage assessment. Can be a specific hazard event, or a specific \
             single hazard footprint, or a list of events/footprints."""
 
-
         ## TO DO : add save output option (if desired, of not, should be removed from function input)
 
         if not hasattr(self, "assessment_type"):
@@ -126,7 +126,7 @@ class DamageScanner(object):
                 exposure_file=self.feature_data,
                 hazard_file=self.hazard_data,
                 curve_path=self.curves,
-                maxdam_path=self.maxdam
+                maxdam_path=self.maxdam,
             )
 
         elif self.assessment_type == "vector":
@@ -146,7 +146,6 @@ class DamageScanner(object):
                 sub_types=kwargs.get("subtypes", None),
                 disable_progress=disable_progress,
             )
-        
 
     def risk(self, hazard_dict, **kwargs):
         """
