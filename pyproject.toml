@@ -36,7 +36,7 @@ dependencies = [
     "scipy>=1.13.1",
 ]
 
-s[tool.setuptools.package-data]
+[tool.setuptools.package-data]
 "*" = ["*.ini"]
 
 [dependency-groups]

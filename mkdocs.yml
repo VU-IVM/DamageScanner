@@ -17,15 +17,22 @@ plugins:
             - sys.path.insert(0, os.path.abspath('.'))
 
 nav:
-  - Getting Started: index.md
+  - Welcome: index.md
+  - Getting Started: get_started.md
 
 markdown_extensions:
   - markdown_include.include
   - footnotes
   - attr_list
   - md_in_html
+  - pymdownx.arithmatex:
+        generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - toc:
-      permalink: true
+      permalink: false
   - pymdownx.superfences
   - pymdownx.magiclink
 
@@ -43,10 +50,14 @@ theme:
       primary: black
       accent: white
   features:
+    - navigation.instant
     - navigation.tabs
     - navigation.top
     - search.suggest
     - search.highlight
+
+extra_css:
+  - stylesheets/extra.css
 
 extra:
   generator: false
