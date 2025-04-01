@@ -11,6 +11,9 @@ plugins:
       default_handler: python
       handlers:
         python:
+          options:
+            show_root_heading: true
+            show_root_full_path: false
           setup_commands:
             - import os
             - import sys
@@ -19,6 +22,8 @@ plugins:
 nav:
   - Welcome: index.md
   - Getting Started: get_started.md
+  - API Reference: api.md
+
 
 markdown_extensions:
   - markdown_include.include
@@ -38,6 +43,20 @@ markdown_extensions:
 
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   icon:
     logo: material/earth
     repo: material/github
@@ -45,13 +64,10 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
-  palette:
-    - scheme: slate
-      primary: black
-      accent: white
   features:
-    - navigation.instant
+    - navigation.sections  # Shows all top-level sections in sidebar
     - navigation.tabs
+    - navigation.expand
     - navigation.top
     - search.suggest
     - search.highlight
