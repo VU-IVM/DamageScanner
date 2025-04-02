@@ -18,14 +18,14 @@ plugins:
       default_handler: python
       handlers:
         python:
+          paths : [src]
           options:
             show_root_heading: true
             show_root_full_path: false
-          setup_commands:
-            - import os
-            - import sys
-            - sys.path.insert(0, os.path.abspath('.'))
-
+            show_signature: true           # <- shows the function signature
+            show_source: false             # optional: hides source link
+            show_docstring: true           # make sure this is on
+            show_bases: false              # optional: hides base classes for class views
 nav:
   - Getting Started: index.md
   - How it works:
