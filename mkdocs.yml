@@ -56,22 +56,22 @@ theme:
   name: material
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: blue grey
+      accent: blue grey
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
 
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: blue grey
+      accent: blue grey
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode
+  logo: images/logo-icon.svg  # ✅ your actual SVG file here
   icon:
-    logo: material/earth
-    repo: material/github
-  favicon: material/earth-box-plus
+    logo: null  # ✅ disables the default Material icon (like `material/earth`)
+    repo: null  # (optional) disables GitHub icon in top-right
   font:
     text: Roboto
     code: Roboto Mono

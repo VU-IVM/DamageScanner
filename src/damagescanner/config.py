@@ -1,5 +1,4 @@
-"""
-This file is part of OSM-flex.
+"""This file is part of OSM-flex.
 Copyright (C) 2023 OSM-flex contributors listed in AUTHORS.
 OSM-flex is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free
@@ -8,7 +7,20 @@ OSM-flex is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 -----
-constants and configurations
+This file defines paths, URLs, and dictionaries used to:
+- Manage OSM `.pbf` downloads via Geofabrik.
+- Lookup region names from ISO3 country codes.
+- Link infrastructure object types to predefined vulnerability curve sets.
+
+Attributes:
+    OSM_DIR (Path): Base directory for OSM data on the local machine.
+    OSM_DATA_DIR (Path): Folder path where `.osm.pbf` files are stored.
+    GEOFABRIK_URL (str): Base URL for Geofabrik region downloads.
+    PLANET_URL (str): URL for downloading the full OpenStreetMap planet file.
+
+Dictionaries:
+    DICT_GEOFABRIK (dict): Maps ISO3 codes to Geofabrik region and subfolder.
+    DICT_CIS_VULNERABILITY_FLOOD (dict): Maps infrastructure types to vulnerability curve IDs.
 """
 
 from pathlib import Path

@@ -20,11 +20,24 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 class DamageScanner(object):
-    """DamageScanner - a directe damage assessment toolkit"""
+    """
+    DamageScanner - a direct damage assessment toolkit.
+
+    This class provides tools to assess direct physical damage from hazard events,
+    using raster or vector exposure data and vulnerability curves.
+    It supports both single-hazard footprints and risk-based multi-scenario assessments.
+    """
 
     def __init__(self, hazard_data, feature_data, curves, maxdam):
-        """Prepare the input for a damage assessment"""
+        """
+        Initialize the DamageScanner class with hazard, exposure, curve, and max damage data.
 
+        Args:
+            hazard_data (str | Path | xarray.DataArray | xarray.Dataset): Path to raster hazard file or xarray object.
+            feature_data (str | Path | pd.DataFrame | gpd.GeoDataFrame): Exposure data, either raster or vector.
+            curves (str | Path | pd.DataFrame): Vulnerability curves as DataFrame or CSV file path.
+            maxdam (str | Path | pd.DataFrame): Maximum damage values per asset type.
+        """
         # Collect the input data
         self.hazard_data = hazard_data
         self.feature_data = feature_data
@@ -91,8 +104,19 @@ class DamageScanner(object):
             )
 
     def exposure(self, disable_progress=False, **kwargs):
-        """Exposure data"""
+        """
+        Run the exposure analysis.
 
+        Identifies which features are affected by the hazard footprint,
+        depending on the type of input data (raster or vector).
+
+        Args:
+            disable_progress (bool, optional): If True, disables progress bars. Defaults to False.
+            **kwargs: Optional keyword arguments like `asset_type` (only for vector).
+
+        Returns:
+            geopandas.GeoDataFrame | xarray.DataArray: Affected assets or raster overlay result.
+        """
         if self.assessment_type == "raster":
             return xr.open_rasterio(self.exposure_data)
 
@@ -113,9 +137,23 @@ class DamageScanner(object):
             return exposed_assets
 
     def calculate(self, disable_progress=False, save_output=False, **kwargs):
-        """Damage assessment. Can be a specific hazard event, or a specific \
-            single hazard footprint, or a list of events/footprints."""
+        """
+        Perform a damage calculation using the provided inputs.
 
+        Applies vulnerability curves and maximum damage values to the exposed features
+        or raster grid to calculate expected damage.
+
+        Args:
+            disable_progress (bool, optional): If True, disables progress bars. Defaults to False.
+            save_output (bool, optional): Not implemented. Placeholder for output saving option.
+            **kwargs:
+                asset_type (str, optional): Infrastructure class to evaluate.
+                multi_curves (dict, optional): Mapping of asset types to curve sets.
+                subtypes (list, optional): Used for subtype analysis.
+
+        Returns:
+            pd.DataFrame | xr.DataArray: Estimated damages for each asset or grid cell.
+        """
         ## TO DO : add save output option (if desired, of not, should be removed from function input)
 
         if not hasattr(self, "assessment_type"):
@@ -149,9 +187,20 @@ class DamageScanner(object):
 
     def risk(self, hazard_dict, **kwargs):
         """
-        Calculate the risk for a list of hazard events
-        """
+        Perform a risk assessment across multiple hazard return periods.
 
+        Integrates damages from each return period and computes expected annual damages.
+        Supports both single and multi-curve inputs for infrastructure types.
+
+        Args:
+            hazard_dict (dict): Dictionary mapping return periods to hazard raster paths.
+            **kwargs:
+                asset_type (str, optional): Infrastructure class to evaluate.
+                multi_curves (dict, optional): Mapping of asset types to curve sets.
+
+        Returns:
+            pd.DataFrame | None: A GeoDataFrame with risk values for each asset, or None if no results.
+        """
         RP_list = list(hazard_dict.keys())
 
         risk = {}

@@ -28,3 +28,19 @@
     padding-right: 3rem;
   }
 }
+
+/* Light theme: show dark logo */
+.only-light {
+  display: block;
+}
+.only-dark {
+  display: none;
+}
+
+/* Dark theme: swap them */
+[data-md-color-scheme="slate"] .only-light {
+  display: none;
+}
+[data-md-color-scheme="slate"] .only-dark {
+  display: block;
+}

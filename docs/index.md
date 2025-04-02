@@ -6,6 +6,11 @@ authors:
     - Jens de Bruijn
 ---
 
+<p align="center">
+  <img src="images/logo-dark.png" class="only-light" alt="DamageScanner Logo" width="300" />
+  <img src="images/logo-light.png" class="only-dark" alt="DamageScanner Logo" width="300" />
+</p>
+
 # DamageScanner: direct damage assessments for natural hazards
 
 A python toolkit for direct damage assessments for natural hazards. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
