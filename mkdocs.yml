@@ -3,10 +3,17 @@ repo_url: https://github.com/VU-IVM/DamageScanner
 repo_name: DamageScanner
 site_description: Damage Assessments for Natural Hazards
 site_author: Elco Koks, Jens de Bruijn
+copyright:
+  '<span>
+    <i> Institute for Environmental Studies, Vrije Universiteit Amsterdam </i>
+    <br>
+    Copyright &copy; 
+    <script>document.write(new Date().getFullYear())</script> 
+    Elco Koks & Jens de Bruijn
+  </span>'
 
 plugins:
   - search
-  - awesome-pages
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -20,8 +27,12 @@ plugins:
             - sys.path.insert(0, os.path.abspath('.'))
 
 nav:
-  - Welcome: index.md
-  - Getting Started: get_started.md
+  - Getting Started: index.md
+  - How it works:
+      - Overview: how-to/overview.md
+      - Raster-based approach: how-to/raster.md
+      - Vector-based approach: how-to/vector.md
+      - Coupling with OSM: how-to/osm.md
   - API Reference: api.md
 
 
@@ -72,8 +83,10 @@ theme:
     - search.suggest
     - search.highlight
 
+extra_javascript:
+  - javascripts/set-body-class.js
+
 extra_css:
   - stylesheets/extra.css
 
-extra:
-  generator: false
+

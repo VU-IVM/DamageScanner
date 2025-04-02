@@ -1,30 +1,30 @@
-/* Hide sidebar on large screens */
 @media screen and (min-width: 76.25em) {
+  /* Sidebar is shown or hidden based on class — we keep that logic */
   .md-sidebar--primary {
     display: none !important;
   }
 
+  body.show-sidebar .md-sidebar--primary {
+    display: block !important;
+  }
+
+  /* Unified layout: apply padding & width on ALL pages */
   .md-content,
   .md-main__inner {
     margin-left: auto !important;
     margin-right: auto !important;
-    max-width: 1500px; /* or whatever width looks best to you */
-    padding-left: 2rem;
-    padding-right: 2rem;
+    max-width: 1500px;  /* feel free to tweak this */
+    padding-left: 3rem;  /* creates breathing space from sidebar */
+    padding-right: 3rem;
+  }
+
+  /* Even when sidebar is shown, keep centered layout */
+  body.show-sidebar .md-content,
+  body.show-sidebar .md-main__inner {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 1800px;
+    padding-left: 3rem;
+    padding-right: 3rem;
   }
 }
-
-/* Default: light mode */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-}
-
-/* Reduce the heading size for mkdocstrings objects */
-.md-typeset h2.doc-heading,
-.md-typeset h3.doc-heading,
-.md-typeset h4.doc-heading {
-  font-size: 1rem !important;  /* tweak this value as you like */
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
-}
-
