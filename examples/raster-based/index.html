@@ -13,23 +13,25 @@
       
       
       
+        <link rel="prev" href="../vector-based/">
       
-        <link rel="next" href="how-to/overview/">
+      
+        <link rel="next" href="../../api/">
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.9">
     
     
       
-        <title>Introduction - DamageScanner</title>
+        <title>Raster-based example - DamageScanner</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.4af4bdda.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,11 +50,11 @@
       
     
     
-      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
     
-      <link rel="stylesheet" href="stylesheets/extra.css">
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -78,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#damagescanner-direct-damage-assessments-for-natural-hazards" class="md-skip">
+        <a href="#raster-based-example-kampen" class="md-skip">
           Skip to content
         </a>
       
@@ -92,9 +94,9 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="DamageScanner" class="md-header__button md-logo" aria-label="DamageScanner" data-md-component="logo">
+    <a href="../.." title="DamageScanner" class="md-header__button md-logo" aria-label="DamageScanner" data-md-component="logo">
       
-  <img src="images/logo-icon.svg" alt="logo">
+  <img src="../../images/logo-icon.svg" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -111,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Introduction
+              Raster-based example
             
           </span>
         </div>
@@ -218,11 +220,9 @@
         
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="." class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
         
   
     
@@ -241,7 +241,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="how-to/overview/" class="md-tabs__link">
+        <a href="../../how-to/overview/" class="md-tabs__link">
           
   
   How it works
@@ -255,11 +255,13 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="examples/vector-based/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../vector-based/" class="md-tabs__link">
           
   
   Examples
@@ -275,7 +277,7 @@
   
   
     <li class="md-tabs__item">
-      <a href="api/" class="md-tabs__link">
+      <a href="../../api/" class="md-tabs__link">
         
   
     
@@ -309,9 +311,9 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="DamageScanner" class="md-nav__button md-logo" aria-label="DamageScanner" data-md-component="logo">
+    <a href="../.." title="DamageScanner" class="md-nav__button md-logo" aria-label="DamageScanner" data-md-component="logo">
       
-  <img src="images/logo-icon.svg" alt="logo">
+  <img src="../../images/logo-icon.svg" alt="logo">
 
     </a>
     DamageScanner
@@ -335,31 +337,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Overview
-    
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -369,71 +350,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
-    <span class="md-ellipsis">
-      🔑 Key Features
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
-    <span class="md-ellipsis">
-      📖 Background
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#quickstart" class="md-nav__link">
-    <span class="md-ellipsis">
-      🚀 Quickstart
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#license" class="md-nav__link">
-    <span class="md-ellipsis">
-      📄 License
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#funding" class="md-nav__link">
-    <span class="md-ellipsis">
-      🏛️ Funding
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -488,7 +404,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/overview/" class="md-nav__link">
+      <a href="../../how-to/overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -510,7 +426,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/raster/" class="md-nav__link">
+      <a href="../../how-to/raster/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -532,7 +448,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/vector/" class="md-nav__link">
+      <a href="../../how-to/vector/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -554,7 +470,7 @@
   
   
     <li class="md-nav__item">
-      <a href="how-to/osm/" class="md-nav__link">
+      <a href="../../how-to/osm/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -580,27 +496,30 @@
       
   
   
+    
   
   
+  
     
     
     
+      
+        
+        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
             
   
   <span class="md-ellipsis">
@@ -612,7 +531,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Examples
@@ -626,7 +545,7 @@
   
   
     <li class="md-nav__item">
-      <a href="examples/vector-based/" class="md-nav__link">
+      <a href="../vector-based/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -645,10 +564,31 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="examples/raster-based/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Raster-based example
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -658,6 +598,71 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-import-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Import Dependencies
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-load-input-data-from-github" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Load Input Data from GitHub
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-load-vulnerability-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Load Vulnerability Data
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-run-the-raster-based-damage-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Run the Raster-Based Damage Assessment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-display-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Display Output
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -677,7 +682,7 @@
   
   
     <li class="md-nav__item">
-      <a href="api/" class="md-nav__link">
+      <a href="../../api/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -718,45 +723,45 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#key-features" class="md-nav__link">
+  <a href="#1-import-dependencies" class="md-nav__link">
     <span class="md-ellipsis">
-      🔑 Key Features
+      1. Import Dependencies
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#background" class="md-nav__link">
+  <a href="#2-load-input-data-from-github" class="md-nav__link">
     <span class="md-ellipsis">
-      📖 Background
+      2. Load Input Data from GitHub
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#quickstart" class="md-nav__link">
+  <a href="#3-load-vulnerability-data" class="md-nav__link">
     <span class="md-ellipsis">
-      🚀 Quickstart
+      3. Load Vulnerability Data
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#license" class="md-nav__link">
+  <a href="#4-run-the-raster-based-damage-assessment" class="md-nav__link">
     <span class="md-ellipsis">
-      📄 License
+      4. Run the Raster-Based Damage Assessment
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#funding" class="md-nav__link">
+  <a href="#5-display-output" class="md-nav__link">
     <span class="md-ellipsis">
-      🏛️ Funding
+      5. Display Output
     </span>
   </a>
   
@@ -781,48 +786,44 @@
   
 
 
-<p align="center">
-  <img src="images/logo-dark.png" class="only-light" alt="DamageScanner Logo" width="300" />
-  <img src="images/logo-light.png" class="only-dark" alt="DamageScanner Logo" width="300" />
-</p>
-
-<h1 id="damagescanner-direct-damage-assessments-for-natural-hazards">DamageScanner: direct damage assessments for natural hazards</h1>
-<p>A python toolkit for direct damage assessments for natural hazards. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). </p>
-<p><strong>Please note:</strong> This package is still in development phase. In case of any problems, or if you have any suggestions for improvements, please raise an <em>issue</em>. </p>
-<h2 id="key-features">🔑 Key Features</h2>
-<ul>
-<li>⚡ <strong>Modular design</strong> — Choose between raster-based or vector-based workflows</li>
-<li>📦 <strong>Out-of-the-box methods</strong> — for exposure loading, raster-vector overlays, and damage estimation</li>
-<li>🧠 <strong>Damage functions</strong> — Apply your own vulnerability curves with flexible input formats</li>
-<li>🗺️ <strong>Open geospatial stack</strong> — Built on GeoPandas, Rasterio, Shapely, and more</li>
-<li>🧪 <strong>Easy API access</strong> — Use the Python interface directly or integrate into notebooks</li>
-</ul>
-<h2 id="background">📖 Background</h2>
-<p>This package is (loosely) based on the original DamageScanner, which calculated potential flood damages based on inundation depth and land use using depth-damage curves in the Netherlands. The DamageScanner was originally developed for the 'Netherlands Later' project <a href="https://www.rivm.nl/bibliotheek/digitaaldepot/WL_rapport_Overstromingsrisicos_Nederland.pdf">(Klijn et al., 2007)</a>. The original land-use classes were based on the Land-Use Scanner in order to evaluate the effect of future land-use change on flood damages. </p>
-<h2 id="quickstart">🚀 Quickstart</h2>
-<ol>
-<li>Open the python environment in your command prompt or bash in which you want to install this package.</li>
-<li>Type <code>pip install damagescanner</code> and it should install itself into your python environment.</li>
-<li>Now you can import the package like any other package!</li>
-</ol>
-<h2 id="license">📄 License</h2>
-<p>This project is licensed under the MIT License. See the <a href="https://github.com/VU-IVM/DamageScanner/blob/master/LICENSE">LICENSE</a> file for details.</p>
-<h2 id="funding">🏛️ Funding</h2>
-<p>This work has been supported by the following organizations and research programs:</p>
-<ul>
-<li><a href="https://www.gfdrr.org/en"><strong>Global Facility for Disaster Reduction and Recovery (GFDRR)</strong></a>  </li>
-<li><a href="www.miraca-project.eu"><strong>MIRACA Project</strong></a> – Grant Agreement No. 101093854  </li>
-<li><a href="https://www.nwo.nl/en"><strong>Dutch Research Council (NWO)</strong></a> – Veni Grant No. VI.Veni.194.033</li>
-</ul>
-
+<h1 id="raster-based-example-kampen">Raster-based Example (Kampen)</h1>
+<p>This example demonstrates how to run the raster-based flood damage assessment using a land-use map for the Kampen region in the Netherlands.</p>
+<h2 id="1-import-dependencies">1. Import Dependencies</h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span> <span class="nn">damagescanner.raster</span> <span class="kn">import</span> <span class="n">RasterScanner</span>
+</span></code></pre></div>
+<hr />
+<h2 id="2-load-input-data-from-github">2. Load Input Data from GitHub</h2>
+<p>We use publicly available data from the <a href="https://github.com/VU-IVM/DamageScanner/tree/installation/data/kampen">DamageScanner GitHub repository</a>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">hazard_file</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/VU-IVM/DamageScanner/installation/data/kampen/hazard/1in1000_inundation_map.tif&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">landuse_file</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/VU-IVM/DamageScanner/installation/data/kampen/exposure/landuse_map.tif&quot;</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">curve_file</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/VU-IVM/DamageScanner/installation/data/kampen/vulnerability/curves.csv&quot;</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">maxdam_file</span> <span class="o">=</span> <span class="s2">&quot;https://raw.githubusercontent.com/VU-IVM/DamageScanner/installation/data/kampen/vulnerability/maxdam.csv&quot;</span>
+</span></code></pre></div>
+<hr />
+<h2 id="3-load-vulnerability-data">3. Load Vulnerability Data</h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">curves</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">curve_file</span><span class="p">)</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">maxdam</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">maxdam_file</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="4-run-the-raster-based-damage-assessment">4. Run the Raster-Based Damage Assessment</h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">damage_df</span><span class="p">,</span> <span class="n">damagemap</span><span class="p">,</span> <span class="n">landuse_data</span><span class="p">,</span> <span class="n">hazard_data</span> <span class="o">=</span> <span class="n">RasterScanner</span><span class="p">(</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">landuse_file</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">hazard_file</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">curves</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">maxdam</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="5-display-output">5. Display Output</h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">damage_df</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</span></code></pre></div>
 
 
 
 
 
 
-  
-  
 
 
 
@@ -873,12 +874,12 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.sections", "navigation.tabs", "navigation.expand", "navigation.top", "search.suggest", "search.highlight"], "search": "assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.sections", "navigation.tabs", "navigation.expand", "navigation.top", "search.suggest", "search.highlight"], "search": "../../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c8b220af.min.js"></script>
       
-        <script src="javascripts/set-body-class.js"></script>
+        <script src="../../javascripts/set-body-class.js"></script>
       
     
   </body>
