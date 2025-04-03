@@ -4,7 +4,7 @@ This page explains how to use `DamageScanner` with **raster-based exposure and h
 
 ---
 
-## 🧠 When to Use Raster-Based Workflows
+## When to Use Raster-Based Workflows
 
 | Scenario | Raster-Based | Vector-Based |
 |----------|--------------|---------------|
@@ -15,7 +15,7 @@ This page explains how to use `DamageScanner` with **raster-based exposure and h
 
 ---
 
-## 🔧 Required Inputs
+## Required Inputs
 
 You still need the same four key inputs as explained in the [Overview](./overview.md):
 
@@ -28,7 +28,7 @@ You still need the same four key inputs as explained in the [Overview](./overvie
 
 ---
 
-## 🧪 Minimal Working Example
+## Minimal Working Example
 
 ```python
 from damagescanner import DamageScanner
@@ -46,7 +46,7 @@ This returns a `GeoDataFrame` where each grid cell contains an estimated direct 
 
 ---
 
-## 📊 Notes on Raster Behavior
+## Notes on Raster Behavior
 
 - Exposure values are interpreted as **damageable units per cell** (e.g., people, € value, or m²)
 - Output damage is computed as:
@@ -58,7 +58,7 @@ This returns a `GeoDataFrame` where each grid cell contains an estimated direct 
 
 ---
 
-## 🧼 Common Pitfalls
+## Common Pitfalls
 
 > ⚠️ **Misaligned Rasters** — Make sure both rasters have the same extent, resolution, and CRS. You can use `rasterio.warp` or `gdalwarp` to resample.
 

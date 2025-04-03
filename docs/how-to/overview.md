@@ -2,13 +2,13 @@
 
 `DamageScanner()` is a Python toolkit for direct damage assessments of natural hazards. While originally designed for flood risk analysis, it can be used for **any hazard** where vulnerability can be expressed as a **one-dimensional curve** (e.g., flood depth, wind speed, ground shaking).
 
-The tool is optimized for both **raster-based hazards** and **vector-based assets** (e.g., roads, power plants, buildings). This page walks you through how it works, and what is required for running a successful analysis.
+The tool is optimized for both **raster-based** (e.g. land use) and **vector-based** (e.g., roads, power plants, buildings) damage assessments. This page walks you through how it works, and what is required for running a successful analysis.
 
 > 📚 For a very extensive overview of real-world examples, please refer to the [GlobalInfraRisk documentation](https://vu-ivm.github.io/GlobalInfraRisk/).
 
 ---
 
-## 🧠 Core Workflow
+## Core Workflow
 
 The DamageScanner logic consists of three key steps:
 
@@ -18,7 +18,7 @@ The DamageScanner logic consists of three key steps:
 
 ---
 
-## 🔧 Inputs Required
+## Inputs Required
 
 The `DamageScanner` class requires four key inputs:
 
@@ -43,7 +43,7 @@ The `DamageScanner` class requires four key inputs:
 
 ---
 
-## 🧪 Example: Running DamageScanner
+## Example: Running DamageScanner
 
 ```python
 from damagescanner import DamageScanner
@@ -61,7 +61,7 @@ scanner = DamageScanner(hazard, feature_data, curves, maxdam)
 
 ---
 
-## 🔍 Step-by-Step Usage
+## Step-by-Step Usage
 
 ### 1. `exposure()`
 Identify which features overlap with the hazard.
@@ -108,7 +108,7 @@ risk_results = scanner.risk(hazard_dict)
 
 ---
 
-## 🗂️ Tips for Working with Geometry
+## Tips for Working with Geometry
 
 > ⚠️ **Important:** Make sure each asset type uses one geometry type (Point or Polygon). Options:
 >

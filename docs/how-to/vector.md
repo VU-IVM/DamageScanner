@@ -4,7 +4,7 @@ This page explains how to use `DamageScanner` with **vector-based exposure data*
 
 ---
 
-## 🧠 When to Use Vector-Based Workflows
+## When to Use Vector-Based Workflows
 
 | Scenario | Raster-Based | Vector-Based |
 |----------|--------------|---------------|
@@ -15,7 +15,7 @@ This page explains how to use `DamageScanner` with **vector-based exposure data*
 
 ---
 
-## 🔧 Required Inputs
+## Required Inputs
 
 As described in the [Overview](./overview.md), you need:
 
@@ -28,7 +28,7 @@ As described in the [Overview](./overview.md), you need:
 
 ---
 
-## 🧪 Minimal Working Example
+## Minimal Working Example
 
 ```python
 from damagescanner import DamageScanner
@@ -46,7 +46,7 @@ The result is a `GeoDataFrame` of features with estimated direct damage values p
 
 ---
 
-## 🔍 Key Behavior
+## Key Behavior
 
 - The exposure file must contain geometry columns (Point, LineString, or Polygon)
 - `DamageScanner` overlays each geometry with the hazard raster

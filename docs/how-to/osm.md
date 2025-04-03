@@ -6,7 +6,7 @@ This page outlines how to prepare and use OSM data for damage assessment workflo
 
 ---
 
-## 🌍 Why Use OSM Data?
+## Why Use OSM Data?
 
 - Freely available, global coverage
 - Includes many infrastructure types (roads, buildings, energy, healthcare, etc.)
@@ -17,7 +17,7 @@ This page outlines how to prepare and use OSM data for damage assessment workflo
 
 ---
 
-## ⚙️ How DamageScanner Works with OSM
+## How DamageScanner Works with OSM
 
 DamageScanner includes built-in support for working directly with `.osm.pbf` files. The tool provides utilities to:
 
@@ -45,7 +45,7 @@ The `asset_type` must be one of the predefined keys such as `road`, `rail`, `pow
 
 ---
 
-## 🧼 Manual Tagging (Optional)
+## Manual Tagging (Optional)
 
 If you're preparing custom OSM files manually (e.g. from `.shp` or `.gpkg`):
 
@@ -66,7 +66,7 @@ gdf.to_file("data/cleaned_osm_roads.gpkg", driver="GPKG")
 
 ---
 
-## 💥 Example Usage with DamageScanner
+## Example Usage with DamageScanner
 
 ```python
 from damagescanner import DamageScanner
@@ -84,7 +84,7 @@ This calculates direct damages using cleaned vector infrastructure data from OSM
 
 ---
 
-## 🔁 Tips for Reproducibility
+## Tips for Reproducibility
 
 - Document the OSM extract date and source (e.g. Geofabrik region)
 - Use consistent object naming (e.g. `road`, `bridge`, `hospital`) to match your vulnerability inputs
