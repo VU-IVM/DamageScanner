@@ -505,7 +505,7 @@
         <li class="md-nav__item">
   <a href="#why-use-osm-data" class="md-nav__link">
     <span class="md-ellipsis">
-      🌍 Why Use OSM Data?
+      Why Use OSM Data?
     </span>
   </a>
   
@@ -514,7 +514,7 @@
         <li class="md-nav__item">
   <a href="#how-damagescanner-works-with-osm" class="md-nav__link">
     <span class="md-ellipsis">
-      ⚙️ How DamageScanner Works with OSM
+      How DamageScanner Works with OSM
     </span>
   </a>
   
@@ -523,7 +523,7 @@
         <li class="md-nav__item">
   <a href="#manual-tagging-optional" class="md-nav__link">
     <span class="md-ellipsis">
-      🧼 Manual Tagging (Optional)
+      Manual Tagging (Optional)
     </span>
   </a>
   
@@ -532,7 +532,7 @@
         <li class="md-nav__item">
   <a href="#example-usage-with-damagescanner" class="md-nav__link">
     <span class="md-ellipsis">
-      💥 Example Usage with DamageScanner
+      Example Usage with DamageScanner
     </span>
   </a>
   
@@ -541,7 +541,7 @@
         <li class="md-nav__item">
   <a href="#tips-for-reproducibility" class="md-nav__link">
     <span class="md-ellipsis">
-      🔁 Tips for Reproducibility
+      Tips for Reproducibility
     </span>
   </a>
   
@@ -622,7 +622,7 @@
         <li class="md-nav__item">
   <a href="#why-use-osm-data" class="md-nav__link">
     <span class="md-ellipsis">
-      🌍 Why Use OSM Data?
+      Why Use OSM Data?
     </span>
   </a>
   
@@ -631,7 +631,7 @@
         <li class="md-nav__item">
   <a href="#how-damagescanner-works-with-osm" class="md-nav__link">
     <span class="md-ellipsis">
-      ⚙️ How DamageScanner Works with OSM
+      How DamageScanner Works with OSM
     </span>
   </a>
   
@@ -640,7 +640,7 @@
         <li class="md-nav__item">
   <a href="#manual-tagging-optional" class="md-nav__link">
     <span class="md-ellipsis">
-      🧼 Manual Tagging (Optional)
+      Manual Tagging (Optional)
     </span>
   </a>
   
@@ -649,7 +649,7 @@
         <li class="md-nav__item">
   <a href="#example-usage-with-damagescanner" class="md-nav__link">
     <span class="md-ellipsis">
-      💥 Example Usage with DamageScanner
+      Example Usage with DamageScanner
     </span>
   </a>
   
@@ -658,7 +658,7 @@
         <li class="md-nav__item">
   <a href="#tips-for-reproducibility" class="md-nav__link">
     <span class="md-ellipsis">
-      🔁 Tips for Reproducibility
+      Tips for Reproducibility
     </span>
   </a>
   
@@ -696,7 +696,7 @@
 <p>One of the powerful features of <code>DamageScanner</code> is the ability to work with <strong>OpenStreetMap (OSM)</strong> data as exposure input. This enables fast and global-scale exposure mapping, using freely available, crowdsourced infrastructure data.</p>
 <p>This page outlines how to prepare and use OSM data for damage assessment workflows, using <code>.osm.pbf</code> files directly.</p>
 <hr />
-<h2 id="why-use-osm-data">🌍 Why Use OSM Data?</h2>
+<h2 id="why-use-osm-data">Why Use OSM Data?</h2>
 <ul>
 <li>Freely available, global coverage</li>
 <li>Includes many infrastructure types (roads, buildings, energy, healthcare, etc.)</li>
@@ -707,7 +707,7 @@
 <p>⚠️ Note: OSM data quality and completeness can vary by location. Always validate your input.</p>
 </blockquote>
 <hr />
-<h2 id="how-damagescanner-works-with-osm">⚙️ How DamageScanner Works with OSM</h2>
+<h2 id="how-damagescanner-works-with-osm">How DamageScanner Works with OSM</h2>
 <p>DamageScanner includes built-in support for working directly with <code>.osm.pbf</code> files. The tool provides utilities to:</p>
 <ul>
 <li>Download <code>.osm.pbf</code> files from Geofabrik</li>
@@ -729,7 +729,7 @@
 </span></code></pre></div>
 <p>The <code>asset_type</code> must be one of the predefined keys such as <code>road</code>, <code>rail</code>, <code>power</code>, <code>healthcare</code>, <code>education</code>, etc. The output is a cleaned GeoDataFrame with valid geometries and an <code>object_type</code> column.</p>
 <hr />
-<h2 id="manual-tagging-optional">🧼 Manual Tagging (Optional)</h2>
+<h2 id="manual-tagging-optional">Manual Tagging (Optional)</h2>
 <p>If you're preparing custom OSM files manually (e.g. from <code>.shp</code> or <code>.gpkg</code>):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Reproject and tag manually loaded GeoDataFrame</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">gdf</span> <span class="o">=</span> <span class="n">gdf</span><span class="o">.</span><span class="n">to_crs</span><span class="p">(</span><span class="s2">&quot;EPSG:32633&quot;</span><span class="p">)</span>
@@ -743,7 +743,7 @@
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">gdf</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s2">&quot;data/cleaned_osm_roads.gpkg&quot;</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;GPKG&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
-<h2 id="example-usage-with-damagescanner">💥 Example Usage with DamageScanner</h2>
+<h2 id="example-usage-with-damagescanner">Example Usage with DamageScanner</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span> <span class="nn">damagescanner</span> <span class="kn">import</span> <span class="n">DamageScanner</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">hazard</span> <span class="o">=</span> <span class="s2">&quot;data/flood_depth_100yr.tif&quot;</span>
@@ -756,7 +756,7 @@
 </span></code></pre></div>
 <p>This calculates direct damages using cleaned vector infrastructure data from OSM.</p>
 <hr />
-<h2 id="tips-for-reproducibility">🔁 Tips for Reproducibility</h2>
+<h2 id="tips-for-reproducibility">Tips for Reproducibility</h2>
 <ul>
 <li>Document the OSM extract date and source (e.g. Geofabrik region)</li>
 <li>Use consistent object naming (e.g. <code>road</code>, <code>bridge</code>, <code>hospital</code>) to match your vulnerability inputs</li>

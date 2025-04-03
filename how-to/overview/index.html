@@ -439,7 +439,7 @@
         <li class="md-nav__item">
   <a href="#core-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      🧠 Core Workflow
+      Core Workflow
     </span>
   </a>
   
@@ -448,11 +448,11 @@
         <li class="md-nav__item">
   <a href="#inputs-required" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Inputs Required
+      Inputs Required
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔧 Inputs Required">
+    <nav class="md-nav" aria-label="Inputs Required">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -499,7 +499,7 @@
         <li class="md-nav__item">
   <a href="#example-running-damagescanner" class="md-nav__link">
     <span class="md-ellipsis">
-      🧪 Example: Running DamageScanner
+      Example: Running DamageScanner
     </span>
   </a>
   
@@ -508,11 +508,11 @@
         <li class="md-nav__item">
   <a href="#step-by-step-usage" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Step-by-Step Usage
+      Step-by-Step Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔍 Step-by-Step Usage">
+    <nav class="md-nav" aria-label="Step-by-Step Usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -550,7 +550,7 @@
         <li class="md-nav__item">
   <a href="#tips-for-working-with-geometry" class="md-nav__link">
     <span class="md-ellipsis">
-      🗂️ Tips for Working with Geometry
+      Tips for Working with Geometry
     </span>
   </a>
   
@@ -697,7 +697,7 @@
         <li class="md-nav__item">
   <a href="#core-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      🧠 Core Workflow
+      Core Workflow
     </span>
   </a>
   
@@ -706,11 +706,11 @@
         <li class="md-nav__item">
   <a href="#inputs-required" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Inputs Required
+      Inputs Required
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔧 Inputs Required">
+    <nav class="md-nav" aria-label="Inputs Required">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -757,7 +757,7 @@
         <li class="md-nav__item">
   <a href="#example-running-damagescanner" class="md-nav__link">
     <span class="md-ellipsis">
-      🧪 Example: Running DamageScanner
+      Example: Running DamageScanner
     </span>
   </a>
   
@@ -766,11 +766,11 @@
         <li class="md-nav__item">
   <a href="#step-by-step-usage" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Step-by-Step Usage
+      Step-by-Step Usage
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="🔍 Step-by-Step Usage">
+    <nav class="md-nav" aria-label="Step-by-Step Usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -808,7 +808,7 @@
         <li class="md-nav__item">
   <a href="#tips-for-working-with-geometry" class="md-nav__link">
     <span class="md-ellipsis">
-      🗂️ Tips for Working with Geometry
+      Tips for Working with Geometry
     </span>
   </a>
   
@@ -844,12 +844,12 @@
 
 <h1 id="overview">Overview</h1>
 <p><code>DamageScanner()</code> is a Python toolkit for direct damage assessments of natural hazards. While originally designed for flood risk analysis, it can be used for <strong>any hazard</strong> where vulnerability can be expressed as a <strong>one-dimensional curve</strong> (e.g., flood depth, wind speed, ground shaking).</p>
-<p>The tool is optimized for both <strong>raster-based hazards</strong> and <strong>vector-based assets</strong> (e.g., roads, power plants, buildings). This page walks you through how it works, and what is required for running a successful analysis.</p>
+<p>The tool is optimized for both <strong>raster-based</strong> (e.g. land use) and <strong>vector-based</strong> (e.g., roads, power plants, buildings) damage assessments. This page walks you through how it works, and what is required for running a successful analysis.</p>
 <blockquote>
 <p>📚 For a very extensive overview of real-world examples, please refer to the <a href="https://vu-ivm.github.io/GlobalInfraRisk/">GlobalInfraRisk documentation</a>.</p>
 </blockquote>
 <hr />
-<h2 id="core-workflow">🧠 Core Workflow</h2>
+<h2 id="core-workflow">Core Workflow</h2>
 <p>The DamageScanner logic consists of three key steps:</p>
 <ol>
 <li><strong>Exposure Analysis</strong> — identifies what assets intersect the hazard.</li>
@@ -857,7 +857,7 @@
 <li><strong>Risk Assessment</strong> — aggregates damage across hazard return periods.</li>
 </ol>
 <hr />
-<h2 id="inputs-required">🔧 Inputs Required</h2>
+<h2 id="inputs-required">Inputs Required</h2>
 <p>The <code>DamageScanner</code> class requires four key inputs:</p>
 <h3 id="1-hazard-data">1. <strong>Hazard Data</strong></h3>
 <ul>
@@ -884,7 +884,7 @@
 <li>Provided as <code>dict</code>, CSV, or DataFrame</li>
 </ul>
 <hr />
-<h2 id="example-running-damagescanner">🧪 Example: Running DamageScanner</h2>
+<h2 id="example-running-damagescanner">Example: Running DamageScanner</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">damagescanner</span> <span class="kn">import</span> <span class="n">DamageScanner</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
@@ -898,7 +898,7 @@
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">DamageScanner</span><span class="p">(</span><span class="n">hazard</span><span class="p">,</span> <span class="n">feature_data</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">maxdam</span><span class="p">)</span>
 </span></code></pre></div>
 <hr />
-<h2 id="step-by-step-usage">🔍 Step-by-Step Usage</h2>
+<h2 id="step-by-step-usage">Step-by-Step Usage</h2>
 <h3 id="1-exposure">1. <code>exposure()</code></h3>
 <p>Identify which features overlap with the hazard.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Curves and maxdam must be empty DataFrames for exposure-only</span>
@@ -935,7 +935,7 @@
 <li>Supports asset-specific curves and max damages</li>
 </ul>
 <hr />
-<h2 id="tips-for-working-with-geometry">🗂️ Tips for Working with Geometry</h2>
+<h2 id="tips-for-working-with-geometry">Tips for Working with Geometry</h2>
 <blockquote>
 <p>⚠️ <strong>Important:</strong> Make sure each asset type uses one geometry type (Point or Polygon). Options:</p>
 <ol>

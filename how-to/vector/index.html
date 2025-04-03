@@ -483,7 +483,7 @@
         <li class="md-nav__item">
   <a href="#when-to-use-vector-based-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      🧠 When to Use Vector-Based Workflows
+      When to Use Vector-Based Workflows
     </span>
   </a>
   
@@ -492,7 +492,7 @@
         <li class="md-nav__item">
   <a href="#required-inputs" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Required Inputs
+      Required Inputs
     </span>
   </a>
   
@@ -501,7 +501,7 @@
         <li class="md-nav__item">
   <a href="#minimal-working-example" class="md-nav__link">
     <span class="md-ellipsis">
-      🧪 Minimal Working Example
+      Minimal Working Example
     </span>
   </a>
   
@@ -510,7 +510,7 @@
         <li class="md-nav__item">
   <a href="#key-behavior" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Key Behavior
+      Key Behavior
     </span>
   </a>
   
@@ -622,7 +622,7 @@
         <li class="md-nav__item">
   <a href="#when-to-use-vector-based-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      🧠 When to Use Vector-Based Workflows
+      When to Use Vector-Based Workflows
     </span>
   </a>
   
@@ -631,7 +631,7 @@
         <li class="md-nav__item">
   <a href="#required-inputs" class="md-nav__link">
     <span class="md-ellipsis">
-      🔧 Required Inputs
+      Required Inputs
     </span>
   </a>
   
@@ -640,7 +640,7 @@
         <li class="md-nav__item">
   <a href="#minimal-working-example" class="md-nav__link">
     <span class="md-ellipsis">
-      🧪 Minimal Working Example
+      Minimal Working Example
     </span>
   </a>
   
@@ -649,7 +649,7 @@
         <li class="md-nav__item">
   <a href="#key-behavior" class="md-nav__link">
     <span class="md-ellipsis">
-      🔍 Key Behavior
+      Key Behavior
     </span>
   </a>
   
@@ -695,7 +695,7 @@
 <h1 id="vector-based-approach">Vector-based Approach</h1>
 <p>This page explains how to use <code>DamageScanner</code> with <strong>vector-based exposure data</strong> (e.g. shapefiles, GeoPackages, or OSM data). This approach is ideal for object-level damage estimation, such as buildings, roads, power plants, and other individual infrastructure assets.</p>
 <hr />
-<h2 id="when-to-use-vector-based-workflows">🧠 When to Use Vector-Based Workflows</h2>
+<h2 id="when-to-use-vector-based-workflows">When to Use Vector-Based Workflows</h2>
 <table>
 <thead>
 <tr>
@@ -728,7 +728,7 @@
 </tbody>
 </table>
 <hr />
-<h2 id="required-inputs">🔧 Required Inputs</h2>
+<h2 id="required-inputs">Required Inputs</h2>
 <p>As described in the <a href="../overview/">Overview</a>, you need:</p>
 <ol>
 <li><strong>Hazard raster</strong> (e.g. flood depth, wind speed)</li>
@@ -740,7 +740,7 @@
 <p>⚠️ Your exposure data must include a <strong>column specifying asset type</strong>, matching the keys used in the vulnerability curves and max damage data.</p>
 </blockquote>
 <hr />
-<h2 id="minimal-working-example">🧪 Minimal Working Example</h2>
+<h2 id="minimal-working-example">Minimal Working Example</h2>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span> <span class="nn">damagescanner</span> <span class="kn">import</span> <span class="n">DamageScanner</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">hazard</span> <span class="o">=</span> <span class="s2">&quot;data/hazard_flood_depth.tif&quot;</span>
@@ -753,7 +753,7 @@
 </span></code></pre></div>
 <p>The result is a <code>GeoDataFrame</code> of features with estimated direct damage values per asset.</p>
 <hr />
-<h2 id="key-behavior">🔍 Key Behavior</h2>
+<h2 id="key-behavior">Key Behavior</h2>
 <ul>
 <li>The exposure file must contain geometry columns (Point, LineString, or Polygon)</li>
 <li><code>DamageScanner</code> overlays each geometry with the hazard raster</li>
