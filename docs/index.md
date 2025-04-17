@@ -1,5 +1,5 @@
 ---
-title: Getting Started
+title: Introduction
 summary: The basics to get started with the DamageScanner
 authors:
     - Elco Koks
@@ -39,6 +39,14 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](https://github.com/VU-IVM/DamageScanner/blob/master/LICENSE) file for details.
+
+## 🏛️ Funding
+
+This work has been supported by the following organizations and research programs:
+
+- [**Global Facility for Disaster Reduction and Recovery (GFDRR)**](https://www.gfdrr.org/en)  
+- [**MIRACA Project**](www.miraca-project.eu) – Grant Agreement No. 101093854  
+- [**Dutch Research Council (NWO)**](https://www.nwo.nl/en) – Veni Grant No. VI.Veni.194.033
 
 
 

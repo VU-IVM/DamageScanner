@@ -543,7 +543,7 @@ def read_osm_data(osm_path, asset_type):
         )
 
     else:
-        return ImportWarning("feature not in DICT_CIS_OSM. Returning empty gdf")
+        raise ImportWarning("feature not in DICT_CIS_OSM. Returning empty gdf")
 
     # make all geometries valid
     gdf["geometry"] = shapely.make_valid(gdf["geometry"])

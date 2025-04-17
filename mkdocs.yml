@@ -14,6 +14,7 @@ copyright:
 
 plugins:
   - search
+  - mkdocs-jupyter
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -26,15 +27,19 @@ plugins:
             show_source: false             # optional: hides source link
             show_docstring: true           # make sure this is on
             show_bases: false              # optional: hides base classes for class views
+            heading_level: 3
+
 nav:
-  - Getting Started: index.md
+  - Overview: index.md
   - How it works:
-      - Overview: how-to/overview.md
+      - Introduction: how-to/overview.md
       - Raster-based approach: how-to/raster.md
       - Vector-based approach: how-to/vector.md
       - Coupling with OSM: how-to/osm.md
+  - Examples:
+      - Vector-based example: examples/vector-based.md
+      - Raster-based example: examples/raster-based.md
   - API Reference: api.md
-
 
 markdown_extensions:
   - markdown_include.include
