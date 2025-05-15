@@ -5,6 +5,7 @@ Copyright (C) 2023 Elco Koks. All versions released under the MIT license.
 
 # Get all the needed modules
 import rasterio
+import numpy as np
 import xarray as xr
 import pandas as pd
 import geopandas as gpd
@@ -336,7 +337,7 @@ class DamageScanner(object):
 
             risk = pd.DataFrame(
                 df_risk.apply(
-                    lambda x: integrate.simpson(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                    lambda x: np.trapezoid(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
                 ),
                 columns=["tot_risk"],
             )
@@ -381,7 +382,7 @@ class DamageScanner(object):
             for curve in multi_curves.keys():
                 subrisk = df_risk.loc[:, pd.IndexSlice[:, curve]]
                 collect_risks[curve] = subrisk.apply(
-                    lambda x: integrate.simpson(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                    lambda x: np.trapz(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
                 ).values
 
                 # save output when tot_risk returns negative values

@@ -60,7 +60,7 @@ DICT_CIS_OSM = {
         "osm_query": {"aeroway": ["aerodrome", "apron", "terminal", "runway"]},
     },
     "telecom": {
-        "osm_keys": ["man_made", "tower_type", "name"],
+        "osm_keys": ["man_made", "tower:type", "name"],
         "osm_query": {
             "man_made": ["mast", "communications_tower"],
             "tower_type": ["communication"],
@@ -112,7 +112,7 @@ DICT_CIS_OSM = {
         },
     },
     "power": {
-        "osm_keys": ["power", "voltage", "utility", "name"],
+        "osm_keys": ["power", "voltage", "utility", "name", "source"],
         "osm_query": {
             "power": [
                 "line",
