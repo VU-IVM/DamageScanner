@@ -63,7 +63,7 @@ DICT_CIS_OSM = {
         "osm_keys": ["man_made", "tower:type", "name"],
         "osm_query": {
             "man_made": ["mast", "communications_tower"],
-            "tower_type": ["communication"],
+            "tower:type": ["communication"],
         },
     },
     "water_supply": {

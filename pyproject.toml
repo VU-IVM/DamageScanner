@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "damagescanner"
-version = "0.9-beta.16"
+version = "0.9-beta.17"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
     {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
