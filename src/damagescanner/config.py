@@ -401,7 +401,7 @@ DICT_CIS_VULNERABILITY_FLOOD = {
     },
     "telecom": {  # curves beschikbaar voor overstromingen
         "mast": ["F10.1"],
-        "communications_tower": ["F6.1", "F6.2"],
+        "tower": ["F6.1", "F6.2"],
     },
     "water_supply": {
         "water_works": [
