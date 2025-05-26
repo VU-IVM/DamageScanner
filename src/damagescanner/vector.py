@@ -616,9 +616,9 @@ def VectorExposure(
 
         # check if crs is already in meters
         if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-            cell_area_m2 = (hazard.x[1].values - hazard.x[0].values) * (
+            cell_area_m2 = abs((hazard.x[1].values - hazard.x[0].values) * (
                 hazard.y[0].values - hazard.y[1].values
-            )
+            ))
 
         # if not, extract it more cumbersome
         else:
