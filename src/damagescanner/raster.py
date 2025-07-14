@@ -79,34 +79,6 @@ def match_and_load_rasters(raster_in1, raster_in2):
 
     return data1, data2, transform
 
-        data1 = src1.read(
-            1,
-            window=Window(
-                col_off=left_delta,
-                row_off=top_delta,
-                width=src1.width - left_delta + right_delta,
-                height=src1.height - top_delta + bottom_delta,
-            ),
-        )
-        data2 = src2.read(
-            1,
-            window=Window(
-                col_off=abs(min(left_delta, 0)),
-                row_off=abs(min(top_delta, 0)),
-                width=max(src1.width, src2.width) - abs(left_delta) - abs(right_delta),
-                height=max(src1.height, src2.height)
-                - abs(top_delta)
-                - abs(bottom_delta),
-            ),
-        )
-        transform = rasterio.Affine(
-            src1.transform.a,
-            src1.transform.b,
-            src1.transform.c + src1.transform.a * max(left_delta, 0),
-            src1.transform.d,
-            src1.transform.e,
-            src1.transform.f + src1.transform.e * max(top_delta, 0),
-        )
 
 def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard_col):
     """
