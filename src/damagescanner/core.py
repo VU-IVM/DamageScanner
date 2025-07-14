@@ -11,7 +11,6 @@ import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
 from pathlib import Path
-from scipy import integrate
 
 from damagescanner.vector import VectorScanner, VectorExposure
 from damagescanner.raster import RasterScanner
