@@ -1,0 +1,31 @@
+name: Upload Python Package to PyPI when a Release is Created
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  pypi-publish:
+    name: Publish release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: "release"
+      url: https://pypi.org/project/geb/
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Set up Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Set up uv
+        # Install latest uv version using the installer
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Install the project
+        run: uv sync
+      - name: Build package
+        run: uv build
+      - name: Publish package distributions to PyPI
+        run: |
+          uv publish --trusted-publishing always --publish-url https://upload.pypi.org/legacy/

@@ -1,381 +1,504 @@
 """DamageScanner - a directe damage assessment toolkit
 
-Copyright (C) 2019 Elco Koks. All versions released under the MIT license.
+Copyright (C) 2023 Elco Koks. All versions released under the MIT license.
 """
 
 # Get all the needed modules
 import rasterio
-import rasterio.sample
-import xarray as xr
 import numpy as np
+import xarray as xr
 import pandas as pd
-from affine import Affine
-import pyproj
+import geopandas as gpd
+from tqdm import tqdm
+from pathlib import Path
+from scipy import integrate
+
+from damagescanner.vector import VectorScanner, VectorExposure
+from damagescanner.raster import RasterScanner
+
 import warnings
-from pathlib import PurePath
-from exactextract import exact_extract
 
-from damagescanner.vector import (
-    match_raster_to_vector,
-)
-from damagescanner.raster import match_and_load_rasters
-from damagescanner.utils import check_output_path, check_scenario_name
+warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
-def RasterScanner(
-    landuse_file,
-    hazard_file,
-    curve_path,
-    maxdam_path,
-    lu_crs=28992,
-    haz_crs=4326,
-    hazard_col="FX",
-    dtype=np.int32,
-    save=False,
-    **kwargs,
-):
+class DamageScanner(object):
     """
-    Raster-based implementation of a direct damage assessment.
+    DamageScanner - a direct damage assessment toolkit.
 
-    Arguments:
-        *landuse_file* : GeoTiff with land-use information per grid cell. Make sure
-        the land-use categories correspond with the curves and maximum damages
-        (see below). Furthermore, the resolution and extend of the land-use map
-        has to be exactly the same as the inundation map.
-
-        *hazard_file* : GeoTiff or netCDF4 with hazard intensity per grid cell. Make sure
-        that the unit of the hazard map corresponds with the unit of the
-        first column of the curves file.
-
-        *curve_path* : File with the stage-damage curves of the different
-        land-use classes. Values should be given as ratios, i.e. between 0 and 1.
-        Can also be a pandas DataFrame or numpy Array.
-
-        *maxdam_path* : File with the maximum damages per land-use class
-        (in euro/m2). Can also be a pandas DataFrame or numpy Array.
-
-        *dtype*: Set the dtype to the requires precision. This will affect the output damage raster as well
-
-    Optional Arguments:
-        *save* : Set to True if you would like to save the output. Requires
-        several **kwargs**
-
-    kwargs:
-        *nan_value* : if nan_value is provided, will mask the inundation file.
-        This option can significantly fasten computations
-
-        *cell_size* : If both the landuse and hazard map are numpy arrays,
-        manually set the cell size.
-
-        *resolution* : If landuse is a numpy array, but the hazard map
-        is a netcdf, you need to specify the resolution of the landuse map.
-
-        *output_path* : Specify where files should be saved.
-
-        *scenario_name*: Give a unique name for the files that are going to be saved.
-
-        *in_millions*: Set to True if all values should be set in millions.
-
-        *crs*: Specify crs if you only read in two numpy array
-
-        *transform*: Specify transform if you only read in numpy arrays in order to save the result raster
-
-    Raises:
-        *ValueError* : on missing kwarg options
-
-    Returns:
-     *damagebin* : Table with the land-use class numbers (1st column) and the
-     damage for that land-use class (2nd column).
-
-     *damagemap* : Map displaying the damage per grid cell of the area.
-
-    """
-    # load land-use map
-    if isinstance(landuse_file, PurePath):
-        with rasterio.open(landuse_file) as src:
-            landuse = src.read()[0, :, :]
-            transform = src.transform
-            resolution = src.res[0]
-            cellsize = src.res[0] * src.res[1]
-    else:
-        landuse = landuse_file.copy()
-
-    landuse_in = landuse.copy()
-
-    # Load hazard map
-    if isinstance(hazard_file, PurePath):
-        if hazard_file.parts[-1].endswith(".tif") | hazard_file.parts[-1].endswith(
-            ".tiff"
-        ):
-            with rasterio.open(hazard_file) as src:
-                hazard = src.read()[0, :, :]
-                transform = src.transform
-
-        elif hazard_file.parts[-1].endswith(".nc"):
-            # Open the hazard netcdf file and store it in the hazard variable
-            hazard = xr.open_dataset(hazard_file)
-
-            # Open the landuse geotiff file and store it in the landuse variable
-            landuse = xr.open_dataset(landuse_file, engine="rasterio")
-
-            # Match raster to vector
-            hazard, landuse = match_raster_to_vector(
-                hazard, landuse, lu_crs, haz_crs, resolution, hazard_col
-            )
-
-    elif isinstance(hazard_file, xr.Dataset):
-        # Open the landuse geotiff file and store it in the landuse variable
-        landuse = xr.open_dataset(landuse_file, engine="rasterio")
-
-        # Match raster to vector
-        hazard, landuse = match_raster_to_vector(
-            hazard_file, landuse, lu_crs, haz_crs, resolution, hazard_col
-        )
-
-    else:
-        hazard = hazard_file.copy()
-
-    # check if land-use and hazard map have the same shape.
-    if landuse.shape != hazard.shape:
-        warnings.warn(
-            "WARNING: landuse and hazard maps are not the same shape. Let's fix this first!"
-        )
-
-        landuse, hazard, intersection = match_and_load_rasters(
-            landuse_file, hazard_file
-        )
-
-        # create the right affine for saving the output
-        transform = Affine(
-            transform[0],
-            transform[1],
-            intersection[0],
-            transform[3],
-            transform[4],
-            intersection[1],
-        )
-
-    # set cellsize:
-    if isinstance(landuse_file, PurePath) | isinstance(hazard_file, PurePath):
-        cellsize = src.res[0] * src.res[1]
-    else:
-        try:
-            cellsize = kwargs["cellsize"]
-        except KeyError:
-            raise ValueError("Required `cellsize` not given.")
-
-    # Load curves
-    if isinstance(curve_path, pd.DataFrame):
-        curves = curve_path.values
-    elif isinstance(curve_path, np.ndarray):
-        curves = curve_path
-    elif curve_path.parts[-1].endswith(".csv"):
-        curves = pd.read_csv(curve_path).values
-
-    if ((curves > 1).all()) or ((curves < 0).all()):
-        raise ValueError("Stage-damage curve values must be between 0 and 1")
-
-    # Load maximum damages
-    if isinstance(maxdam_path, pd.DataFrame):
-        maxdam = maxdam_path.values
-    elif isinstance(maxdam_path, np.ndarray):
-        maxdam = maxdam_path
-    elif maxdam_path.parts[-1].endswith(".csv"):
-        maxdam = pd.read_csv(maxdam_path).values
-
-    if maxdam.shape[0] != (curves.shape[1] - 1):
-        raise ValueError(
-            "Dimensions between maximum damages and the number of depth-damage curve do not agree"
-        )
-
-    # Speed up calculation by only considering feasible points
-    if kwargs.get("nan_value"):
-        nan_value = kwargs.get("nan_value")
-        hazard[hazard == nan_value] = 0
-
-    haz = hazard * (hazard >= 0) + 0
-    haz[haz >= curves[:, 0].max()] = curves[:, 0].max()
-    area = haz > 0
-    haz_intensity = haz[haz > 0]
-    landuse = landuse[haz > 0]
-
-    # Calculate damage per land-use class for structures
-    numberofclasses = len(maxdam)
-    alldamage = np.zeros(landuse.shape[0])
-    damagebin = np.zeros(
-        (
-            numberofclasses,
-            2,
-        )
-    )
-    for i in range(0, numberofclasses):
-        n = maxdam[i, 0]
-        damagebin[i, 0] = n
-        wd = haz_intensity[landuse == n]
-        alpha = np.interp(wd, (curves[:, 0]), curves[:, i + 1])
-        damage = alpha * (maxdam[i, 1] * cellsize)
-        damagebin[i, 1] = sum(damage)
-        alldamage[landuse == n] = damage
-
-    # create the damagemap
-    damagemap = np.zeros((area.shape[0], area.shape[1]), dtype=dtype)
-    damagemap[area] = alldamage
-
-    # create pandas dataframe with output
-    damage_df = (
-        pd.DataFrame(damagebin.astype(dtype), columns=["landuse", "damages"])
-        .groupby("landuse")
-        .sum()
-    )
-
-    if save:
-        crs = kwargs.get("crs", src.crs)
-        transform = kwargs.get("transform", transform)
-
-        # requires adding output_path and scenario_name to function call
-        # If output path is not defined, will place file in current directory
-        output_path = check_output_path(kwargs)
-        scenario_name = check_scenario_name(kwargs)
-        path_prefix = PurePath(output_path, scenario_name)
-
-        damage_fn = "{}_damages.csv".format(path_prefix)
-        damage_df.to_csv(damage_fn)
-
-        dmap_fn = "{}_damagemap.tif".format(path_prefix)
-        rst_opts = {
-            "driver": "GTiff",
-            "height": damagemap.shape[0],
-            "width": damagemap.shape[1],
-            "count": 1,
-            "dtype": dtype,
-            "crs": crs,
-            "transform": transform,
-            "compress": "LZW",
-        }
-        with rasterio.open(dmap_fn, "w", **rst_opts) as dst:
-            dst.write(damagemap, 1)
-
-    if "in_millions" in kwargs:
-        damage_df = damage_df / 1e6
-
-    # return output
-    return damage_df, damagemap, landuse_in, hazard
-
-
-def _get_damage_per_object(asset, curves, cell_area_m2):
-    """
-    Calculate damage for a given asset based on hazard information.
-    Arguments:
-        *asset*: Tuple containing information about the asset. It includes:
-            - Index or identifier of the asset (asset[0]).
-            - Asset-specific information, including hazard points (asset[1]['hazard_point']).
-        *maxdam_dict*: Maximum damage value.
-    Returns:
-        *tuple*: A tuple containing the asset index or identifier and the calculated damage.
+    This class provides tools to assess direct physical damage from hazard events,
+    using raster or vector exposure data and vulnerability curves.
+    It supports both single-hazard footprints and risk-based multi-scenario assessments.
     """
 
-    if asset.geometry.geom_type in ("Polygon", "MultiPolygon"):
-        coverage = asset["coverage"] * cell_area_m2
-    elif asset.geometry.geom_type in ("LineString", "MultiLineString"):
-        coverage = asset["coverage"]
-    elif asset.geometry.geom_type in ("Point"):
-        coverage = 1
-    else:
-        raise ValueError(f"Geometry type {asset.geometry.geom_type} not supported")
+    def __init__(self, hazard_data, feature_data, curves, maxdam):
+        """
+        Initialize the DamageScanner class with hazard, exposure, curve, and max damage data.
 
-    return (
-        np.sum(
-            np.interp(
-                asset["values"], curves.index, curves[asset["object_type"]].values
-            )
-            * coverage
-        )
-        * asset["maximum_damage"]
-    )
+        Args:
+            hazard_data (str | Path | xarray.DataArray | xarray.Dataset): Path to raster hazard file or xarray object.
+            feature_data (str | Path | pd.DataFrame | gpd.GeoDataFrame): Exposure data, either raster or vector.
+            curves (str | Path | pd.DataFrame): Vulnerability curves as DataFrame or CSV file path.
+            maxdam (str | Path | pd.DataFrame): Maximum damage values per asset type.
+        """
+        # Collect the input data
+        self.hazard_data = hazard_data
+        self.feature_data = feature_data
+        self.curves = curves
+        self.maxdam = maxdam
 
+        # Convert the input to a Path object if it is a string
+        if isinstance(self.feature_data, str):
+            self.feature_data = Path(feature_data)
 
-def object_scanner(objects, hazard, curves):
-    """
-    Function to calculate the damage per object.
+        if isinstance(self.hazard_data, str):
+            self.hazard_data = Path(hazard_data)
 
-    Arguments
-    ----------
-    objects : GeoDataFrame
-        GeoDataFrame with the objects for which to calculate the damage. It should contain the following columns: 'object_type' and 'maximum_damage'.
-        The maximum damage is the total damage for points, the damage per meter for lines and the damage per square meter for polygons.
-    hazard : rasterio.io.DatasetReader or xr.DataArray
-        The hazard raster.
-    curves : pandas.DataFrame
-        The curves to use for the damage calculation. The index should be the values of the hazard raster and the columns should be the object types
+        if isinstance(self.curves, str):
+            self.curves = Path(curves)
 
-    Returns
-    -------
-    pandas.Series
-        Series with the damage per object
-    """
+        if isinstance(self.maxdam, str):
+            self.maxdam = Path(maxdam)
 
-    if isinstance(hazard, rasterio.io.DatasetReader):
-        hazard_crs = hazard.crs
-        cell_area_m2 = hazard.res[0] * hazard.res[1]
-    elif isinstance(hazard, (xr.Dataset, xr.DataArray)):
-        hazard_crs = hazard.rio.crs
-        cell_area_m2 = abs(hazard.rio.resolution()[0]) * abs(hazard.rio.resolution()[1])
-    else:
-        raise ValueError(f"Hazard should be a raster object, {type(hazard)} given")
+        # Check the type of the exposure data
+        if isinstance(self.feature_data, Path):
+            if self.feature_data.suffix in [".tif", ".tiff", ".nc"]:
+                self.assessment_type = "raster"
 
-    # make sure crs are identical
-    assert hazard_crs == objects.crs
-    # make sure crs is in meters
-    assert pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre"
+            elif self.feature_data.suffix in [
+                ".shp",
+                ".gpkg",
+                ".pbf",
+                ".geofeather",
+                ".geoparquet",
+            ]:
+                self.assessment_type = "vector"
 
-    area_and_line_objects = objects.geom_type.isin(
-        ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
-    )
-    point_objects = objects.geom_type == "Point"
+                if self.feature_data.suffix == ".pbf":
+                    self.osm = True
+            else:
+                raise ImportError(
+                    ": The exposure data should be a a shapefile, geopackage, \
+                        geoparquet, osm.pbf, geotiff or netcdf file."
+                )
 
-    assert area_and_line_objects.sum() + point_objects.sum() == len(objects)
-
-    if area_and_line_objects.sum() > 0:
-        values_and_coverage_per_area_and_line_object = exact_extract(
-            hazard,
-            objects[area_and_line_objects],
-            ["coverage", "values"],
-            output="pandas",
-        )
-
-        objects.loc[area_and_line_objects, "coverage"] = (
-            values_and_coverage_per_area_and_line_object["coverage"].values
-        )
-        objects.loc[area_and_line_objects, "values"] = (
-            values_and_coverage_per_area_and_line_object["values"].values
-        )
-
-    if point_objects.sum() > 0:
-        if isinstance(hazard, rasterio.io.DatasetReader):
-            values = np.array(
-                [
-                    value[0]
-                    for value in rasterio.sample.sample_gen(
-                        hazard,
-                        [
-                            (point.x, point.y)
-                            for point in objects[point_objects].geometry
-                        ],
-                    )
-                ]
-            )
         else:
-            values = hazard.sel(
-                {
-                    hazard.rio.x_dim: xr.DataArray(objects[point_objects].geometry.x),
-                    hazard.rio.y_dim: xr.DataArray(objects[point_objects].geometry.y),
-                },
-                method="nearest",
-            ).values[0]
-        objects.loc[point_objects, "values"] = values
+            if isinstance(self.feature_data, (xr.DataArray, xr.Dataset)):
+                self.assessment_type = "raster"
+            elif isinstance(self.feature_data, (gpd.GeoDataFrame, pd.DataFrame)):
+                self.assessment_type = "vector"
 
-    damage = objects.apply(
-        lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
-        axis=1,
+        # Collect vulnerability curves
+        if isinstance(curves, (pd.DataFrame, Path)):
+            self.curves = curves
+        else:
+            raise ImportWarning(
+                "Prepare the vulnerability curves as a pandas DataFrame or a \
+                     as a directory path to a csv file"
+            )
+
+        # Collect maxdam information
+        if isinstance(maxdam, (pd.DataFrame, Path)):
+            self.maxdam = maxdam
+        else:
+            raise ImportWarning(
+                "Prepare the maximum damages as a pandas DataFrame or or a\
+                     as a directory path to a csv file"
+            )
+
+    def exposure(self, disable_progress=False, output_path=None, **kwargs):
+        """
+        Run the exposure analysis to identify features affected by the hazard footprint.
+
+        This method analyzes the input data to determine which features are exposed to a hazard.
+        It supports both raster and vector data types for the exposure analysis. If the data type
+        is vector, additional keyword arguments can be specified to customize the analysis.
+
+        Args:
+            disable_progress (bool, optional): If True, disables progress bars during processing.
+                Defaults to False.
+            output_path (str, optional): The file path to save the exposure data. The file format
+                is determined by the file extension (e.g., '.parquet', '.csv', '.gpkg', '.shp').
+                If None, the data is not saved. Defaults to None.
+            **kwargs: Optional keyword arguments:
+                - asset_type (str): The type of asset to evaluate (only for vector data).
+
+        Returns:
+            geopandas.GeoDataFrame | xarray.DataArray: A GeoDataFrame containing the affected
+            assets if the input data is vector, or an xarray.DataArray if the input data is raster.
+
+        Notes:
+            - If `output_path` is provided, the method saves the exposure data to the specified path.
+            - The file format is inferred from the file extension of `output_path`. If the extension
+            is not recognized, the data is saved as a Parquet file by default.
+        """
+        if self.assessment_type == "raster":
+            return xr.open_rasterio(self.exposure_data)
+
+        elif self.assessment_type == "vector":
+            # specificy essential data input characteristics
+            if "asset_type" in kwargs:
+                self.asset_type = kwargs.get("asset_type")
+            else:  ## DO WE WANT THIS?!?! or should this always be defined?!
+                self.asset_type = "landuse"
+
+            exposed_assets = VectorExposure(
+                hazard_file=self.hazard_data,
+                feature_file=self.feature_data,
+                asset_type=self.asset_type,
+                disable_progress=disable_progress,
+            )[0]
+
+            # save output when exposed assets are empty
+            if output_path:
+                # Determine the file format based on the file extension
+                file_extension = output_path.split(".")[-1].lower()
+                format_mapping = {
+                    "parquet": exposed_assets.to_parquet,
+                    "csv": exposed_assets.to_csv,
+                    "gpkg": exposed_assets.to_file,
+                    "shp": exposed_assets.to_file,
+                }
+
+                # Default to parquet if the extension is not recognized
+                save_function = format_mapping.get(
+                    file_extension, exposed_assets.to_parquet
+                )
+                save_function(output_path)
+
+                print(f"Exposure data saved to {output_path}")
+
+            return exposed_assets
+
+    def calculate(self, disable_progress=False, output_path=None, **kwargs):
+        """
+        Perform a damage calculation using the provided inputs.
+
+        Applies vulnerability curves and maximum damage values to the exposed features
+        or raster grid to calculate expected damage.
+
+        Args:
+            disable_progress (bool, optional): If True, disables progress bars. Defaults to False.
+            output_path (str, optional): Path to save the calculation results. The file format
+                is determined by the file extension (e.g., '.csv', '.parquet' for vector data,
+                '.tif' for raster data). If None, the data is not saved. Defaults to None.
+            **kwargs:
+                asset_type (str, optional): Infrastructure class to evaluate.
+                multi_curves (dict, optional): Mapping of asset types to curve sets.
+                subtypes (list, optional): Used for subtype analysis.
+
+        Returns:
+            pd.DataFrame | xr.DataArray: Estimated damages for each asset or grid cell.
+        """
+        if not hasattr(self, "assessment_type"):
+            raise ImportError("Please prepare the input data first")
+
+        if self.assessment_type == "raster":
+            damage_df, damagemap = RasterScanner(
+                exposure_file=self.feature_data,
+                hazard_file=self.hazard_data,
+                curve_path=self.curves,
+                maxdam_path=self.maxdam,
+            )
+
+            # Extract CRS and transform from feature_data
+            if isinstance(self.feature_data, (str, Path)):
+                # Assume it's a file path
+                if self.feature_data.endswith(".nc"):
+                    # Open with xarray if it's a NetCDF file
+                    feature_data_xr = xr.open_dataset(self.feature_data)
+                    crs = feature_data_xr.rio.crs  # Requires rioxarray extension
+                    transform = feature_data_xr.rio.transform()
+                else:
+                    # Open with rasterio for other raster formats
+                    with rasterio.open(self.feature_data) as src:
+                        crs = src.crs
+                        transform = src.transform
+            elif isinstance(self.feature_data, (xr.DataArray, xr.Dataset)):
+                # Directly use the xarray object
+                crs = self.feature_data.rio.crs  # Requires rioxarray extension
+                transform = self.feature_data.rio.transform()
+            else:
+                raise ValueError("Unsupported feature_data format")
+
+        elif self.assessment_type == "vector":
+            # Specify essential data input characteristics
+            if "asset_type" in kwargs:
+                self.asset_type = kwargs.get("asset_type")
+            else:
+                self.asset_type = None
+
+            damage_df = VectorScanner(
+                hazard_file=self.hazard_data,
+                feature_file=self.feature_data,
+                curve_path=self.curves,
+                maxdam_path=self.maxdam,
+                asset_type=self.asset_type,
+                multi_curves=kwargs.get("multi_curves", None),
+                sub_types=kwargs.get("subtypes", None),
+                disable_progress=disable_progress,
+            )
+
+            # For vector data, CRS and transform are not directly applicable
+            crs = None
+            transform = None
+
+        if output_path:
+            file_extension = output_path.split(".")[-1].lower()
+            if self.assessment_type == "vector":
+                format_mapping = {
+                    "csv": damage_df.to_csv,
+                    "parquet": damage_df.to_parquet,
+                }
+                save_function = format_mapping.get(file_extension, damage_df.to_csv)
+                save_function(output_path, **kwargs)
+            elif self.assessment_type == "raster":
+                # Save the damage_df as CSV
+                damage_df_path = output_path.replace(
+                    f".{file_extension}", "_damages.csv"
+                )
+                damage_df.to_csv(damage_df_path)
+                print(f"Damage summary saved to {damage_df_path}")
+
+                # Save the damagemap as GeoTIFF
+                dmap_fn = output_path
+                rst_opts = {
+                    "driver": "GTiff",
+                    "height": damagemap.shape[0],
+                    "width": damagemap.shape[1],
+                    "count": 1,
+                    "dtype": damagemap.dtype,
+                    "crs": crs,
+                    "transform": transform,
+                    "compress": "LZW",
+                }
+                with rasterio.open(dmap_fn, "w", **rst_opts) as dst:
+                    dst.write(damagemap, 1)
+                print(f"Damage map saved to {dmap_fn}")
+
+        return damage_df if self.assessment_type == "vector" else (damage_df, damagemap)
+
+    def risk(self, hazard_dict, output_path=None, **kwargs):
+        """
+        Perform a risk assessment across multiple hazard return periods.
+
+        Integrates damages from each return period and computes expected annual damages.
+        Supports both single and multi-curve inputs for infrastructure types.
+
+        Args:
+            hazard_dict (dict): Dictionary mapping return periods to hazard raster paths.
+            output_path (str, optional): Path to save the risk assessment results. The file format
+                is determined by the file extension (e.g., '.csv', '.parquet'). If None, the data is not saved.
+            **kwargs:
+                asset_type (str, optional): Infrastructure class to evaluate.
+                multi_curves (dict, optional): Mapping of asset types to curve sets.
+
+        Returns:
+            pd.DataFrame | None: A GeoDataFrame with risk values for each asset, or None if no results.
+        """
+        RP_list = list(hazard_dict.keys())
+
+        risk = {}
+        for key, hazard_map in tqdm(
+            hazard_dict.items(), total=len(hazard_dict), desc="Risk Calculation"
+        ):
+            if self.assessment_type == "raster":
+                risk[key] = DamageScanner(
+                    hazard_map, self.feature_data, self.curves, self.maxdam
+                ).calculate(disable_progress=True)[0]
+            else:
+                if kwargs.get("asset_type", None) is not None:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate(
+                        disable_progress=True, asset_type=kwargs.get("asset_type")
+                    )
+                elif kwargs.get("multi_curves", None) is not None:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate(
+                        disable_progress=True, multi_curves=kwargs.get("multi_curves")
+                    )
+                else:
+                    risk[key] = DamageScanner(
+                        hazard_map, self.feature_data, self.curves, self.maxdam
+                    ).calculate(disable_progress=True)
+
+        # Collect the risk for each RP
+        df_risk = pd.concat(risk, axis=1)
+
+        if (len(df_risk) == 0) or (df_risk.isnull().all().all()):
+            return None
+
+        # Get the dataframe of the largest RP
+        largest_rp = df_risk.loc[:, pd.IndexSlice[RP_list[-1], :]]
+
+        if kwargs.get("multi_curves", None) is None:
+            # only keep the damage values
+            df_risk = df_risk.loc[:, pd.IndexSlice[RP_list, "damage"]].fillna(0)
+
+            RPS = [1 / x for x in RP_list]
+
+            risk = pd.DataFrame(
+                df_risk.apply(
+                    lambda x: np.trapezoid(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                ),
+                columns=["tot_risk"],
+            )
+
+            # save output when tot_risk returns negative values
+            if risk.tot_risk.min() < 0:
+                df_risk.to_csv("df_risk.csv")
+                risk.to_csv("risk.csv")
+
+            # Save the risk to the largest RP
+            largest_rp.columns = largest_rp.columns.get_level_values(1)
+            largest_rp = largest_rp.drop("damage", axis=1)
+            largest_rp.loc[:, "risk"] = risk.values
+
+            # Save the results if output_path is provided
+            if output_path:
+                file_extension = output_path.split(".")[-1].lower()
+                format_mapping = {
+                    "csv": largest_rp.to_csv,
+                    "parquet": largest_rp.to_parquet,
+                }
+                save_function = format_mapping.get(file_extension, largest_rp.to_csv)
+                save_function(output_path)
+                print(f"Risk assessment results saved to {output_path}")
+
+            # return the risk in a concise dataframe
+            return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
+
+        else:
+            multi_curves = kwargs.get("multi_curves")
+
+            # only keep the damage values
+            df_risk = df_risk.loc[
+                :, pd.IndexSlice[RP_list, multi_curves.keys()]
+            ].fillna(0)
+
+            RPS = [1 / x for x in RP_list]
+
+            # estimate risks
+            collect_risks = {}
+
+            for curve in multi_curves.keys():
+                subrisk = df_risk.loc[:, pd.IndexSlice[:, curve]]
+                collect_risks[curve] = subrisk.apply(
+                    lambda x: np.trapz(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                ).values
+
+                # save output when tot_risk returns negative values
+                if any(subrisk.min() < 0):
+                    df_risk.to_csv("df_risk.csv")
+                    subrisk.to_csv("risk.csv")
+
+            all_risks = pd.DataFrame.from_dict(collect_risks)
+
+            largest_rp.columns = largest_rp.columns.get_level_values(1)
+            largest_rp = largest_rp.drop(multi_curves.keys(), axis=1)
+            largest_rp.loc[:, multi_curves.keys()] = all_risks.values
+
+            # Save the results if output_path is provided
+            if output_path:
+                file_extension = output_path.split(".")[-1].lower()
+                format_mapping = {
+                    "csv": largest_rp.to_csv,
+                    "parquet": largest_rp.to_parquet,
+                }
+                save_function = format_mapping.get(file_extension, largest_rp.to_csv)
+                save_function(output_path)
+                print(f"Risk assessment results saved to {output_path}")
+
+            # return the risk in a concise dataframe
+            return largest_rp[
+                ["osm_id", "object_type", "geometry"] + list(multi_curves.keys())
+            ]
+
+
+if __name__ == "__main__":
+    ####################################################################################################
+
+    # Kampen
+    data_path = Path("..") / ".." / "data" / "kampen"
+
+    # define the input data
+    exposure = data_path / "exposure" / "landuse_map.tif"
+    hazard = data_path / "hazard" / "1in100_inundation_map.tif"
+    curves = data_path / "vulnerability" / "curves.csv"
+    maxdam = data_path / "vulnerability" / "maxdam.csv"
+
+    # initiate the damage scanner and calculate the damages
+    # print(DamageScanner(hazard, exposure, curves, maxdam).calculate()[0])
+
+    # define the input data
+    exposure = data_path / "exposure" / "landuse.shp"
+    hazard = data_path / "hazard" / "1in100_inundation_map.tif"
+    curves = data_path / "vulnerability" / "curves_osm.csv"
+    maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
+
+    # initiate the damage scanner and calculate the damages
+    # print(DamageScanner(hazard, exposure, curves, maxdam).calculate())
+
+    ####################################################################################################
+    # Kampen risk assessment
+    data_path = Path("..") / ".." / "data" / "kampen"
+
+    # define the input data
+    hazard_dict = {
+        10: data_path / "hazard" / "1in10_inundation_map.tif",
+        50: data_path / "hazard" / "1in50_inundation_map.tif",
+        100: data_path / "hazard" / "1in100_inundation_map.tif",
+        500: data_path / "hazard" / "1in500_inundation_map.tif",
+        1000: data_path / "hazard" / "1in1000_inundation_map.tif",
+    }
+
+    exposure = data_path / "exposure" / "landuse_map.tif"
+    curves = data_path / "vulnerability" / "curves.csv"
+    maxdam = data_path / "vulnerability" / "maxdam.csv"
+
+    # calculate the risk
+    # print(DamageScanner.risk(hazard_dict, exposure, curves, maxdam))
+
+    ####################################################################################################
+    # Jamaica
+
+    data_path = Path("..") / ".." / "data" / "jamaica"
+
+    # define the input data
+    features = data_path / "exposure" / "jamaica-latest.osm.pbf"
+    hazard = data_path / "hazard" / "FD_1in1000.tif"
+    curves = data_path / "vulnerability" / "curves_osm.csv"
+    maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
+
+    # estimate exposure
+    asset_types = [
+        "main_roads",
+        "rail",
+        "air",
+        "telecom",
+        "water_supply",
+        "waste_solid",
+        "waste_water",
+        "education",
+        "healthcare",
+        "power",
+        "gas",
+        "oil",
+        "buildings",
+    ]
+
+    for asset_type in asset_types:
+        exposed_features = DamageScanner(hazard, features, curves, maxdam).exposure(
+            asset_type=asset_type
+        )
+
+        # exposed_features.to_parquet("main_roads.parquet")
+        print(exposed_features[["object_type", "coverage", "values"]])
+
+    # #initiate the damage scanner and calculate the damages
+    print(
+        DamageScanner(hazard, features, curves, maxdam)
+        .calculate(asset_type="main_roads")
+        .damage.sum()
     )
-    return damage
