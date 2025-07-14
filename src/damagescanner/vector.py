@@ -5,6 +5,7 @@ import shapely
 import pandas as pd
 import geopandas as gpd
 import pyproj
+from pathlib import Path
 from tqdm import tqdm
 from pathlib import PurePath
 import rasterio
@@ -217,7 +218,6 @@ def _overlay_raster_vector(
     hazard,
     features,
     hazard_crs,
-    hazard_col="band_data",
     nodata=-9999,
     gridded=True,
     disable_progress=False,
@@ -229,7 +229,6 @@ def _overlay_raster_vector(
         hazard (xr.Dataset | rasterio.io.DatasetReader): Raster hazard layer.
         features (gpd.GeoDataFrame): Vector exposure features.
         hazard_crs (pyproj.CRS): CRS of hazard data.
-        hazard_col (str): Column with hazard intensity values.
         nodata (int): No-data value in raster.
         gridded (bool): Whether to process in spatial chunks.
         disable_progress (bool): Disable tqdm progress bar.
@@ -237,7 +236,7 @@ def _overlay_raster_vector(
     Returns:
         gpd.GeoDataFrame: Exposure features with added `coverage` and `values`.
     """
-    
+
     # make sure the hazard data has a crs
     if hazard_crs.to_epsg() is None:
         RuntimeWarning(
@@ -246,7 +245,7 @@ def _overlay_raster_vector(
         hazard = hazard.rio.set_crs("EPSG:4326")
         hazard_crs = pyproj.CRS.from_epsg(4326)
 
-    hazard[hazard_col].rio.write_nodata(nodata, inplace=True)
+    hazard.rio.write_nodata(nodata, inplace=True)
 
     area_and_line_objects = features.geom_type.isin(
         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
@@ -278,18 +277,13 @@ def _overlay_raster_vector(
 
         # if hazard data is a xarray object:
         else:
-            hazard_for_points = hazard[hazard_col]
-            values = hazard_for_points.sel(
+            values = hazard.sel(
                 {
-                    hazard_for_points.rio.x_dim: xr.DataArray(
-                        features[point_objects].geometry.x
-                    ),
-                    hazard_for_points.rio.y_dim: xr.DataArray(
-                        features[point_objects].geometry.y
-                    ),
+                    hazard.rio.x_dim: xr.DataArray(features[point_objects].geometry.x),
+                    hazard.rio.y_dim: xr.DataArray(features[point_objects].geometry.y),
                 },
                 method="nearest",
-            ).values[0]
+            ).values
 
         # add values to the features
         features.loc[point_objects, "values"] = values
@@ -300,13 +294,19 @@ def _overlay_raster_vector(
             point_objects, "values"
         ].apply(lambda x: [x] if x > 0 else [])
 
+    exact_extract_kwargs = {
+        "output": "pandas",
+        "include_geom": False,
+        "strategy": "raster-sequential",
+    }
+
     if not gridded:
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
                 hazard,
-                features[area_and_line_objects],
+                features[area_and_line_objects][["geometry"]],  # only pass the geometry
                 ["coverage", "values"],
-                output="pandas",
+                **exact_extract_kwargs,
             )
 
             features.loc[area_and_line_objects, "coverage"] = (
@@ -383,9 +383,11 @@ def _overlay_raster_vector(
 
                     values_and_coverage_per_area_and_line_object = exact_extract(
                         subset_hazard,
-                        subset_features[subset_area_and_line_objects],
+                        subset_features[subset_area_and_line_objects][
+                            ["geometry"]
+                        ],  # only pass the geometry
                         ["coverage", "values"],
-                        output="pandas",
+                        **exact_extract_kwargs,
                     )
 
                     # make sure we can connect the results with the features
@@ -433,16 +435,13 @@ def _overlay_raster_vector(
     return features
 
 
-def _overlay_vector_vector(
-    hazard, features, hazard_col="band_data", nodata=-9999, gridded=False
-):
+def _overlay_vector_vector(hazard, features, nodata=-9999, gridded=False):
     """
     Overlay a vector hazard layer onto vector exposure features.
 
     Args:
         hazard (gpd.GeoDataFrame): Hazard vector features.
         features (gpd.GeoDataFrame): Exposure vector features.
-        hazard_col (str): Column name with hazard intensity.
         nodata (int): No-data placeholder.
         gridded (bool): Chunk processing toggle (not implemented).
 
@@ -460,7 +459,7 @@ def _overlay_vector_vector(
         hazard = hazard.rio.set_crs("EPSG:4326")
         hazard_crs = pyproj.CRS.from_epsg(4326)
 
-    hazard[hazard_col].rio.write_nodata(nodata, inplace=True)
+    hazard.rio.write_nodata(nodata, inplace=True)
 
     area_and_line_objects = features.geom_type.isin(
         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
@@ -535,6 +534,7 @@ def VectorExposure(
     asset_type="roads",
     object_col="object_type",
     disable_progress=False,
+    gridded: bool = True,
 ):
     """
     Load and overlay vector or raster hazard with vector exposure data.
@@ -545,6 +545,7 @@ def VectorExposure(
         asset_type (str): Infrastructure category (only for OSM).
         object_col (str): Name of the object type column.
         disable_progress (bool): Whether to suppress progress bars.
+        gridded (bool): Whether to process in spatial chunks.
 
     Returns:
         tuple: (features, object_col, hazard_crs, cell_area_m2)
@@ -590,9 +591,10 @@ def VectorExposure(
                 pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
                 == "metre"
             ):
-                cell_area_m2 = abs((hazard.x[1].values - hazard.x[0].values) * (
-                    hazard.y[0].values - hazard.y[1].values
-                ))
+                cell_area_m2 = abs(
+                    (hazard.x[1].values - hazard.x[0].values)
+                    * (hazard.y[0].values - hazard.y[1].values)
+                )
             else:
                 cell_area_m2 = _get_cell_area_m2(
                     features, abs(hazard.rio.resolution()[0])
@@ -616,9 +618,10 @@ def VectorExposure(
 
         # check if crs is already in meters
         if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-            cell_area_m2 = abs((hazard.x[1].values - hazard.x[0].values) * (
-                hazard.y[0].values - hazard.y[1].values
-            ))
+            cell_area_m2 = abs(
+                (hazard.x[1].values - hazard.x[0].values)
+                * (hazard.y[0].values - hazard.y[1].values)
+            )
 
         # if not, extract it more cumbersome
         else:
@@ -636,10 +639,16 @@ def VectorExposure(
     # Run exposure overlay
     if isinstance(hazard, (rasterio.io.DatasetReader, xr.Dataset, xr.DataArray)):
         features = _overlay_raster_vector(
-            hazard, features, hazard_crs, disable_progress=disable_progress
+            hazard,
+            features,
+            hazard_crs,
+            disable_progress=disable_progress,
+            gridded=gridded,
         )
     elif isinstance(hazard, (gpd.GeoDataFrame, pd.DataFrame)):
-        features = _overlay_vector_vector(hazard, features)  ## NOT WORKING YET
+        features = _overlay_vector_vector(
+            hazard, features, gridded=gridded
+        )  ## NOT WORKING YET
 
     return features, object_col, hazard_crs, cell_area_m2
 
@@ -648,11 +657,12 @@ def VectorScanner(
     hazard_file,
     feature_file,
     curve_path,
-    maxdam_path,
-    asset_type="roads",
-    multi_curves=dict(),
+    maxdam_path: Path | pd.DataFrame | dict | None = None,
+    asset_type: str | None = None,
+    multi_curves: dict = dict(),
     object_col="object_type",
     disable_progress=False,
+    gridded: bool = True,
     **kwargs,
 ):
     """
@@ -667,13 +677,19 @@ def VectorScanner(
         multi_curves (dict, optional): Multiple curve sets.
         object_col (str): Column name with object type.
         disable_progress (bool): Whether to suppress progress bars.
+        gridded (bool): Whether to process in spatial chunks.
 
     Returns:
         gpd.GeoDataFrame: Exposure data with calculated damages.
     """
     # Load hazard and exposure data, and perform the overlay
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-        hazard_file, feature_file, asset_type, object_col, disable_progress
+        hazard_file,
+        feature_file,
+        asset_type,
+        object_col,
+        disable_progress,
+        gridded=gridded,
     )
 
     if len(features) == 0:
@@ -701,24 +717,29 @@ def VectorScanner(
         maxdam = maxdam_path
 
     # remove features that are not part of this object type
-    if asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
+    if asset_type is not None and asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
         unique_objects_in_asset_type = list(
             DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
         )
         features = features[features["object_type"].isin(unique_objects_in_asset_type)]
 
     # connect maxdam to exposure
-    try:
-        features["maximum_damage"] = features.apply(
-            lambda x: maxdam[x["object_type"]], axis=1
+    if maxdam_path is None:
+        assert "maximum_damage" in features.columns, (
+            "If maximum_damage is not provided as argument, maximum damage must be provided in the exposure data."
         )
-    except KeyError:
-        missing_object_types = [
-            i for i in features.object_type.unique() if i not in maxdam.keys()
-        ]
-        raise KeyError(
-            f"Not all object types in the exposure are included in the maximum damage file: {missing_object_types}"
-        )
+    else:
+        try:
+            features["maximum_damage"] = features.apply(
+                lambda x: maxdam[x["object_type"]], axis=1
+            )
+        except KeyError:
+            missing_object_types = [
+                i for i in features.object_type.unique() if i not in maxdam.keys()
+            ]
+            raise KeyError(
+                f"Not all object types in the exposure are included in the maximum damage file: {missing_object_types}"
+            )
 
     tqdm.pandas(desc="Calculating damage", disable=disable_progress)
 
