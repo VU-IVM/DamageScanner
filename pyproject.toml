@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "damagescanner"
-version = "0.9-beta.14"
+version = "0.9-beta.21"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
     {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
@@ -24,27 +24,30 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "geopandas",
-    "matplotlib",	
     "numpy",
     "pyproj",
     "rasterio",
     "xarray",
     "rioxarray",
-    "packaging",
     "pandas",
     "shapely >= 2.0",
     "tqdm",
-    "pyyaml",
     "exactextract",
+    "scipy>=1.13.1",
 ]
 
 [tool.setuptools.package-data]
 "*" = ["*.ini"]
 
-[project.optional-dependencies]
-tests = ["pytest"]
-docs = ["jupyter"]
-examples = ["osm-flex"]
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.11.2",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 [project.urls]
 "Homepage" = "https://github.com/ElcoK/DamageScanner"

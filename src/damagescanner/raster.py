@@ -17,24 +17,23 @@ from rasterio.windows import Window
 
 from damagescanner.utils import _check_output_path, _check_scenario_name
 
+
 def match_and_load_rasters(raster_in1, raster_in2):
     """
-    In case of a mismatch between two rasters, return only the intersecting parts.
+    Match and clip two raster files to their common spatial extent and resolution.
 
     Code adapted from http://sciience.tumblr.com/post/101722591382/finding-the-georeferenced-intersection-between-two
 
-    Arguments:
-        *raster_in1* : One of the two rasters to be clipped to the overlapping extent.
 
-        *raster_in2* : One of the two rasters to be clipped to the overlapping extent.
+    Args:
+        raster_in1 (str or Path): Path to the first raster file.
+        raster_in2 (str or Path): Path to the second raster file.
 
     Returns:
-        *array1* : Numpy Array of raster1
-
-        *array2* : Numpy Array of raster2
-
-        *intersection* : Bounding box of overlapping part
-
+        tuple:
+            - np.ndarray: Clipped raster array from the first file.
+            - np.ndarray: Clipped raster array from the second file.
+            - Affine: Affine transform of the intersecting region.
     """
     with rasterio.open(raster_in1) as src1, rasterio.open(raster_in2) as src2:
         if src1.crs != src2.crs:
@@ -80,22 +79,23 @@ def match_and_load_rasters(raster_in1, raster_in2):
 
     return data1, data2, transform
 
-def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard_col):
-    """Matches the resolution and extent of a raster to a vector file.
 
-    Arguments:
-        *hazard* : netCDF4 with hazard intensity per grid cell.
-        *landuse* : netCDF4 with land-use information per grid cell.
-        *lu_crs* : EPSG code of the land-use file.
-        *haz_crs* : EPSG code of the hazard file.
-        *resolution* : Desired resolution of the raster file.
-        *hazard_col* : Name of the column in the hazard file that contains the hazard intensity.
+def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard_col):
+    """
+    Align hazard and land-use rasters by CRS, extent, and resolution.
+
+    Args:
+        hazard (xr.Dataset): Hazard dataset.
+        landuse (xr.Dataset): Land-use dataset.
+        lu_crs (int): EPSG code of the land-use CRS.
+        haz_crs (int): EPSG code of the hazard CRS.
+        resolution (float): Target resolution in projected units.
+        hazard_col (str): Column name containing hazard intensity.
 
     Returns:
-        *hazard* : DataSet with hazard intensity per grid cell.
-
-        *landuse* : DataSet with land-use information per grid cell.
-
+        tuple:
+            - np.ndarray: Reprojected hazard raster as array.
+            - np.ndarray: Reprojected land-use raster as array.
     """
     # Set the crs of the hazard variable to haz_crs
     hazard.rio.write_crs(haz_crs, inplace=True)
@@ -157,6 +157,7 @@ def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard
 
     return hazard, landuse
 
+
 def RasterScanner(
     exposure_file,
     hazard_file,
@@ -170,61 +171,41 @@ def RasterScanner(
     **kwargs,
 ):
     """
-    Raster-based implementation of a direct damage assessment.
+    Run a raster-based direct damage assessment using hazard and exposure layers.
 
-    Arguments:
-        *landuse_file* : GeoTiff with land-use information per grid cell. Make sure
-        the land-use categories correspond with the curves and maximum damages
-        (see below). Furthermore, the resolution and extend of the land-use map
-        has to be exactly the same as the inundation map.
+    Args:
+        exposure_file (Path | np.ndarray): Path to land-use GeoTIFF or numpy array.
+        hazard_file (Path | np.ndarray | xr.Dataset): Path to hazard raster or dataset.
+        curve_path (Path | pd.DataFrame | np.ndarray): Vulnerability curve(s).
+        maxdam_path (Path | pd.DataFrame | np.ndarray): Maximum damage values.
+        lu_crs (int): CRS of the land-use file (default EPSG:28992).
+        haz_crs (int): CRS of the hazard file (default EPSG:4326).
+        hazard_col (str): Column containing hazard intensity (default "FX").
+        dtype (type): Output dtype for damage raster.
+        save (bool): If True, saves damage results to file.
 
-        *hazard_file* : GeoTiff or netCDF4 with hazard intensity per grid cell. Make sure
-        that the unit of the hazard map corresponds with the unit of the
-        first column of the curves file.
-
-        *curve_path* : File with the stage-damage curves of the different
-        land-use classes. Values should be given as ratios, i.e. between 0 and 1.
-        Can also be a pandas DataFrame or numpy Array.
-
-        *maxdam_path* : File with the maximum damages per land-use class
-        (in euro/m2). Can also be a pandas DataFrame or numpy Array.
-
-        *dtype*: Set the dtype to the requires precision. This will affect the output damage raster as well
-
-    Optional Arguments:
-        *save* : Set to True if you would like to save the output. Requires
-        several **kwargs**
-
-    kwargs:
-        *nan_value* : if nan_value is provided, will mask the inundation file.
-        This option can significantly fasten computations
-
-        *cell_size* : If both the landuse and hazard map are numpy arrays,
-        manually set the cell size.
-
-        *resolution* : If landuse is a numpy array, but the hazard map
-        is a netcdf, you need to specify the resolution of the landuse map.
-
-        *output_path* : Specify where files should be saved.
-
-        *scenario_name*: Give a unique name for the files that are going to be saved.
-
-        *in_millions*: Set to True if all values should be set in millions.
-
-        *crs*: Specify crs if you only read in two numpy array
-
-        *transform*: Specify transform if you only read in numpy arrays in order to save the result raster
+    Keyword Args:
+        nan_value (float): Replace this value in the hazard raster with 0.
+        cellsize (float): Cell size (m²) if exposure and hazard are arrays.
+        resolution (float): Resolution in target projection (used for reprojection).
+        output_path (str or Path): Output directory for saving results.
+        scenario_name (str): Scenario name used for filenames.
+        in_millions (bool): Convert results to millions.
+        crs (CRS): CRS for saving output raster (optional).
+        transform (Affine): Affine transform for saving raster (optional).
 
     Raises:
-        *ValueError* : on missing kwarg options
+        ValueError: If cell size is not provided when required.
+        ValueError: If vulnerability or max damage file has invalid structure.
 
     Returns:
-     *damagebin* : Table with the land-use class numbers (1st column) and the
-     damage for that land-use class (2nd column).
-
-     *damagemap* : Map displaying the damage per grid cell of the area.
-
+        tuple:
+            - pd.DataFrame: Damage per land-use category.
+            - np.ndarray: Damage map (grid with estimated damages).
+            - np.ndarray: Reprojected land-use map.
+            - np.ndarray: Reprojected hazard map.
     """
+    
     # load land-use map
     if isinstance(exposure_file, PurePath):
         with rasterio.open(exposure_file) as src:
@@ -276,7 +257,9 @@ def RasterScanner(
             "WARNING: landuse and hazard maps are not the same shape. Let's fix this first!"
         )
 
-        landuse, hazard, intersection = match_and_load_rasters(exposure_file, hazard_file)
+        landuse, hazard, intersection = match_and_load_rasters(
+            exposure_file, hazard_file
+        )
 
         # create the right affine for saving the output
         transform = Affine(

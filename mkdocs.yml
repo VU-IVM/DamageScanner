@@ -1,0 +1,97 @@
+site_name: DamageScanner
+repo_url: https://github.com/VU-IVM/DamageScanner
+repo_name: DamageScanner
+site_description: Damage Assessments for Natural Hazards
+site_author: Elco Koks, Jens de Bruijn
+copyright:
+  '<span>
+    <i> Institute for Environmental Studies, Vrije Universiteit Amsterdam </i>
+    <br>
+    Copyright &copy; 
+    <script>document.write(new Date().getFullYear())</script> 
+    Elco Koks & Jens de Bruijn
+  </span>'
+
+plugins:
+  - search
+  - mkdocs-jupyter
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths : [src]
+          options:
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature: true           # <- shows the function signature
+            show_source: false             # optional: hides source link
+            show_docstring: true           # make sure this is on
+            show_bases: false              # optional: hides base classes for class views
+            heading_level: 3
+
+nav:
+  - Overview: index.md
+  - How it works:
+      - Introduction: how-to/overview.md
+      - Raster-based approach: how-to/raster.md
+      - Vector-based approach: how-to/vector.md
+      - Coupling with OSM: how-to/osm.md
+  - Examples:
+      - Vector-based example: examples/vector-based.md
+      - Raster-based example: examples/raster-based.md
+  - API Reference: api.md
+
+markdown_extensions:
+  - markdown_include.include
+  - footnotes
+  - attr_list
+  - md_in_html
+  - pymdownx.arithmatex:
+        generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - toc:
+      permalink: false
+  - pymdownx.superfences
+  - pymdownx.magiclink
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue grey
+      accent: blue grey
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+
+    - scheme: slate
+      primary: blue grey
+      accent: blue grey
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  logo: images/logo-icon.svg  # ✅ your actual SVG file here
+  icon:
+    logo: null  # ✅ disables the default Material icon (like `material/earth`)
+    repo: null  # (optional) disables GitHub icon in top-right
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.sections  # Shows all top-level sections in sidebar
+    - navigation.tabs
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+extra_javascript:
+  - javascripts/set-body-class.js
+
+extra_css:
+  - stylesheets/extra.css
+
+
