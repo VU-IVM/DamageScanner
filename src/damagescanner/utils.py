@@ -2,7 +2,6 @@
 
 
 def _check_output_path(given_args):
-
     """Ensures the output directory exists and returns its path.
 
     Args:

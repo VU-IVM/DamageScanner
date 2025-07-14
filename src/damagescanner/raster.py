@@ -205,7 +205,7 @@ def RasterScanner(
             - np.ndarray: Reprojected land-use map.
             - np.ndarray: Reprojected hazard map.
     """
-    
+
     # load land-use map
     if isinstance(exposure_file, PurePath):
         with rasterio.open(exposure_file) as src:

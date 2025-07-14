@@ -107,29 +107,29 @@ class DamageScanner(object):
 
     def exposure(self, disable_progress=False, output_path=None, **kwargs):
         """
-            Run the exposure analysis to identify features affected by the hazard footprint.
+        Run the exposure analysis to identify features affected by the hazard footprint.
 
-            This method analyzes the input data to determine which features are exposed to a hazard.
-            It supports both raster and vector data types for the exposure analysis. If the data type
-            is vector, additional keyword arguments can be specified to customize the analysis.
+        This method analyzes the input data to determine which features are exposed to a hazard.
+        It supports both raster and vector data types for the exposure analysis. If the data type
+        is vector, additional keyword arguments can be specified to customize the analysis.
 
-            Args:
-                disable_progress (bool, optional): If True, disables progress bars during processing.
-                    Defaults to False.
-                output_path (str, optional): The file path to save the exposure data. The file format
-                    is determined by the file extension (e.g., '.parquet', '.csv', '.gpkg', '.shp').
-                    If None, the data is not saved. Defaults to None.
-                **kwargs: Optional keyword arguments:
-                    - asset_type (str): The type of asset to evaluate (only for vector data).
+        Args:
+            disable_progress (bool, optional): If True, disables progress bars during processing.
+                Defaults to False.
+            output_path (str, optional): The file path to save the exposure data. The file format
+                is determined by the file extension (e.g., '.parquet', '.csv', '.gpkg', '.shp').
+                If None, the data is not saved. Defaults to None.
+            **kwargs: Optional keyword arguments:
+                - asset_type (str): The type of asset to evaluate (only for vector data).
 
-            Returns:
-                geopandas.GeoDataFrame | xarray.DataArray: A GeoDataFrame containing the affected
-                assets if the input data is vector, or an xarray.DataArray if the input data is raster.
+        Returns:
+            geopandas.GeoDataFrame | xarray.DataArray: A GeoDataFrame containing the affected
+            assets if the input data is vector, or an xarray.DataArray if the input data is raster.
 
-            Notes:
-                - If `output_path` is provided, the method saves the exposure data to the specified path.
-                - The file format is inferred from the file extension of `output_path`. If the extension
-                is not recognized, the data is saved as a Parquet file by default.
+        Notes:
+            - If `output_path` is provided, the method saves the exposure data to the specified path.
+            - The file format is inferred from the file extension of `output_path`. If the extension
+            is not recognized, the data is saved as a Parquet file by default.
         """
         if self.assessment_type == "raster":
             return xr.open_rasterio(self.exposure_data)
@@ -151,19 +151,21 @@ class DamageScanner(object):
             # save output when exposed assets are empty
             if output_path:
                 # Determine the file format based on the file extension
-                file_extension = output_path.split('.')[-1].lower()
+                file_extension = output_path.split(".")[-1].lower()
                 format_mapping = {
-                    'parquet': exposed_assets.to_parquet,
-                    'csv': exposed_assets.to_csv,
-                    'gpkg': exposed_assets.to_file,
-                    'shp': exposed_assets.to_file,
+                    "parquet": exposed_assets.to_parquet,
+                    "csv": exposed_assets.to_csv,
+                    "gpkg": exposed_assets.to_file,
+                    "shp": exposed_assets.to_file,
                 }
 
                 # Default to parquet if the extension is not recognized
-                save_function = format_mapping.get(file_extension, exposed_assets.to_parquet)
+                save_function = format_mapping.get(
+                    file_extension, exposed_assets.to_parquet
+                )
                 save_function(output_path)
 
-                print(f'Exposure data saved to {output_path}')
+                print(f"Exposure data saved to {output_path}")
 
             return exposed_assets
 
@@ -201,7 +203,7 @@ class DamageScanner(object):
             # Extract CRS and transform from feature_data
             if isinstance(self.feature_data, (str, Path)):
                 # Assume it's a file path
-                if self.feature_data.endswith('.nc'):
+                if self.feature_data.endswith(".nc"):
                     # Open with xarray if it's a NetCDF file
                     feature_data_xr = xr.open_dataset(self.feature_data)
                     crs = feature_data_xr.rio.crs  # Requires rioxarray extension
@@ -241,19 +243,21 @@ class DamageScanner(object):
             transform = None
 
         if output_path:
-            file_extension = output_path.split('.')[-1].lower()
-            if self.assessment_type == 'vector':
+            file_extension = output_path.split(".")[-1].lower()
+            if self.assessment_type == "vector":
                 format_mapping = {
-                    'csv': damage_df.to_csv,
-                    'parquet': damage_df.to_parquet,
+                    "csv": damage_df.to_csv,
+                    "parquet": damage_df.to_parquet,
                 }
                 save_function = format_mapping.get(file_extension, damage_df.to_csv)
                 save_function(output_path, **kwargs)
-            elif self.assessment_type == 'raster':
+            elif self.assessment_type == "raster":
                 # Save the damage_df as CSV
-                damage_df_path = output_path.replace(f'.{file_extension}', '_damages.csv')
+                damage_df_path = output_path.replace(
+                    f".{file_extension}", "_damages.csv"
+                )
                 damage_df.to_csv(damage_df_path)
-                print(f'Damage summary saved to {damage_df_path}')
+                print(f"Damage summary saved to {damage_df_path}")
 
                 # Save the damagemap as GeoTIFF
                 dmap_fn = output_path
@@ -269,10 +273,9 @@ class DamageScanner(object):
                 }
                 with rasterio.open(dmap_fn, "w", **rst_opts) as dst:
                     dst.write(damagemap, 1)
-                print(f'Damage map saved to {dmap_fn}')
+                print(f"Damage map saved to {dmap_fn}")
 
         return damage_df if self.assessment_type == "vector" else (damage_df, damagemap)
-    
 
     def risk(self, hazard_dict, output_path=None, **kwargs):
         """
@@ -354,14 +357,14 @@ class DamageScanner(object):
 
             # Save the results if output_path is provided
             if output_path:
-                file_extension = output_path.split('.')[-1].lower()
+                file_extension = output_path.split(".")[-1].lower()
                 format_mapping = {
-                    'csv': largest_rp.to_csv,
-                    'parquet': largest_rp.to_parquet,
+                    "csv": largest_rp.to_csv,
+                    "parquet": largest_rp.to_parquet,
                 }
                 save_function = format_mapping.get(file_extension, largest_rp.to_csv)
                 save_function(output_path)
-                print(f'Risk assessment results saved to {output_path}')
+                print(f"Risk assessment results saved to {output_path}")
 
             # return the risk in a concise dataframe
             return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
@@ -398,19 +401,20 @@ class DamageScanner(object):
 
             # Save the results if output_path is provided
             if output_path:
-                file_extension = output_path.split('.')[-1].lower()
+                file_extension = output_path.split(".")[-1].lower()
                 format_mapping = {
-                    'csv': largest_rp.to_csv,
-                    'parquet': largest_rp.to_parquet,
+                    "csv": largest_rp.to_csv,
+                    "parquet": largest_rp.to_parquet,
                 }
                 save_function = format_mapping.get(file_extension, largest_rp.to_csv)
                 save_function(output_path)
-                print(f'Risk assessment results saved to {output_path}')
+                print(f"Risk assessment results saved to {output_path}")
 
             # return the risk in a concise dataframe
             return largest_rp[
                 ["osm_id", "object_type", "geometry"] + list(multi_curves.keys())
             ]
+
 
 if __name__ == "__main__":
     ####################################################################################################
