@@ -584,6 +584,11 @@ def VectorExposure(
     if isinstance(hazard_file, PurePath):
         if hazard_file.suffix in [".tif", ".tiff", ".nc"]:
             hazard = xr.open_dataset(hazard_file, engine="rasterio")
+            if hazard_file.suffix in (".tif", ".tiff"):
+                assert hazard.band.size == 1, (
+                    "Hazard data should only contain one band. If you have multiple bands, please select one band using the `band` argument."
+                )
+                hazard = hazard["band_data"].sel(band=1)
             hazard_crs = hazard.rio.crs
 
             # check if crs is already in meters
