@@ -218,7 +218,6 @@ def _overlay_raster_vector(
     hazard,
     features,
     hazard_crs,
-    nodata=-9999,
     gridded=True,
     disable_progress=False,
 ):
@@ -229,7 +228,6 @@ def _overlay_raster_vector(
         hazard (xr.Dataset | rasterio.io.DatasetReader): Raster hazard layer.
         features (gpd.GeoDataFrame): Vector exposure features.
         hazard_crs (pyproj.CRS): CRS of hazard data.
-        nodata (int): No-data value in raster.
         gridded (bool): Whether to process in spatial chunks.
         disable_progress (bool): Disable tqdm progress bar.
 
@@ -244,8 +242,6 @@ def _overlay_raster_vector(
         )
         hazard = hazard.rio.set_crs("EPSG:4326")
         hazard_crs = pyproj.CRS.from_epsg(4326)
-
-    hazard.rio.write_nodata(nodata, inplace=True)
 
     area_and_line_objects = features.geom_type.isin(
         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
@@ -435,14 +431,13 @@ def _overlay_raster_vector(
     return features
 
 
-def _overlay_vector_vector(hazard, features, nodata=-9999, gridded=False):
+def _overlay_vector_vector(hazard, features, gridded=False):
     """
     Overlay a vector hazard layer onto vector exposure features.
 
     Args:
         hazard (gpd.GeoDataFrame): Hazard vector features.
         features (gpd.GeoDataFrame): Exposure vector features.
-        nodata (int): No-data placeholder.
         gridded (bool): Chunk processing toggle (not implemented).
 
     Returns:
@@ -458,8 +453,6 @@ def _overlay_vector_vector(hazard, features, nodata=-9999, gridded=False):
         )
         hazard = hazard.rio.set_crs("EPSG:4326")
         hazard_crs = pyproj.CRS.from_epsg(4326)
-
-    hazard.rio.write_nodata(nodata, inplace=True)
 
     area_and_line_objects = features.geom_type.isin(
         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
