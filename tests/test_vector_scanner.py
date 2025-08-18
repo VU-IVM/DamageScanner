@@ -8,6 +8,7 @@ import xarray as xr
 from damagescanner.vector import VectorScanner
 from pytest import fixture
 from shapely.geometry import Polygon
+import pytest
 
 
 @fixture
@@ -46,13 +47,13 @@ def buildings():
         "maximum_damage": [100, 200, 300, 100, 100, 100, 100, 100],
     }
     polygons = [
-        Polygon([(0, 0), (0, 1), (1, 1), (1, 0)]),
-        Polygon([(0, 0), (0, 2), (2, 2), (2, 0)]),
-        Polygon([(0, 0), (0, 2), (2, 2), (2, 0)]),
-        Polygon([(9, 0), (9, 1), (10, 1), (10, 0)]),
-        Polygon([(4.5, 0), (4.5, 1), (5.5, 1), (5.5, 0)]),
-        Polygon([(0, 9), (0, 10), (1, 10), (1, 9)]),
-        Polygon([(9, 9), (9, 10), (10, 10), (10, 9)]),
+        Polygon([(1, 1), (1, 2), (2, 2), (2, 1)]),
+        Polygon([(1, 1), (1, 3), (3, 3), (3, 1)]),
+        Polygon([(1, 1), (1, 3), (3, 3), (3, 1)]),
+        Polygon([(8, 1), (8, 2), (9, 2), (9, 1)]),
+        Polygon([(4.5, 1), (4.5, 2), (5.5, 2), (5.5, 1)]),
+        Polygon([(1, 8), (1, 9), (2, 9), (2, 8)]),
+        Polygon([(8, 8), (8, 9), (9, 9), (9, 8)]),
         Polygon([(4.5, 4.5), (4.5, 5.5), (5.5, 5.5), (5.5, 4.5)]),
     ]
     data["geometry"] = polygons
@@ -72,13 +73,21 @@ def vulnerability_curves():
     )
 
 
-def test_vector_scanner(flood_raster, buildings, vulnerability_curves):
+@pytest.mark.parametrize("clip", [False, True])
+@pytest.mark.parametrize("gridded", [False, True])
+def test_vector_scanner(flood_raster, buildings, vulnerability_curves, clip, gridded):
+    if clip:
+        flood_raster = flood_raster.rio.clip(
+            [Polygon([(1, 1), (1, 9), (9, 9), (9, 1)])]
+        )
+
     damage = VectorScanner(
         feature_file=buildings,
         hazard_file=flood_raster,
         curve_path=vulnerability_curves,
-        gridded=False,
+        gridded=gridded,
     )
+
     assert math.isclose(
         damage["damage"].iloc[0], 10.0
     )  # 1m2, .5 hazard severity, residential, max_damage 100 > 0.1 damage ratio > damage of 10
