@@ -181,14 +181,14 @@ class DamageScanner(object):
                 is determined by the file extension (e.g., '.csv', '.parquet' for vector data,
                 '.tif' for raster data). If None, the data is not saved. Defaults to None.
             **kwargs:
-                object_col (str): Column name containing object/landuse types. 
+                object_col (str): Column name containing object/landuse types.
                 Defaults to "object_type". (vector only)
                 asset_type (str, optional): Infrastructure class to evaluate.
                 multi_curves (dict, optional): Mapping of asset types to curve sets.
                 subtypes (list, optional): Used for subtype analysis.
 
         Returns:
-            pd.DataFrame | tuple: For vector: DataFrame with damages. 
+            pd.DataFrame | tuple: For vector: DataFrame with damages.
                 For raster: tuple of (damage_df, damagemap, landuse, hazard).
         """
 
@@ -202,7 +202,6 @@ class DamageScanner(object):
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
             )
-
 
             damage_df = ds_results[0]
             damagemap = ds_results[1]

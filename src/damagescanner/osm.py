@@ -14,7 +14,15 @@ from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
 DICT_CIS_OSM = {
     "roads": {
-        "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface","bridge","ref"],
+        "osm_keys": [
+            "highway",
+            "name",
+            "maxspeed",
+            "lanes",
+            "surface",
+            "bridge",
+            "ref",
+        ],
         "osm_query": {
             "highway": [
                 "motorway",
@@ -434,7 +442,7 @@ def read_osm_data(osm_path, asset_type):
         ImportWarning: If asset_type is not supported.
     """
     # features consisting in points and multipolygon results:
-    if asset_type in ["healthcare", "education", "food", "buildings"]:
+    if asset_type in ["healthcare", "education", "food"]:
         gdf = pd.concat(
             [
                 extract(
@@ -450,6 +458,15 @@ def read_osm_data(osm_path, asset_type):
                     DICT_CIS_OSM[asset_type]["osm_query"],
                 ),
             ]
+        )
+
+    # buildings - only multipolygons (no points)
+    elif asset_type in ["buildings"]:
+        gdf = extract(
+            osm_path,
+            "multipolygons",
+            DICT_CIS_OSM[asset_type]["osm_keys"],
+            DICT_CIS_OSM[asset_type]["osm_query"],
         )
 
     # features consisting in points, multipolygons and lines:

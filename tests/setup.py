@@ -1,5 +1,4 @@
 import pathlib
-import pytest
 
 data_path = pathlib.Path(__file__).parent.parent / "data"
 

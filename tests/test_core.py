@@ -54,7 +54,7 @@ def osm_inputs():
     osm_file = JAMAICA / "exposure" / "jamaica-latest.osm.pbf"
     if not osm_file.exists():
         pytest.skip("Jamaica OSM test data not available")
-    
+
     return {
         "hazard": JAMAICA / "hazard" / "FD_1in1000.tif",
         "exposure": osm_file,
@@ -113,7 +113,7 @@ class TestRasterCalculation:
 
         assert isinstance(result, tuple)
         assert len(result) == 4
-        
+
         damage_df, damage_map, landuse, hazard = result
         assert isinstance(damage_df, pd.DataFrame)
         assert damage_map is not None
@@ -212,11 +212,14 @@ class TestOSMExposure:
             assert "values" in result.columns
             assert "geometry" in result.columns
 
-    @pytest.mark.parametrize("asset_type", [
-        "main_roads",
-        # "buildings",
-        # "education",
-    ])
+    @pytest.mark.parametrize(
+        "asset_type",
+        [
+            "main_roads",
+            "buildings",
+            "education",
+        ],
+    )
     def test_exposure_various_asset_types(self, osm_inputs, asset_type):
         """Test exposure analysis for various asset types."""
         ds = DamageScanner(
@@ -285,10 +288,13 @@ class TestOSMCalculation:
             total_damage = result["damage"].sum()
             assert total_damage > 0
 
-    @pytest.mark.parametrize("asset_type", [
-        "main_roads",
-#        "buildings",
-    ])
+    @pytest.mark.parametrize(
+        "asset_type",
+        [
+            "main_roads",
+            #        "buildings",
+        ],
+    )
     def test_calculate_various_asset_types(self, osm_inputs, asset_type):
         """Test damage calculation for various asset types."""
         ds = DamageScanner(
@@ -302,6 +308,7 @@ class TestOSMCalculation:
         assert isinstance(result, (pd.DataFrame, gpd.GeoDataFrame))
         if len(result) > 0:
             assert "damage" in result.columns
+
 
 # class TestOSMAllAssetTypes:
 #     """Tests for all OSM asset types (slower, comprehensive tests)."""

@@ -161,7 +161,7 @@ class TestRasterScanner:
     def test_raster_scanner_with_save(self, raster_files):
         """Test RasterScanner with save option."""
         output_path = tmp_folder / "test_output"
-        
+
         damage_df, damagemap, _, _ = RasterScanner(
             exposure_file=raster_files["landuse"],
             hazard_file=raster_files["hazard"],

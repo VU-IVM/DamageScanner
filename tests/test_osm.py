@@ -1,9 +1,12 @@
 import pytest
 import numpy as np
-import pandas as pd
 import geopandas as gpd
-import shapely
-from shapely.geometry import Point, Polygon, MultiPolygon, GeometryCollection, LineString
+from shapely.geometry import (
+    Point,
+    Polygon,
+    MultiPolygon,
+    GeometryCollection,
+)
 
 from .setup import data_path
 
@@ -70,11 +73,13 @@ class TestFilterDataframe:
 
     def test_filter_with_two_columns(self):
         """Test filtering with two columns."""
-        gdf = gpd.GeoDataFrame({
-            "col1": ["highway", "building", None],
-            "col2": [None, "residential", "school"],
-            "geometry": [Point(0, 0), Point(1, 1), Point(2, 2)],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "col1": ["highway", "building", None],
+                "col2": [None, "residential", "school"],
+                "geometry": [Point(0, 0), Point(1, 1), Point(2, 2)],
+            }
+        )
 
         result = _filter_dataframe(gdf, ["col1", "col2"])
 
@@ -84,12 +89,14 @@ class TestFilterDataframe:
 
     def test_filter_with_three_columns(self):
         """Test filtering with three columns."""
-        gdf = gpd.GeoDataFrame({
-            "col1": ["highway", None],
-            "col2": [None, "building"],
-            "col3": ["primary", "residential"],
-            "geometry": [Point(0, 0), Point(1, 1)],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "col1": ["highway", None],
+                "col2": [None, "building"],
+                "col3": ["primary", "residential"],
+                "geometry": [Point(0, 0), Point(1, 1)],
+            }
+        )
 
         result = _filter_dataframe(gdf, ["col1", "col2", "col3"])
 
@@ -140,10 +147,12 @@ class TestRemoveContainedPoints:
         point_inside = Point(5, 5)
         point_outside = Point(20, 20)
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1, 2, 3],
-            "geometry": [polygon, point_inside, point_outside],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1, 2, 3],
+                "geometry": [polygon, point_inside, point_outside],
+            }
+        )
 
         result = _remove_contained_points(gdf)
 
@@ -156,10 +165,12 @@ class TestRemoveContainedPoints:
         polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         point = Point(10, 10)
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1, 2],
-            "geometry": [polygon, point],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1, 2],
+                "geometry": [polygon, point],
+            }
+        )
 
         result = _remove_contained_points(gdf)
 
@@ -175,10 +186,12 @@ class TestRemoveContainedPolys:
         small_polygon = Polygon([(2, 2), (4, 2), (4, 4), (2, 4)])
         outside_polygon = Polygon([(20, 20), (25, 20), (25, 25), (20, 25)])
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1, 2, 3],
-            "geometry": [large_polygon, small_polygon, outside_polygon],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1, 2, 3],
+                "geometry": [large_polygon, small_polygon, outside_polygon],
+            }
+        )
 
         result = _remove_contained_polys(gdf)
 
@@ -189,10 +202,12 @@ class TestRemoveContainedPolys:
         polygon1 = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         polygon2 = Polygon([(5, 5), (6, 5), (6, 6), (5, 6)])
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1, 2],
-            "geometry": [polygon1, polygon2],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1, 2],
+                "geometry": [polygon1, polygon2],
+            }
+        )
 
         result = _remove_contained_polys(gdf)
 
@@ -209,10 +224,12 @@ class TestRemoveContainedAssets:
         point_inside = Point(5, 5)
         point_outside = Point(20, 20)
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1, 2, 3, 4],
-            "geometry": [large_polygon, small_polygon, point_inside, point_outside],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1, 2, 3, 4],
+                "geometry": [large_polygon, small_polygon, point_inside, point_outside],
+            }
+        )
 
         result = _remove_contained_assets(gdf)
 
@@ -227,10 +244,12 @@ class TestCreatePointFromPolygon:
         """Test that polygons are converted to their centroids."""
         polygon = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)])
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1],
-            "geometry": [polygon],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1],
+                "geometry": [polygon],
+            }
+        )
 
         result = create_point_from_polygon(gdf)
 
@@ -245,10 +264,12 @@ class TestCreatePointFromPolygon:
         poly2 = Polygon([(4, 4), (6, 4), (6, 6), (4, 6)])
         multipoly = MultiPolygon([poly1, poly2])
 
-        gdf = gpd.GeoDataFrame({
-            "id": [1],
-            "geometry": [multipoly],
-        })
+        gdf = gpd.GeoDataFrame(
+            {
+                "id": [1],
+                "geometry": [multipoly],
+            }
+        )
 
         result = create_point_from_polygon(gdf)
 
@@ -300,19 +321,34 @@ class TestDictCisOsm:
     def test_osm_keys_are_lists(self):
         """Test that osm_keys are lists."""
         for asset_type, config in DICT_CIS_OSM.items():
-            assert isinstance(config["osm_keys"], list), f"{asset_type} osm_keys not a list"
+            assert isinstance(config["osm_keys"], list), (
+                f"{asset_type} osm_keys not a list"
+            )
 
     def test_osm_query_are_dicts(self):
         """Test that osm_query are dicts."""
         for asset_type, config in DICT_CIS_OSM.items():
-            assert isinstance(config["osm_query"], dict), f"{asset_type} osm_query not a dict"
+            assert isinstance(config["osm_query"], dict), (
+                f"{asset_type} osm_query not a dict"
+            )
 
     def test_expected_asset_types_exist(self):
         """Test that expected asset types exist."""
         expected_types = [
-            "roads", "main_roads", "rail", "air", "telecom",
-            "water_supply", "waste_solid", "waste_water",
-            "education", "healthcare", "power", "gas", "oil", "buildings"
+            "roads",
+            "main_roads",
+            "rail",
+            "air",
+            "telecom",
+            "water_supply",
+            "waste_solid",
+            "waste_water",
+            "education",
+            "healthcare",
+            "power",
+            "gas",
+            "oil",
+            "buildings",
         ]
         for asset_type in expected_types:
             assert asset_type in DICT_CIS_OSM, f"{asset_type} not in DICT_CIS_OSM"
@@ -361,7 +397,7 @@ class TestReadOsmData:
 
         assert len(result) > 0
         assert all(result.geometry.geom_type.isin(["LineString", "MultiLineString"]))
-        
+
     def test_read_osm_roads(self, osm_file):
         """Test extraction of all roads."""
         result = read_osm_data(osm_file, "roads")
@@ -377,7 +413,13 @@ class TestReadOsmData:
 
         assert len(result) > 0
         # Buildings can be points, polygons, or lines (unclosed outlines)
-        valid_types = ["Point", "Polygon", "MultiPolygon", "LineString", "MultiLineString"]
+        valid_types = [
+            "Point",
+            "Polygon",
+            "MultiPolygon",
+            "LineString",
+            "MultiLineString",
+        ]
         assert all(result.geometry.geom_type.isin(valid_types))
 
     def test_read_osm_healthcare(self, osm_file):
@@ -406,7 +448,13 @@ class TestReadOsmData:
         assert isinstance(result, gpd.GeoDataFrame)
         if len(result) > 0:
             # Power can be points, lines, or polygons
-            valid_types = ["Point", "LineString", "MultiLineString", "Polygon", "MultiPolygon"]
+            valid_types = [
+                "Point",
+                "LineString",
+                "MultiLineString",
+                "Polygon",
+                "MultiPolygon",
+            ]
             assert all(result.geometry.geom_type.isin(valid_types))
 
     def test_read_osm_rail(self, osm_file):
@@ -415,7 +463,9 @@ class TestReadOsmData:
 
         assert isinstance(result, gpd.GeoDataFrame)
         if len(result) > 0:
-            assert all(result.geometry.geom_type.isin(["LineString", "MultiLineString"]))
+            assert all(
+                result.geometry.geom_type.isin(["LineString", "MultiLineString"])
+            )
 
     def test_read_osm_telecom(self, osm_file):
         """Test extraction of telecom infrastructure."""

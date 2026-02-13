@@ -1,11 +1,9 @@
 import pytest
-import numpy as np
 import pandas as pd
 import geopandas as gpd
-import xarray as xr
 import shapely
 
-from .setup import tmp_folder, data_path
+from .setup import data_path
 
 from damagescanner.vector import (
     VectorScanner,
@@ -285,7 +283,11 @@ class TestVectorScanner:
             total_gridded = result_gridded["damage"].sum()
             total_non_gridded = result_non_gridded["damage"].sum()
             # Allow 25% tolerance for edge effects [SHOULD BE MUCH LOWER. TO BE INVESTIGATED]
-            assert abs(total_gridded - total_non_gridded) / max(total_gridded, total_non_gridded) < 0.25
+            assert (
+                abs(total_gridded - total_non_gridded)
+                / max(total_gridded, total_non_gridded)
+                < 0.05
+            )
 
     def test_vector_scanner_total_damage_positive(self, vector_files):
         """Test that total damage is positive."""

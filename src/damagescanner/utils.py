@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+
 def _check_output_path(given_args):
     """Ensures the output directory exists and returns its path."""
     output_path = given_args.get("output_path", "")
@@ -16,6 +17,7 @@ def _check_output_path(given_args):
         output_path.mkdir(parents=True, exist_ok=True)
 
     return output_path
+
 
 def _check_scenario_name(given_args):
     """Validates that a scenario name is provided in the arguments.

@@ -273,22 +273,46 @@ def _overlay_raster_vector(
 
         # if hazard data is a xarray object:
         else:
-            values = hazard.sel(
+            result = hazard.sel(
                 {
                     hazard.rio.x_dim: xr.DataArray(features[point_objects].geometry.x),
                     hazard.rio.y_dim: xr.DataArray(features[point_objects].geometry.y),
                 },
                 method="nearest",
-            ).values
+            )
 
-        # add values to the features
-        features.loc[point_objects, "values"] = values
-        features.loc[point_objects, "coverage"] = [1] * len(values)
+            # Convert to DataArray only if it's a Dataset
+            if isinstance(result, xr.Dataset):
+                result = result.to_dataarray()
 
-        # turn values into lists
-        features.loc[point_objects, "values"] = features.loc[
-            point_objects, "values"
-        ].apply(lambda x: [x] if x > 0 else [])
+            values = result.values.flatten()
+
+        # Convert values to lists directly (to match polygon/line format)
+        values_as_lists = [[v] if v > 0 else [] for v in values]
+        coverage_as_lists = [[1] if v > 0 else [] for v in values]
+
+        # Initialize columns as object dtype if they don't exist
+        if "values" not in features.columns:
+            features["values"] = pd.Series(
+                [None] * len(features), index=features.index, dtype=object
+            )
+        if "coverage" not in features.columns:
+            features["coverage"] = pd.Series(
+                [None] * len(features), index=features.index, dtype=object
+            )
+
+        # Convert to object dtype to hold lists
+        features["values"] = features["values"].astype(object)
+        features["coverage"] = features["coverage"].astype(object)
+
+        # Assign using a temporary Series with matching index
+        point_idx = features.index[point_objects]
+        features.loc[point_idx, "values"] = pd.Series(
+            values_as_lists, index=point_idx
+        ).values
+        features.loc[point_idx, "coverage"] = pd.Series(
+            coverage_as_lists, index=point_idx
+        ).values
 
     exact_extract_kwargs = {
         "output": "pandas",
@@ -311,7 +335,6 @@ def _overlay_raster_vector(
             features.loc[area_and_line_objects, "values"] = (
                 values_and_coverage_per_area_and_line_object["values"].values
             )
-
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
@@ -359,7 +382,13 @@ def _overlay_raster_vector(
                     )
 
                     # subset features
-                    subset_features = gpd.clip(features, sub_bbox)  # list(bounds)[1:])
+                    # subset_features = gpd.clip(features, sub_bbox)  # list(bounds)[1:])
+
+                    candidate_idx = features.sindex.query(
+                        sub_bbox, predicate="intersects"
+                    )
+                    subset_features = features.iloc[candidate_idx]
+
                     subset_area_and_line_objects = subset_features.geom_type.isin(
                         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
                     ).values
@@ -408,10 +437,7 @@ def _overlay_raster_vector(
     features = features[features["values"].apply(lambda x: len(x) > 0)]
 
     # convert coverage to meters, only do this if the crs is not in meters
-    if (
-        not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-        == "metre"
-    ):
+    if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
         tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
 
         features.loc[:, "coverage"] = features.progress_apply(
@@ -473,7 +499,9 @@ def _estimate_damage(features, curves, object_col, cell_area_m2):
         gpd.GeoDataFrame: Exposure data with added `damage` column.
     """
     features["damage"] = features.progress_apply(
-        lambda _object: _get_damage_per_object(_object, curves, object_col, cell_area_m2),
+        lambda _object: _get_damage_per_object(
+            _object, curves, object_col, cell_area_m2
+        ),
         axis=1,
     )
 
@@ -503,9 +531,7 @@ def _get_damage_per_object(asset, curves, object_col, cell_area_m2):
 
     return (
         np.sum(
-            np.interp(
-                asset["values"], curves.index, curves[asset[object_col]].values
-            )
+            np.interp(asset["values"], curves.index, curves[asset[object_col]].values)
             * coverage
         )
         * asset["maximum_damage"]
