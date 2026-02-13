@@ -95,7 +95,7 @@ class TestDamageScannerInit:
             maxdam=osm_inputs["maxdam"],
         )
         assert ds.assessment_type == "vector"
-        assert ds.osm == True
+        assert ds.osm
 
 
 class TestRasterCalculation:

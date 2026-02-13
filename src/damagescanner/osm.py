@@ -378,9 +378,8 @@ def _extract_value(text, key):
         if match:
             return match.group(1)
         return None
-    except:
+    except Exception:
         return None
-
 
 def extract(osm_path, geom_type, osm_keys, osm_query):
     """

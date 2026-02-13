@@ -160,17 +160,16 @@ class TestRasterScanner:
 
     def test_raster_scanner_with_save(self, raster_files):
         """Test RasterScanner with save option."""
-        output_path = tmp_folder / "test_output"
-
+        
         damage_df, damagemap, _, _ = RasterScanner(
-            exposure_file=raster_files["landuse"],
-            hazard_file=raster_files["hazard"],
-            curve_path=raster_files["curves"],
-            maxdam_path=raster_files["maxdam"],
-            save=True,
-            output_path=str(tmp_folder),
-            scenario_name="test_output",
-        )
+                exposure_file=raster_files["landuse"],
+                hazard_file=raster_files["hazard"],
+                curve_path=raster_files["curves"],
+                maxdam_path=raster_files["maxdam"],
+                save=True,
+                output_path=str(tmp_folder),
+                scenario_name="test_output",
+            )
 
         # Check that output files were created
         assert (tmp_folder / "test_output_damages.csv").exists()

@@ -174,11 +174,8 @@ class TestGetCountryGeofabrik:
 
         # Check that overwrite=True was passed
         call_args = mock_download.call_args
-        assert (
-            call_args[1].get(
-                "overwrite", call_args[0][2] if len(call_args[0]) > 2 else None
-            )
-            == True
+        assert call_args[1].get(
+            "overwrite", call_args[0][2] if len(call_args[0]) > 2 else None
         )
 
 
@@ -256,7 +253,7 @@ class TestGetPlanetFile:
 
         call_args = mock_download.call_args
         # Check overwrite is True (either as kwarg or positional arg)
-        assert call_args[0][2] == True or call_args[1].get("overwrite") == True
+        assert call_args[0][2] or call_args[1].get("overwrite")
 
 
 class TestIntegration:
