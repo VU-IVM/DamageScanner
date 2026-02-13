@@ -339,7 +339,7 @@ def RasterScanner(
 
     # create pandas dataframe with output
     damage_df = (
-        pd.DataFrame(damagebin.astype(dtype), columns=["landuse", "damages"])
+        pd.DataFrame(damagebin.astype(dtype), columns=["landuse", "damage"])
         .groupby("landuse")
         .sum()
     )

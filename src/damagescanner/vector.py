@@ -459,27 +459,28 @@ def _overlay_vector_vector(hazard, features, gridded=False):
     return features
 
 
-def _estimate_damage(features, curves, cell_area_m2):
+def _estimate_damage(features, curves, object_col, cell_area_m2):
     """
     Estimate total damage per asset using vulnerability curves.
 
     Args:
         features (gpd.GeoDataFrame): Exposure with hazard info.
         curves (pd.DataFrame): Vulnerability curve per asset type.
+        object_col (str): Name of the object type column.
         cell_area_m2 (float): Area per grid cell in m² (for polygons).
 
     Returns:
         gpd.GeoDataFrame: Exposure data with added `damage` column.
     """
     features["damage"] = features.progress_apply(
-        lambda _object: _get_damage_per_object(_object, curves, cell_area_m2),
+        lambda _object: _get_damage_per_object(_object, curves, object_col, cell_area_m2),
         axis=1,
     )
 
     return features
 
 
-def _get_damage_per_object(asset, curves, cell_area_m2):
+def _get_damage_per_object(asset, curves, object_col, cell_area_m2):
     """
     Compute damage for a single asset using interpolated vulnerability.
 
@@ -503,7 +504,7 @@ def _get_damage_per_object(asset, curves, cell_area_m2):
     return (
         np.sum(
             np.interp(
-                asset["values"], curves.index, curves[asset["object_type"]].values
+                asset["values"], curves.index, curves[asset[object_col]].values
             )
             * coverage
         )
@@ -542,7 +543,6 @@ def VectorExposure(
         # if exposure_file is an osm.pbf file
         elif feature_file.suffix == ".pbf":
             features = read_osm_data(feature_file, asset_type)
-            object_col = "object_type"
         else:
             raise ValueError(
                 "exposure data should either be a shapefile, geopackage, parquet or osm.pbf file"
@@ -696,9 +696,9 @@ def VectorScanner(
     # Load maximum damages
     if isinstance(maxdam_path, PurePath) and maxdam_path.parts[-1].endswith(".csv"):
         maxdam = pd.read_csv(maxdam_path)
-        maxdam = dict(zip(maxdam["object_type"], maxdam["damage"]))
+        maxdam = dict(zip(maxdam[object_col], maxdam["damage"]))
     elif isinstance(maxdam_path, pd.DataFrame):
-        maxdam = dict(zip(maxdam_path["object_type"], maxdam_path["damage"]))
+        maxdam = dict(zip(maxdam_path[object_col], maxdam_path["damage"]))
     elif isinstance(maxdam_path, np.ndarray):
         maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))
     elif isinstance(maxdam_path, dict):
@@ -709,7 +709,7 @@ def VectorScanner(
         unique_objects_in_asset_type = list(
             DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
         )
-        features = features[features["object_type"].isin(unique_objects_in_asset_type)]
+        features = features[features[object_col].isin(unique_objects_in_asset_type)]
 
     # connect maxdam to exposure
     if maxdam_path is None:
@@ -719,11 +719,11 @@ def VectorScanner(
     else:
         try:
             features["maximum_damage"] = features.apply(
-                lambda x: maxdam[x["object_type"]], axis=1
+                lambda x: maxdam[x[object_col]], axis=1
             )
         except KeyError:
             missing_object_types = [
-                i for i in features.object_type.unique() if i not in maxdam.keys()
+                i for i in features[object_col].unique() if i not in maxdam.keys()
             ]
             raise KeyError(
                 f"Not all object types in the exposure are included in the maximum damage file: {missing_object_types}"
@@ -733,13 +733,13 @@ def VectorScanner(
 
     # Calculate damage
     if not multi_curves:
-        features = _estimate_damage(features, curves, cell_area_m2)
+        features = _estimate_damage(features, curves, object_col, cell_area_m2)
     else:
         collect_sub_outcomes = []
         for curve_id in multi_curves:
             curves = multi_curves[curve_id]
             collect_sub_outcomes.append(
-                _estimate_damage(features, curves, cell_area_m2)["damage"]
+                _estimate_damage(features, curves, object_col, cell_area_m2)["damage"]
             )
 
         all_curve_damages = pd.concat(collect_sub_outcomes, axis=1)

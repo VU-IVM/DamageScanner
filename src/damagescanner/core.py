@@ -181,37 +181,46 @@ class DamageScanner(object):
                 is determined by the file extension (e.g., '.csv', '.parquet' for vector data,
                 '.tif' for raster data). If None, the data is not saved. Defaults to None.
             **kwargs:
+                object_col (str): Column name containing object/landuse types. 
+                Defaults to "object_type". (vector only)
                 asset_type (str, optional): Infrastructure class to evaluate.
                 multi_curves (dict, optional): Mapping of asset types to curve sets.
                 subtypes (list, optional): Used for subtype analysis.
 
         Returns:
-            pd.DataFrame | xr.DataArray: Estimated damages for each asset or grid cell.
+            pd.DataFrame | tuple: For vector: DataFrame with damages. 
+                For raster: tuple of (damage_df, damagemap, landuse, hazard).
         """
+
         if not hasattr(self, "assessment_type"):
             raise ImportError("Please prepare the input data first")
 
         if self.assessment_type == "raster":
-            damage_df, damagemap = RasterScanner(
+            ds_results = RasterScanner(
                 exposure_file=self.feature_data,
                 hazard_file=self.hazard_data,
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
             )
 
+
+            damage_df = ds_results[0]
+            damagemap = ds_results[1]
+
             # Extract CRS and transform from feature_data
             if isinstance(self.feature_data, (str, Path)):
-                # Assume it's a file path
-                if self.feature_data.endswith(".nc"):
+                feature_path = Path(self.feature_data)  # Ensure it's a Path
+                if feature_path.suffix == ".nc":
                     # Open with xarray if it's a NetCDF file
-                    feature_data_xr = xr.open_dataset(self.feature_data)
-                    crs = feature_data_xr.rio.crs  # Requires rioxarray extension
+                    feature_data_xr = xr.open_dataset(feature_path)
+                    crs = feature_data_xr.rio.crs
                     transform = feature_data_xr.rio.transform()
                 else:
                     # Open with rasterio for other raster formats
-                    with rasterio.open(self.feature_data) as src:
+                    with rasterio.open(feature_path) as src:
                         crs = src.crs
                         transform = src.transform
+
             elif isinstance(self.feature_data, (xr.DataArray, xr.Dataset)):
                 # Directly use the xarray object
                 crs = self.feature_data.rio.crs  # Requires rioxarray extension
@@ -233,6 +242,7 @@ class DamageScanner(object):
                 maxdam_path=self.maxdam,
                 asset_type=self.asset_type,
                 multi_curves=kwargs.get("multi_curves", None),
+                object_col=kwargs.get("object_col", "object_type"),
                 sub_types=kwargs.get("subtypes", None),
                 disable_progress=disable_progress,
             )
@@ -250,6 +260,7 @@ class DamageScanner(object):
                 }
                 save_function = format_mapping.get(file_extension, damage_df.to_csv)
                 save_function(output_path, **kwargs)
+
             elif self.assessment_type == "raster":
                 # Save the damage_df as CSV
                 damage_df_path = output_path.replace(
@@ -260,6 +271,7 @@ class DamageScanner(object):
 
                 # Save the damagemap as GeoTIFF
                 dmap_fn = output_path
+
                 rst_opts = {
                     "driver": "GTiff",
                     "height": damagemap.shape[0],
@@ -274,7 +286,7 @@ class DamageScanner(object):
                     dst.write(damagemap, 1)
                 print(f"Damage map saved to {dmap_fn}")
 
-        return damage_df if self.assessment_type == "vector" else (damage_df, damagemap)
+        return damage_df if self.assessment_type == "vector" else ds_results
 
     def risk(self, hazard_dict, output_path=None, **kwargs):
         """
@@ -366,7 +378,10 @@ class DamageScanner(object):
                 print(f"Risk assessment results saved to {output_path}")
 
             # return the risk in a concise dataframe
-            return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
+            if self.assessment_type == "raster":
+                return largest_rp
+            else:
+                return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
 
         else:
             multi_curves = kwargs.get("multi_curves")
