@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: "release"
-      url: https://pypi.org/project/geb/
+      url: https://pypi.org/project/damagescanner/
     permissions:
       id-token: write
     steps:
@@ -18,9 +18,8 @@ jobs:
       - name: "Set up Python"
         uses: actions/setup-python@v5
         with:
-          python-version-file: "pyproject.toml"
+          python-version: "3.12"
       - name: Set up uv
-        # Install latest uv version using the installer
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Install the project
         run: uv sync
