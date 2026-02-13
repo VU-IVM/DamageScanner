@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: "release"
-      url: https://pypi.org/project/geb/
+      url: https://pypi.org/project/damagescanner/
     permissions:
       id-token: write
     steps:
