@@ -14,7 +14,7 @@ from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
 DICT_CIS_OSM = {
     "roads": {
-        "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface"],
+        "osm_keys": ["highway", "name", "maxspeed", "lanes", "surface","bridge","ref"],
         "osm_query": {
             "highway": [
                 "motorway",
@@ -413,14 +413,6 @@ def extract(osm_path, geom_type, osm_keys, osm_query):
     features = features.iloc[collect_indices]
 
     features = features[["osm_id", "geometry"] + osm_keys]
-
-    # make sure we keep collect the necessary feature charactericts in same column
-    # and cover the points to polygons for better damage assessment
-
-    if len(osm_keys) < 3:
-        features = _filter_dataframe(features, osm_keys)
-    else:
-        features = _filter_dataframe(features, osm_keys[:3])
 
     features.rename(columns={osm_keys[0]: "object_type"}, inplace=True)
 

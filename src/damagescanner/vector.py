@@ -312,16 +312,6 @@ def _overlay_raster_vector(
                 values_and_coverage_per_area_and_line_object["values"].values
             )
 
-            # convert coverage to meters, only do this if the crs is not in meters
-            if (
-                not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-                == "metre"
-            ):
-                tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
-
-                features.loc[:, "coverage"] = features.progress_apply(
-                    lambda feature: _convert_to_meters(feature), axis=1
-                )
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
@@ -410,23 +400,23 @@ def _overlay_raster_vector(
 
             features.loc[df_no_duplicates.index, "values"] = df_no_duplicates["values"]
 
-            # Sometimes, with large datasets, a feature may have been excluded from the bbox
-            # this has resulted in a null value for the coverage and values. We remove these features.
-            features = features[~features["values"].isnull()]
+    # Sometimes, with large datasets, a feature may have been excluded from the bbox
+    # this has resulted in a null value for the coverage and values. We remove these features.
+    features = features[~features["values"].isnull()]
 
-            # only keep features with values
-            features = features[features["values"].apply(lambda x: len(x) > 0)]
+    # only keep features with values
+    features = features[features["values"].apply(lambda x: len(x) > 0)]
 
-            # convert coverage to meters, only do this if the crs is not in meters
-            if (
-                not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-                == "metre"
-            ):
-                tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
+    # convert coverage to meters, only do this if the crs is not in meters
+    if (
+        not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
+        == "metre"
+    ):
+        tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
 
-                features.loc[:, "coverage"] = features.progress_apply(
-                    lambda feature: _convert_to_meters(feature), axis=1
-                )
+        features.loc[:, "coverage"] = features.progress_apply(
+            lambda feature: _convert_to_meters(feature), axis=1
+        )
 
     return features
 
