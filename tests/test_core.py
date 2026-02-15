@@ -356,7 +356,7 @@ class TestNetCDFExposure:
         result = ds.exposure(asset_type="buildings")
 
         assert isinstance(result, gpd.GeoDataFrame)
-        print(f"\n--- NetCDF + Buildings Exposure ---")
+        print("--- NetCDF + Buildings Exposure ---")
         print(f"Features exposed: {len(result)}")
 
         if len(result) > 0:
@@ -371,7 +371,7 @@ class TestNetCDFExposure:
 
         hazard = xr.open_dataset(netcdf_inputs["hazard"])
 
-        print(f"\n--- NetCDF Structure ---")
+        print("--- NetCDF Structure ---")
         print(f"Variables: {list(hazard.data_vars)}")
         print(f"Dimensions: {dict(hazard.sizes)}")
 
