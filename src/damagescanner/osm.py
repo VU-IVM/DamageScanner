@@ -395,7 +395,12 @@ def extract(osm_path, geom_type, osm_keys, osm_query):
     Returns:
         gpd.GeoDataFrame: Extracted GeoDataFrame with `object_type` field.
     """
-    features = gpd.read_file(osm_path, layer=geom_type, engine="pyogrio")
+    features = gpd.read_file(
+        osm_path,
+        layer=geom_type,
+        engine="pyogrio",
+        on_invalid="ignore",  # Skip invalid geometries
+    )
 
     if "osm_way_id" in features.columns:
         features["osm_id"] = features["osm_id"].fillna(features["osm_way_id"])

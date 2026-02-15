@@ -12,6 +12,7 @@ output_folder.mkdir(exist_ok=True)
 
 KAMPEN = data_path / "kampen"
 JAMAICA = data_path / "jamaica"
+HAZARDS = data_path / "hazard"
 
 
 @pytest.fixture
@@ -308,6 +309,74 @@ class TestOSMCalculation:
         assert isinstance(result, (pd.DataFrame, gpd.GeoDataFrame))
         if len(result) > 0:
             assert "damage" in result.columns
+
+
+@pytest.fixture
+def netcdf_inputs():
+    """Fixture for NetCDF windstorm hazard inputs."""
+    nc_file = KAMPEN / "hazard" / "windstorm.nc"
+    if not nc_file.exists():
+        pytest.skip("NetCDF windstorm test data not available")
+
+    # Kampen OSM data
+    osm_file = KAMPEN / "exposure" / "kampen.osm.pbf"
+    if not osm_file.exists():
+        pytest.skip("Kampen OSM test data not available")
+
+    return {
+        "hazard": nc_file,
+        "exposure": osm_file,
+        "curves": KAMPEN / "vulnerability" / "curves_osm.csv",
+        "maxdam": KAMPEN / "vulnerability" / "maxdam_osm.csv",
+    }
+
+
+class TestNetCDFExposure:
+    """Tests for NetCDF hazard data handling."""
+
+    def test_init_with_netcdf_hazard(self, netcdf_inputs):
+        """Test initialization with NetCDF hazard file."""
+        ds = DamageScanner(
+            hazard_data=netcdf_inputs["hazard"],
+            feature_data=netcdf_inputs["exposure"],
+            curves=netcdf_inputs["curves"],
+            maxdam=netcdf_inputs["maxdam"],
+        )
+        assert ds.assessment_type == "vector"
+        assert ds.osm
+
+    def test_exposure_with_netcdf_buildings(self, netcdf_inputs):
+        """Test exposure calculation with NetCDF hazard and OSM buildings."""
+        ds = DamageScanner(
+            hazard_data=netcdf_inputs["hazard"],
+            feature_data=netcdf_inputs["exposure"],
+            curves=netcdf_inputs["curves"],
+            maxdam=netcdf_inputs["maxdam"],
+        )
+        result = ds.exposure(asset_type="buildings")
+
+        assert isinstance(result, gpd.GeoDataFrame)
+        print(f"\n--- NetCDF + Buildings Exposure ---")
+        print(f"Features exposed: {len(result)}")
+
+        if len(result) > 0:
+            assert "coverage" in result.columns
+            assert "values" in result.columns
+            assert "object_type" in result.columns
+            print(f"Building types: {result['object_type'].value_counts().to_dict()}")
+
+    def test_netcdf_hazard_loads_as_xarray(self, netcdf_inputs):
+        """Test that NetCDF hazard is loaded correctly as xarray."""
+        import xarray as xr
+
+        hazard = xr.open_dataset(netcdf_inputs["hazard"])
+
+        print(f"\n--- NetCDF Structure ---")
+        print(f"Variables: {list(hazard.data_vars)}")
+        print(f"Dimensions: {dict(hazard.sizes)}")
+
+        assert hazard is not None
+        hazard.close()
 
 
 # class TestOSMAllAssetTypes:

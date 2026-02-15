@@ -14,9 +14,25 @@ from pyproj import Geod
 from shapely.geometry import Point, LineString
 
 import traceback
+import warnings
 
 from damagescanner.osm import read_osm_data
 from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
+
+
+def _crs_is_meters(crs):
+    """Check if a CRS uses meters as its unit."""
+    try:
+        epsg_code = crs.to_epsg()
+        if epsg_code is not None:
+            return pyproj.CRS.from_epsg(epsg_code).axis_info[0].unit_name == "metre"
+        else:
+            # Fallback: check directly from the CRS axis info
+            if crs.axis_info:
+                return crs.axis_info[0].unit_name == "metre"
+            return False
+    except Exception:
+        return False
 
 
 def _convert_to_meters(feature):
@@ -202,17 +218,6 @@ def _reproject(hazard, features, hazard_crs):
         features = features.to_crs(hazard_crs)
         return hazard, features, approximate_crs
 
-    # if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
-    #     hazard = hazard.rio.reproject(approximate_crs)
-
-    # if (
-    #     not pyproj.CRS.from_epsg(features.crs.to_epsg()).axis_info[0].unit_name
-    #     == "metre"
-    # ):
-    #     features = features.to_crs(approximate_crs)
-
-    # return hazard, features, approximate_crs
-
 
 def _overlay_raster_vector(
     hazard,
@@ -240,7 +245,7 @@ def _overlay_raster_vector(
         RuntimeWarning(
             "Hazard crs is not correctly defined. We will now assume it is EPSG:4326"
         )
-        hazard = hazard.rio.set_crs("EPSG:4326")
+        hazard = hazard.rio.write_crs("EPSG:4326")
         hazard_crs = pyproj.CRS.from_epsg(4326)
 
     area_and_line_objects = features.geom_type.isin(
@@ -447,40 +452,177 @@ def _overlay_raster_vector(
     return features
 
 
-def _overlay_vector_vector(hazard, features, gridded=False):
+def _overlay_vector_vector(
+    hazard,
+    features,
+    hazard_value_col="band_data",
+    gridded=False,
+    disable_progress=False,
+):
     """
     Overlay a vector hazard layer onto vector exposure features.
 
     Args:
-        hazard (gpd.GeoDataFrame): Hazard vector features.
+        hazard (gpd.GeoDataFrame): Hazard vector features with geometry and value column.
         features (gpd.GeoDataFrame): Exposure vector features.
-        gridded (bool): Chunk processing toggle (not implemented).
+        hazard_value_col (str): Column name in hazard containing intensity values.
+        gridded (bool): Chunk processing toggle (not yet implemented).
+        disable_progress (bool): Disable tqdm progress bar.
 
     Returns:
-        gpd.GeoDataFrame: Original feature set (currently not modified).
-
-    WIP: This function is not yet finished. It is currently only able to overlay point objects.
-
+        gpd.GeoDataFrame: Features with added `coverage` and `values` columns.
     """
-    # make sure the hazard data has a crs
-    if hazard.crs.to_epsg() is None:
-        RuntimeWarning(
-            "Hazard crs is not correctly defined. We will now assume it is EPSG:4326"
+
+    # Store original CRS for later conversion
+    original_crs = features.crs
+
+    # Make sure the hazard data has a crs
+    if hazard.crs is None or hazard.crs.to_epsg() is None:
+        warnings.warn(
+            "Hazard CRS is not correctly defined. We will now assume it is EPSG:4326"
         )
-        hazard = hazard.rio.set_crs("EPSG:4326")
-        hazard_crs = pyproj.CRS.from_epsg(4326)
+        hazard = hazard.set_crs("EPSG:4326")
 
-    area_and_line_objects = features.geom_type.isin(
-        ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
+    hazard_crs = hazard.crs
+
+    # Reproject features to match hazard CRS if needed
+    if features.crs != hazard_crs:
+        features = features.to_crs(hazard_crs)
+
+    # Reproject both to a metric CRS for accurate area/length calculations
+    if not _crs_is_meters(hazard_crs):
+        # Use a common metric CRS (EPSG:3035 for Europe, or estimate from centroid)
+        centroid = features.geometry.union_all().centroid
+        utm_zone = int((centroid.x + 180) / 6) + 1
+        hemisphere = "north" if centroid.y >= 0 else "south"
+        metric_crs = (
+            f"EPSG:{32600 + utm_zone if hemisphere == 'north' else 32700 + utm_zone}"
+        )
+
+        hazard_metric = hazard.to_crs(metric_crs)
+        features_metric = features.to_crs(metric_crs)
+    else:
+        hazard_metric = hazard
+        features_metric = features
+        metric_crs = hazard_crs
+
+    # Identify geometry types
+    area_objects = features_metric.geom_type.isin(["Polygon", "MultiPolygon"])
+    line_objects = features_metric.geom_type.isin(["LineString", "MultiLineString"])
+    point_objects = features_metric.geom_type == "Point"
+
+    area_and_line_objects = area_objects | line_objects
+
+    # Initialize columns as object dtype to hold lists
+    features["values"] = pd.Series(
+        [None] * len(features), index=features.index, dtype=object
     )
-    point_objects = features.geom_type == "Point"
+    features["coverage"] = pd.Series(
+        [None] * len(features), index=features.index, dtype=object
+    )
 
-    # Check if the exposure data contains any area or line objects
-    assert area_and_line_objects.sum() + point_objects.sum() == len(features)
+    # Build spatial index for hazard
+    hazard_tree = shapely.STRtree(hazard_metric.geometry.values)
 
-    if not gridded:
-        # reproject if needed
-        hazard, features, approximate_crs = _reproject(hazard, features, hazard_crs)
+    # Handle point objects
+    if point_objects.sum() > 0:
+        point_indices = features_metric[point_objects].index
+
+        for idx in tqdm(
+            point_indices,
+            desc="Overlay points with vector hazard",
+            disable=disable_progress,
+        ):
+            point_geom = features_metric.loc[idx, "geometry"]
+
+            # Find hazard features containing this point
+            candidate_idx = hazard_tree.query(point_geom, predicate="intersects")
+
+            if len(candidate_idx) > 0:
+                # Get the hazard values at this point
+                hazard_values = hazard_metric.iloc[candidate_idx][
+                    hazard_value_col
+                ].values
+                # Filter out NaN and zero values
+                valid_mask = ~np.isnan(hazard_values) & (hazard_values > 0)
+                hazard_values = hazard_values[valid_mask].tolist()
+
+                if len(hazard_values) > 0:
+                    features.at[idx, "values"] = hazard_values
+                    features.at[idx, "coverage"] = [1.0] * len(hazard_values)
+                else:
+                    features.at[idx, "values"] = []
+                    features.at[idx, "coverage"] = []
+            else:
+                features.at[idx, "values"] = []
+                features.at[idx, "coverage"] = []
+
+    # Handle area and line objects
+    if area_and_line_objects.sum() > 0:
+        area_line_indices = features_metric[area_and_line_objects].index
+
+        for idx in tqdm(
+            area_line_indices,
+            desc="Overlay areas/lines with vector hazard",
+            disable=disable_progress,
+        ):
+            feature_geom = features_metric.loc[idx, "geometry"]
+            is_line = features_metric.loc[idx, "geometry"].geom_type in [
+                "LineString",
+                "MultiLineString",
+            ]
+
+            # Find candidate hazard features
+            candidate_idx = hazard_tree.query(feature_geom, predicate="intersects")
+
+            if len(candidate_idx) == 0:
+                features.at[idx, "values"] = []
+                features.at[idx, "coverage"] = []
+                continue
+
+            # Get intersecting hazard features
+            candidate_hazards = hazard_metric.iloc[candidate_idx]
+
+            values_list = []
+            coverage_list = []
+
+            for h_idx in candidate_hazards.index:
+                h_geom = candidate_hazards.loc[h_idx, "geometry"]
+                h_value = candidate_hazards.loc[h_idx, hazard_value_col]
+
+                # Skip NaN or zero hazard values
+                if pd.isna(h_value) or h_value <= 0:
+                    continue
+
+                # Calculate actual intersection
+                try:
+                    intersection = shapely.intersection(feature_geom, h_geom)
+                except Exception:
+                    continue
+
+                if intersection.is_empty:
+                    continue
+
+                # Calculate coverage (length for lines, area for polygons) in meters
+                if is_line:
+                    coverage = shapely.length(intersection)
+                else:
+                    coverage = shapely.area(intersection)
+
+                if coverage > 0:
+                    values_list.append(float(h_value))
+                    coverage_list.append(float(coverage))
+
+            features.at[idx, "values"] = values_list
+            features.at[idx, "coverage"] = coverage_list
+
+    # Remove features with no values
+    features = features[~features["values"].isnull()]
+    features = features[features["values"].apply(lambda x: len(x) > 0)]
+
+    # Restore original CRS
+    if features.crs != original_crs:
+        features = features.to_crs(original_crs)
 
     return features
 
@@ -543,6 +685,7 @@ def VectorExposure(
     feature_file,
     asset_type="roads",
     object_col="object_type",
+    hazard_value_col="band_data",
     disable_progress=False,
     gridded: bool = True,
 ):
@@ -550,10 +693,11 @@ def VectorExposure(
     Load and overlay vector or raster hazard with vector exposure data.
 
     Args:
-        hazard_file (Path | xr.Dataset | rasterio.DatasetReader): Hazard input.
+        hazard_file (Path | xr.Dataset | rasterio.DatasetReader | GeoDataFrame): Hazard input.
         feature_file (Path | GeoDataFrame | pd.DataFrame): Exposure input.
         asset_type (str): Infrastructure category (only for OSM).
         object_col (str): Name of the object type column.
+        hazard_value_col (str): Column name in vector hazard containing intensity values.
         disable_progress (bool): Whether to suppress progress bars.
         gridded (bool): Whether to process in spatial chunks.
 
@@ -563,9 +707,10 @@ def VectorExposure(
     # load exposure data
     if isinstance(feature_file, PurePath):
         # if exposure_file is a shapefile, geopackage or parquet file
-        if feature_file.suffix in [".shp", ".gpkg", "parquet"]:
+        if feature_file.suffix in [".shp", ".gpkg"]:
             features = gpd.read_file(feature_file)
-
+        elif feature_file.suffix == ".parquet":
+            features = gpd.read_parquet(feature_file)
         # if exposure_file is an osm.pbf file
         elif feature_file.suffix == ".pbf":
             features = read_osm_data(feature_file, asset_type)
@@ -601,10 +746,7 @@ def VectorExposure(
             hazard_crs = hazard.rio.crs
 
             # check if crs is already in meters
-            if (
-                pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-                == "metre"
-            ):
+            if _crs_is_meters(hazard_crs):
                 cell_area_m2 = abs(
                     (hazard.x[1].values - hazard.x[0].values)
                     * (hazard.y[0].values - hazard.y[1].values)
@@ -614,10 +756,14 @@ def VectorExposure(
                     features, abs(hazard.rio.resolution()[0])
                 )
 
-        elif hazard_file.suffix in [".shp", ".gpkg", ".pbf"]:
+        elif hazard_file.suffix in [".shp", ".gpkg"]:
             hazard = gpd.read_file(hazard_file)
             hazard_crs = hazard.crs
-            cell_area_m2 = 1
+            cell_area_m2 = 1  # For vector hazards, coverage is already in meters
+        elif hazard_file.suffix == ".parquet":
+            hazard = gpd.read_parquet(hazard_file)
+            hazard_crs = hazard.crs
+            cell_area_m2 = 1  # For vector hazards, coverage is already in meters
         else:
             raise ValueError(
                 "hazard data should either be a geotiff, netcdf, shapefile, geopackage or parquet file"
@@ -631,23 +777,22 @@ def VectorExposure(
         hazard_crs = hazard.rio.crs
 
         # check if crs is already in meters
-        if pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+        if _crs_is_meters(hazard_crs):
             cell_area_m2 = abs(
                 (hazard.x[1].values - hazard.x[0].values)
                 * (hazard.y[0].values - hazard.y[1].values)
             )
-
         # if not, extract it more cumbersome
         else:
             cell_area_m2 = _get_cell_area_m2(features, abs(hazard.rio.resolution()[0]))
 
-    elif isinstance(hazard, gpd.GeoDataFrame):
+    elif isinstance(hazard_file, gpd.GeoDataFrame):
         hazard = hazard_file.copy()
         hazard_crs = hazard.crs
-        cell_area_m2 = 1
+        cell_area_m2 = 1  # For vector hazards, coverage is already in meters
     else:
         raise ValueError(
-            f"Hazard should be a raster or GeoDataFrame object, {type(hazard)} given"
+            f"Hazard should be a raster or GeoDataFrame object, {type(hazard_file)} given"
         )
 
     # Run exposure overlay
@@ -659,10 +804,14 @@ def VectorExposure(
             disable_progress=disable_progress,
             gridded=gridded,
         )
-    elif isinstance(hazard, (gpd.GeoDataFrame, pd.DataFrame)):
+    elif isinstance(hazard, gpd.GeoDataFrame):
         features = _overlay_vector_vector(
-            hazard, features, gridded=gridded
-        )  ## NOT WORKING YET
+            hazard,
+            features,
+            hazard_value_col=hazard_value_col,
+            gridded=gridded,
+            disable_progress=disable_progress,
+        )
 
     return features, object_col, hazard_crs, cell_area_m2
 
@@ -675,6 +824,7 @@ def VectorScanner(
     asset_type: str | None = None,
     multi_curves: dict = dict(),
     object_col="object_type",
+    hazard_value_col="band_data",
     disable_progress=False,
     gridded: bool = True,
     **kwargs,
@@ -690,6 +840,7 @@ def VectorScanner(
         asset_type (str): Infrastructure class (only for OSM).
         multi_curves (dict, optional): Multiple curve sets.
         object_col (str): Column name with object type.
+        hazard_value_col (str): Column name in vector hazard containing intensity values.
         disable_progress (bool): Whether to suppress progress bars.
         gridded (bool): Whether to process in spatial chunks.
 
@@ -698,11 +849,12 @@ def VectorScanner(
     """
     # Load hazard and exposure data, and perform the overlay
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-        hazard_file,
-        feature_file,
-        asset_type,
-        object_col,
-        disable_progress,
+        hazard_file=hazard_file,
+        feature_file=feature_file,
+        asset_type=asset_type,
+        object_col=object_col,
+        hazard_value_col=hazard_value_col,
+        disable_progress=disable_progress,
         gridded=gridded,
     )
 

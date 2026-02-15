@@ -11,6 +11,7 @@ from damagescanner.vector import (
     _create_grid,
     _remove_duplicates,
     _get_cell_area_m2,
+    _overlay_vector_vector,
 )
 
 
@@ -282,7 +283,7 @@ class TestVectorScanner:
         if len(result_gridded) > 0 and len(result_non_gridded) > 0:
             total_gridded = result_gridded["damage"].sum()
             total_non_gridded = result_non_gridded["damage"].sum()
-            # Allow 25% tolerance for edge effects [SHOULD BE MUCH LOWER. TO BE INVESTIGATED]
+
             assert (
                 abs(total_gridded - total_non_gridded)
                 / max(total_gridded, total_non_gridded)
@@ -319,3 +320,133 @@ class TestVectorScanner:
         )
 
         assert len(result) == 0
+
+
+@pytest.fixture
+def vector_hazard_files():
+    """Fixture for vector-vector overlay test files."""
+    vector_hazard = KAMPEN / "hazard" / "1in100_inundation_map_vector.parquet"
+    if not vector_hazard.exists():
+        pytest.skip(
+            "Vector hazard test data not available - run examples/create_vector_hazard.py first"
+        )
+
+    return {
+        "hazard": vector_hazard,
+        "exposure": KAMPEN / "exposure" / "landuse.gpkg",
+        "curves": KAMPEN / "vulnerability" / "curves_landuse.csv",
+        "maxdam": KAMPEN / "vulnerability" / "maxdam_landuse.csv",
+    }
+
+
+class TestVectorVectorOverlay:
+    """Tests for vector-vector overlay functionality."""
+
+    def test_overlay_vector_vector_returns_geodataframe(self, vector_hazard_files):
+        """Test that vector-vector overlay returns a GeoDataFrame."""
+        hazard = gpd.read_parquet(vector_hazard_files["hazard"])
+        features = gpd.read_file(vector_hazard_files["exposure"])
+
+        result = _overlay_vector_vector(
+            hazard=hazard,
+            features=features,
+            hazard_value_col="band_data",
+            disable_progress=False,
+        )
+
+        assert isinstance(result, gpd.GeoDataFrame)
+        print(f"\nFeatures with exposure: {len(result)}")
+
+    def test_overlay_vector_vector_has_required_columns(self, vector_hazard_files):
+        """Test that result has coverage and values columns."""
+        hazard = gpd.read_parquet(vector_hazard_files["hazard"])
+        features = gpd.read_file(vector_hazard_files["exposure"])
+
+        result = _overlay_vector_vector(
+            hazard=hazard,
+            features=features,
+            hazard_value_col="band_data",
+            disable_progress=False,
+        )
+
+        assert "coverage" in result.columns
+        assert "values" in result.columns
+
+    def test_overlay_vector_vector_values_are_lists(self, vector_hazard_files):
+        """Test that values and coverage are lists."""
+        hazard = gpd.read_parquet(vector_hazard_files["hazard"])
+        features = gpd.read_file(vector_hazard_files["exposure"])
+
+        result = _overlay_vector_vector(
+            hazard=hazard,
+            features=features,
+            hazard_value_col="band_data",
+            disable_progress=False,
+        )
+
+        if len(result) > 0:
+            assert all(isinstance(v, list) for v in result["values"])
+            assert all(isinstance(c, list) for c in result["coverage"])
+
+    def test_overlay_vector_vector_coverage_positive(self, vector_hazard_files):
+        """Test that coverage values are positive."""
+        hazard = gpd.read_parquet(vector_hazard_files["hazard"])
+        features = gpd.read_file(vector_hazard_files["exposure"])
+
+        result = _overlay_vector_vector(
+            hazard=hazard,
+            features=features,
+            hazard_value_col="band_data",
+            disable_progress=False,
+        )
+
+        if len(result) > 0:
+            for coverage_list in result["coverage"]:
+                assert all(c > 0 for c in coverage_list)
+
+    def test_vector_exposure_with_vector_hazard(self, vector_hazard_files):
+        """Test VectorExposure with vector hazard input."""
+        features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
+            hazard_file=vector_hazard_files["hazard"],
+            feature_file=vector_hazard_files["exposure"],
+            object_col="landuse",
+            hazard_value_col="band_data",
+        )
+
+        assert isinstance(features, gpd.GeoDataFrame)
+        assert cell_area_m2 == 1  # Vector hazards use coverage in meters directly
+        print(f"\nExposed features: {len(features)}")
+
+    def test_vector_scanner_with_vector_hazard(self, vector_hazard_files):
+        """Test VectorScanner with vector hazard input."""
+        result = VectorScanner(
+            hazard_file=vector_hazard_files["hazard"],
+            feature_file=vector_hazard_files["exposure"],
+            curve_path=vector_hazard_files["curves"],
+            maxdam_path=vector_hazard_files["maxdam"],
+            object_col="landuse",
+            hazard_value_col="band_data",
+        )
+
+        assert isinstance(result, gpd.GeoDataFrame)
+        print(f"\nFeatures with damage: {len(result)}")
+
+        if len(result) > 0:
+            assert "damage" in result.columns
+            print(f"Total damage: {result['damage'].sum():,.2f}")
+
+    def test_vector_scanner_with_vector_hazard_damages_non_negative(
+        self, vector_hazard_files
+    ):
+        """Test that damages are non-negative."""
+        result = VectorScanner(
+            hazard_file=vector_hazard_files["hazard"],
+            feature_file=vector_hazard_files["exposure"],
+            curve_path=vector_hazard_files["curves"],
+            maxdam_path=vector_hazard_files["maxdam"],
+            object_col="landuse",
+            hazard_value_col="band_data",
+        )
+
+        if len(result) > 0:
+            assert (result["damage"] >= 0).all()
