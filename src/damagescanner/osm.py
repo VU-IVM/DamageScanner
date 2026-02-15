@@ -381,6 +381,7 @@ def _extract_value(text, key):
     except Exception:
         return None
 
+
 def extract(osm_path, geom_type, osm_keys, osm_query):
     """
     Extract specific infrastructure features from a .pbf file using OSM keys/values.
