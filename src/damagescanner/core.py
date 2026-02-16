@@ -398,7 +398,7 @@ class DamageScanner(object):
             for curve in multi_curves.keys():
                 subrisk = df_risk.loc[:, pd.IndexSlice[:, curve]]
                 collect_risks[curve] = subrisk.apply(
-                    lambda x: np.trapz(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
+                    lambda x: np.trapezoid(y=x[RP_list][::-1], x=RPS[::-1]), axis=1
                 ).values
 
                 # save output when tot_risk returns negative values
