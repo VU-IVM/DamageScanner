@@ -14,17 +14,17 @@ license = {text = "MIT License"}
 description = "Direct damage assessments for natural hazards"
 keywords = ["GIS", "natural hazards", "damage assessment", "remote sensing", "raster", "vector", "geospatial"]
 classifiers=[
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python",
-        "Operating System :: OS Independent",
-        "Topic :: Scientific/Engineering :: GIS",
-        "Topic :: Utilities",
-    ]
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Utilities",
+]
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "numpy",
-    "geopandas",
+    "numpy>=2.0.0",
+    "geopandas>=1.0.0",
     "rasterio",
     "matplotlib",
     "tqdm",
@@ -33,7 +33,7 @@ dependencies = [
     "xarray",
     "rioxarray",
     "openpyxl",
-    "exactextract"
+    "exactextract>=0.3.0"
 ]
 
 [dependency-groups]
@@ -42,12 +42,19 @@ dev = [
     "ruff>=0.11.2",
 ]
 tests = ["pytest", "pyarrow", "netcdf4"]
-docs = ["jupyter"]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-include-markdown-plugin",
+    "markdown-include",
+    "mkdocs-jupyter",
+    "mkdocstrings[python]",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 
 [project.urls]
-"Homepage" = "https://github.com/ElcoK/DamageScanner"
-"Documentation" = "https://damagescanner.readthedocs.io/en/latest/"
+"Homepage" = "https://github.com/VU-IVM/DamageScanner"
+"Documentation" = "https://vu-ivm.github.io/DamageScanner/"

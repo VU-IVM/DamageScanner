@@ -25,7 +25,6 @@ plugins:
             show_root_full_path: false
             show_signature: true           # <- shows the function signature
             show_source: false             # optional: hides source link
-            show_docstring: true           # make sure this is on
             show_bases: false              # optional: hides base classes for class views
             heading_level: 3
 
@@ -37,6 +36,7 @@ nav:
       - Vector-based approach: how-to/vector.md
       - Coupling with OSM: how-to/osm.md
   - Examples:
+      - Overview: examples/overview.md
       - Vector-based example: examples/vector-based.md
       - Raster-based example: examples/raster-based.md
   - API Reference: api.md

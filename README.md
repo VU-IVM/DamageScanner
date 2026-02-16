@@ -20,58 +20,64 @@ A python toolkit for direct damage assessments for natural hazards. Even though 
 This package is (loosely) based on the original DamageScanner, which calculated potential flood damages based on inundation depth and land use using depth-damage curves in the Netherlands. The DamageScanner was originally developed for the 'Netherlands Later' project [(Klijn et al., 2007)](https://www.rivm.nl/bibliotheek/digitaaldepot/WL_rapport_Overstromingsrisicos_Nederland.pdf).  The original land-use classes were based on the Land-Use Scanner in order to evaluate the effect of future land-use change on flood damages. 
 
 ## Installation
-[![workflow pypi badge](https://img.shields.io/pypi/v/damagescanner.svg?colorB=blue)](https://pypi.python.org/project/damagescanner/)
+To use `DamageScanner` in your project:
 
-**Requirements:** [NumPy](http://www.numpy.org/), [pandas](https://pandas.pydata.org/), [geopandas](http://geopandas.org/), [matplotlib](https://matplotlib.org/), [rasterio](https://github.com/mapbox/rasterio), [tqdm](https://github.com/tqdm/tqdm), 
-[xarray](https://docs.xarray.dev/en/stable/), [pyproj](https://pyproj4.github.io/pyproj/stable/) 
+### Using `uv` (Recommended)
+```bash
+uv add damagescanner
+```
 
+### Using `pip`
+```bash
+pip install damagescanner
+```
 
-1. Open the python environment in your command prompt or bash in which you want to install this package.
-2. Type ``pip install damagescanner`` and it should install itself into your python environment.
-3. Now you can import the package like any other package!
+## Development & Testing
+To set up a local environment for development or to run tests:
 
-OR:
-
-1. Clone the repository or download the package on your computer and extract the folder.
-2. Go to the DamageScanner folder in your command prompt or bash.
-3. Type ``python setup.py install`` and it should install itself into your python environment.
-4. Now you can import the package like any other package!
-
-## Create testing environment
-Recommended option is to use a [miniconda](https://conda.io/miniconda.html)
-environment to work in for this project, relying on conda to handle some of the
-trickier library dependencies.
+### Using `uv` (Recommended)
+[uv](https://github.com/astral-sh/uv) is an extremely fast Python package manager and is the preferred way to set up the development environment.
 
 ```bash
+# Clone the repository
+git clone https://github.com/VU-IVM/DamageScanner.git
+cd DamageScanner
 
+# Create a virtual environment and install all optional dependencies
+uv sync --all-groups
+```
+
+### Using Miniconda
+If you prefer [Miniconda](https://docs.conda.io/en/latest/miniconda.html), use the provided `environment.yml` file:
+
+```bash
 # Add conda-forge channel for extra packages
 conda config --add channels conda-forge
 
-# Create a conda environment for the project and install packages
+# Create environment and activate
 conda env create -f environment.yml
-activate ds_env
-
+conda activate ds-test
 ```
 
 ## Documentation
-[![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
+Please refer to the [ReadTheDocs](https://vu-ivm.github.io/DamageScanner/) of this project for the full documentation of all functions. 
 
-Please refer to the [ReadTheDocs](http://damagescanner.readthedocs.io/) of this project for the full documentation of all functions. 
-
-## How to cite:
+## How to cite
 If you use the **DamageScanner** in your work, please cite the package directly:
 
 * Koks. E.E. (2022). DamageScanner: Python tool for natural hazard damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
 Here's an example BibTeX entry:
 
-        @misc{damagescannerPython,
-              author       = {Koks, E.E.},
-              title        = {DamageScanner: Python tool for natural hazard damage assessments},
-              year         = 2022,
-              doi          = {10.5281/zenodo.2551015},
-              url          = {http://doi.org/10.5281/zenodo.2551015}
-        }
+```
+@misc{damagescannerPython,
+      author       = {Koks, E.E.},
+      title        = {DamageScanner: Python tool for natural hazard damage assessments},
+      year         = 2022,
+      doi          = {10.5281/zenodo.2551015},
+      url          = {http://doi.org/10.5281/zenodo.2551015}
+}
+```
 
-### License
+## License
 Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICENSE).
