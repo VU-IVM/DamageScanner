@@ -41,7 +41,7 @@ dev = [
     "pytest>=8.3.5",
     "ruff>=0.11.2",
 ]
-tests = ["pytest", "pyarrow"]
+tests = ["pytest", "pyarrow", "netcdf4"]
 docs = ["jupyter"]
 
 [tool.pytest.ini_options]
