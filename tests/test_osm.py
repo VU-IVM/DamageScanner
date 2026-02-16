@@ -8,7 +8,7 @@ from shapely.geometry import (
     GeometryCollection,
 )
 
-from .setup import data_path
+from .helpers import data_path
 
 from damagescanner.osm import (
     _combine_columns,

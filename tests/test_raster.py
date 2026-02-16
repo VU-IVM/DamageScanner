@@ -3,7 +3,7 @@ import rasterio
 import numpy as np
 import pandas as pd
 
-from .setup import tmp_folder, data_path
+from .helpers import tmp_folder, data_path
 
 from damagescanner.raster import match_and_load_rasters, RasterScanner
 

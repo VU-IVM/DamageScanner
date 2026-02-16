@@ -3,7 +3,7 @@ import pandas as pd
 import geopandas as gpd
 import shapely
 
-from .setup import data_path
+from .helpers import data_path
 
 from damagescanner.vector import (
     VectorScanner,

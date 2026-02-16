@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from .setup import tmp_folder
+from .helpers import tmp_folder
 
 from damagescanner.download import (
     _create_gf_download_url,

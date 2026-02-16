@@ -1,7 +1,7 @@
 import pytest
 from pathlib import Path
 
-from .setup import tmp_folder
+from .helpers import tmp_folder
 
 from damagescanner.utils import _check_output_path, _check_scenario_name
 
