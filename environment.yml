@@ -11,13 +11,11 @@ dependencies:
     - matplotlib
     - tqdm
     - pip
-    - jupyterlab
     - xlrd
     - pyproj
     - xarray
     - rioxarray   
-    - igraph
     - pip:
-        - contextily
         - openpyxl
+        - exactextract
         

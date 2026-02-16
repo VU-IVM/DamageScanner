@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=64.0.0"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build"]
+build-backend = "uv_build"
 
 [project]
 name = "damagescanner"
-version = "0.9-beta.26"
+version = "1.0.0"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
     {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
@@ -23,31 +23,24 @@ classifiers=[
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    "geopandas",
     "numpy",
-    "pyproj",
+    "geopandas",
     "rasterio",
+    "matplotlib",
+    "tqdm",
+    "xlrd",
+    "pyproj",
     "xarray",
     "rioxarray",
-    "pandas",
-    "shapely >= 2.0",
-    "tqdm",
-    "pyyaml",
-    "exactextract",
-    "scipy>=1.13.1",
+    "openpyxl",
+    "exactextract"
 ]
-
-[tool.setuptools.package-data]
-"*" = ["*.ini"]
-
-[project.optional-dependencies]
 
 [dependency-groups]
 dev = [
     "pytest>=8.3.5",
     "ruff>=0.11.2",
 ]
-examples = ["osm-flex"]
 tests = ["pytest", "pyarrow"]
 docs = ["jupyter"]
 
