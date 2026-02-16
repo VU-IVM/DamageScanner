@@ -35,7 +35,7 @@ pip install damagescanner
 ## Development & Testing
 To set up a local environment for development or to run tests:
 
-### Using `uv` (Recommended)
+### Using `uv` (ecommended)
 [uv](https://github.com/astral-sh/uv) is an extremely fast Python package manager and is the preferred way to set up the development environment.
 
 ```bash
@@ -60,7 +60,7 @@ conda activate ds-test
 ```
 
 ## Documentation
-Please refer to the [ReadTheDocs](https://vu-ivm.github.io/DamageScanner/) of this project for the full documentation of all functions. 
+Please refer to the [documentation](https://vu-ivm.github.io/DamageScanner/) of this project for the full documentation of all functions. 
 
 ## How to cite
 If you use the **DamageScanner** in your work, please cite the package directly:
