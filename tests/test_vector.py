@@ -17,6 +17,7 @@ from damagescanner.vector import (
 
 # Define test data paths
 KAMPEN = data_path / "kampen"
+JAMAICA = data_path / "jamaica"
 
 
 @pytest.fixture
@@ -450,3 +451,62 @@ class TestVectorVectorOverlay:
 
         if len(result) > 0:
             assert (result["damage"] >= 0).all()
+
+@pytest.fixture
+def osm_files():
+    """Fixture for Jamaica OSM test files."""
+    osm_path = JAMAICA / "exposure" / "jamaica-latest.osm.pbf"
+    hazard_path = JAMAICA / "hazard" / "FD_1in1000.tif"
+
+    if not osm_path.exists() or not hazard_path.exists():
+        pytest.skip("Jamaica OSM/hazard test data not available")
+
+    return {
+        "hazard": hazard_path,
+        "exposure": osm_path,
+        "curves": JAMAICA / "vulnerability" / "curves_osm.csv",
+        "maxdam": JAMAICA / "vulnerability" / "maxdam_osm.csv",
+    }
+
+class TestExtractStrategy:
+    """Tests for exactextract strategy comparison."""
+
+    def test_gridded_feature_vs_raster_sequential_jamaica_roads(self, osm_files):
+        """Test that feature-sequential and raster-sequential produce same results for gridded."""
+        # Run with feature-sequential
+        result_feature = VectorScanner(
+            hazard_file=osm_files["hazard"],
+            feature_file=osm_files["exposure"],
+            curve_path=osm_files["curves"],
+            maxdam_path=osm_files["maxdam"],
+            asset_type="roads",
+            gridded=True,
+            extract_strategy="feature-sequential",
+        )
+
+        # Run with raster-sequential
+        result_raster = VectorScanner(
+            hazard_file=osm_files["hazard"],
+            feature_file=osm_files["exposure"],
+            curve_path=osm_files["curves"],
+            maxdam_path=osm_files["maxdam"],
+            asset_type="roads",
+            gridded=True,
+            extract_strategy="raster-sequential",
+        )
+
+        assert len(result_feature) > 0, "Feature-sequential returned no results"
+        assert len(result_raster) > 0, "Raster-sequential returned no results"
+
+        total_feature = result_feature["damage"].sum()
+        total_raster = result_raster["damage"].sum()
+
+        print(f"\n--- Extract Strategy Comparison (Gridded) ---")
+        print(f"Feature-sequential total damage: {total_feature:,.2f}")
+        print(f"Raster-sequential total damage: {total_raster:,.2f}")
+        print(f"Difference: {abs(total_feature - total_raster):,.2f}")
+
+        assert total_feature == pytest.approx(total_raster, rel=0.01), (
+            f"Feature-sequential ({total_feature:,.2f}) and raster-sequential ({total_raster:,.2f}) "
+            f"should produce equal results"
+        )

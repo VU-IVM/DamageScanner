@@ -65,19 +65,19 @@ Please refer to the [documentation](https://vu-ivm.github.io/DamageScanner/) of 
 ## How to cite
 If you use the **DamageScanner** in your work, please cite the package directly:
 
-* Koks. E.E. (2022). DamageScanner: Python tool for natural hazard damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
+* Koks. E.E. & de Bruijn, J. (2022). DamageScanner: Python tool for natural hazard damage assessments. Zenodo. http://doi.org/10.5281/zenodo.2551015
 
 Here's an example BibTeX entry:
 
 ```
 @misc{damagescannerPython,
-      author       = {Koks, E.E.},
+      author       = {Koks, E.E. and {de Bruijn}, J.},
       title        = {DamageScanner: Python tool for natural hazard damage assessments},
-      year         = 2022,
+      year         = 2026,
       doi          = {10.5281/zenodo.2551015},
       url          = {http://doi.org/10.5281/zenodo.2551015}
 }
 ```
 
 ## License
-Copyright (C) 2022 Elco Koks. All versions released under the [MIT license](LICENSE).
+Copyright (C) 2026 Elco Koks & Jens de Bruijn. All versions released under the [MIT license](LICENSE).

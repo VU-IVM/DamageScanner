@@ -225,6 +225,7 @@ def _overlay_raster_vector(
     hazard_crs,
     gridded=True,
     disable_progress=False,
+    extract_strategy="raster-sequential",
 ):
     """
     Overlay raster hazard data on vector exposure features.
@@ -235,6 +236,7 @@ def _overlay_raster_vector(
         hazard_crs (pyproj.CRS): CRS of hazard data.
         gridded (bool): Whether to process in spatial chunks.
         disable_progress (bool): Disable tqdm progress bar.
+        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
 
     Returns:
         gpd.GeoDataFrame: Exposure features with added `coverage` and `values`.
@@ -322,9 +324,9 @@ def _overlay_raster_vector(
     exact_extract_kwargs = {
         "output": "pandas",
         "include_geom": False,
-        "strategy": "raster-sequential",
+        "strategy": extract_strategy,
     }
-
+    
     if not gridded:
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
@@ -334,11 +336,26 @@ def _overlay_raster_vector(
                 **exact_extract_kwargs,
             )
 
+            # Set the index to match the features (like gridded case does)
+            values_and_coverage_per_area_and_line_object.index = (
+                features[area_and_line_objects].index
+            )
+
+            # Initialize columns as object dtype if they don't exist
+            if "values" not in features.columns:
+                features["values"] = pd.Series(
+                    [None] * len(features), index=features.index, dtype=object
+                )
+            if "coverage" not in features.columns:
+                features["coverage"] = pd.Series(
+                    [None] * len(features), index=features.index, dtype=object
+                )
+
             features.loc[area_and_line_objects, "coverage"] = (
-                values_and_coverage_per_area_and_line_object["coverage"].values
+                values_and_coverage_per_area_and_line_object["coverage"]
             )
             features.loc[area_and_line_objects, "values"] = (
-                values_and_coverage_per_area_and_line_object["values"].values
+                values_and_coverage_per_area_and_line_object["values"]
             )
 
     elif gridded:
@@ -442,12 +459,20 @@ def _overlay_raster_vector(
     features = features[features["values"].apply(lambda x: len(x) > 0)]
 
     # convert coverage to meters, only do this if the crs is not in meters
-    if not pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name == "metre":
+    if not _crs_is_meters(hazard_crs):
         tqdm.pandas(desc="convert coverage to meters", disable=disable_progress)
 
         features.loc[:, "coverage"] = features.progress_apply(
             lambda feature: _convert_to_meters(feature), axis=1
         )
+
+    # Ensure consistent list type for all values/coverage (exactextract returns numpy arrays)
+    features["values"] = features["values"].apply(
+        lambda x: x.tolist() if isinstance(x, np.ndarray) else x
+    )
+    features["coverage"] = features["coverage"].apply(
+        lambda x: x.tolist() if isinstance(x, np.ndarray) else x
+    )
 
     return features
 
@@ -688,6 +713,7 @@ def VectorExposure(
     hazard_value_col="band_data",
     disable_progress=False,
     gridded: bool = True,
+    extract_strategy: str = "raster-sequential",
 ):
     """
     Load and overlay vector or raster hazard with vector exposure data.
@@ -700,6 +726,7 @@ def VectorExposure(
         hazard_value_col (str): Column name in vector hazard containing intensity values.
         disable_progress (bool): Whether to suppress progress bars.
         gridded (bool): Whether to process in spatial chunks.
+        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
 
     Returns:
         tuple: (features, object_col, hazard_crs, cell_area_m2)
@@ -803,7 +830,9 @@ def VectorExposure(
             hazard_crs,
             disable_progress=disable_progress,
             gridded=gridded,
+            extract_strategy=extract_strategy,
         )
+
     elif isinstance(hazard, gpd.GeoDataFrame):
         features = _overlay_vector_vector(
             hazard,
@@ -827,6 +856,7 @@ def VectorScanner(
     hazard_value_col="band_data",
     disable_progress=False,
     gridded: bool = True,
+    extract_strategy: str = "raster-sequential",
     **kwargs,
 ):
     """
@@ -843,20 +873,23 @@ def VectorScanner(
         hazard_value_col (str): Column name in vector hazard containing intensity values.
         disable_progress (bool): Whether to suppress progress bars.
         gridded (bool): Whether to process in spatial chunks.
+        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
 
     Returns:
         gpd.GeoDataFrame: Exposure data with calculated damages.
     """
+
     # Load hazard and exposure data, and perform the overlay
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-        hazard_file=hazard_file,
-        feature_file=feature_file,
-        asset_type=asset_type,
-        object_col=object_col,
-        hazard_value_col=hazard_value_col,
-        disable_progress=disable_progress,
-        gridded=gridded,
-    )
+            hazard_file=hazard_file,
+            feature_file=feature_file,
+            asset_type=asset_type,
+            object_col=object_col,
+            hazard_value_col=hazard_value_col,
+            disable_progress=disable_progress,
+            gridded=gridded,
+            extract_strategy=extract_strategy,
+        )
 
     if len(features) == 0:
         return features
@@ -883,11 +916,14 @@ def VectorScanner(
         maxdam = maxdam_path
 
     # remove features that are not part of this object type
-    if asset_type is not None and asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
-        unique_objects_in_asset_type = list(
-            DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
-        )
-        features = features[features[object_col].isin(unique_objects_in_asset_type)]
+    # Only filter by asset_type when using OSM data
+        # is_osm_data = isinstance(feature_file, PurePath) and feature_file.suffix == ".pbf"
+        
+        # if is_osm_data and asset_type is not None and asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
+        #     unique_objects_in_asset_type = list(
+        #         DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
+        #     )
+        #     features = features[features[object_col].isin(unique_objects_in_asset_type)]
 
     # connect maxdam to exposure
     if maxdam_path is None:
