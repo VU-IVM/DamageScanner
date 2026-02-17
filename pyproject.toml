@@ -49,6 +49,7 @@ docs = [
     "markdown-include",
     "mkdocs-jupyter",
     "mkdocstrings[python]",
+    "mike",
 ]
 
 [tool.pytest.ini_options]
