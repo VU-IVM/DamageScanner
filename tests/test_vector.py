@@ -452,6 +452,7 @@ class TestVectorVectorOverlay:
         if len(result) > 0:
             assert (result["damage"] >= 0).all()
 
+
 @pytest.fixture
 def osm_files():
     """Fixture for Jamaica OSM test files."""
@@ -467,6 +468,7 @@ def osm_files():
         "curves": JAMAICA / "vulnerability" / "curves_osm.csv",
         "maxdam": JAMAICA / "vulnerability" / "maxdam_osm.csv",
     }
+
 
 class TestExtractStrategy:
     """Tests for exactextract strategy comparison."""
@@ -501,12 +503,12 @@ class TestExtractStrategy:
         total_feature = result_feature["damage"].sum()
         total_raster = result_raster["damage"].sum()
 
-        print(f"\n--- Extract Strategy Comparison (Gridded) ---")
+        print("\n--- Extract Strategy Comparison (Gridded) ---")
         print(f"Feature-sequential total damage: {total_feature:,.2f}")
         print(f"Raster-sequential total damage: {total_raster:,.2f}")
         print(f"Difference: {abs(total_feature - total_raster):,.2f}")
 
         assert total_feature == pytest.approx(total_raster, rel=0.01), (
             f"Feature-sequential ({total_feature:,.2f}) and raster-sequential ({total_raster:,.2f}) "
-            f"should produce equal results"
+            "should produce equal results"
         )

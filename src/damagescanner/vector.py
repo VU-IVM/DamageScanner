@@ -17,7 +17,7 @@ import traceback
 import warnings
 
 from damagescanner.osm import read_osm_data
-from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
+# from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD # removed for the time being
 
 
 def _crs_is_meters(crs):
@@ -326,7 +326,7 @@ def _overlay_raster_vector(
         "include_geom": False,
         "strategy": extract_strategy,
     }
-    
+
     if not gridded:
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
@@ -337,9 +337,9 @@ def _overlay_raster_vector(
             )
 
             # Set the index to match the features (like gridded case does)
-            values_and_coverage_per_area_and_line_object.index = (
-                features[area_and_line_objects].index
-            )
+            values_and_coverage_per_area_and_line_object.index = features[
+                area_and_line_objects
+            ].index
 
             # Initialize columns as object dtype if they don't exist
             if "values" not in features.columns:
@@ -881,15 +881,15 @@ def VectorScanner(
 
     # Load hazard and exposure data, and perform the overlay
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
-            hazard_file=hazard_file,
-            feature_file=feature_file,
-            asset_type=asset_type,
-            object_col=object_col,
-            hazard_value_col=hazard_value_col,
-            disable_progress=disable_progress,
-            gridded=gridded,
-            extract_strategy=extract_strategy,
-        )
+        hazard_file=hazard_file,
+        feature_file=feature_file,
+        asset_type=asset_type,
+        object_col=object_col,
+        hazard_value_col=hazard_value_col,
+        disable_progress=disable_progress,
+        gridded=gridded,
+        extract_strategy=extract_strategy,
+    )
 
     if len(features) == 0:
         return features
@@ -917,13 +917,13 @@ def VectorScanner(
 
     # remove features that are not part of this object type
     # Only filter by asset_type when using OSM data
-        # is_osm_data = isinstance(feature_file, PurePath) and feature_file.suffix == ".pbf"
-        
-        # if is_osm_data and asset_type is not None and asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
-        #     unique_objects_in_asset_type = list(
-        #         DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
-        #     )
-        #     features = features[features[object_col].isin(unique_objects_in_asset_type)]
+    # is_osm_data = isinstance(feature_file, PurePath) and feature_file.suffix == ".pbf"
+
+    # if is_osm_data and asset_type is not None and asset_type in DICT_CIS_VULNERABILITY_FLOOD.keys():
+    #     unique_objects_in_asset_type = list(
+    #         DICT_CIS_VULNERABILITY_FLOOD[asset_type].keys()
+    #     )
+    #     features = features[features[object_col].isin(unique_objects_in_asset_type)]
 
     # connect maxdam to exposure
     if maxdam_path is None:
