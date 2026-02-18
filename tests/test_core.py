@@ -179,6 +179,7 @@ class TestVectorCalculation:
             maxdam=vector_inputs["maxdam"],
         )
         result = ds.calculate(object_col="landuse")
+        assert isinstance(result, pd.DataFrame)
 
         if len(result) > 0:
             assert "damage" in result.columns
@@ -279,6 +280,7 @@ class TestOSMCalculation:
             maxdam=osm_inputs["maxdam"],
         )
         result = ds.calculate(asset_type="main_roads")
+        assert isinstance(result, pd.DataFrame)
 
         if len(result) > 0:
             assert "damage" in result.columns

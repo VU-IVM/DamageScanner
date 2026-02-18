@@ -331,11 +331,8 @@ def _overlay_raster_vector(
             coverage_as_lists, index=point_idx
         ).values
 
-    exact_extract_kwargs = {
-        "output": "pandas",
-        "include_geom": False,
-        "strategy": extract_strategy,
-    }
+    output_type: str = "pandas"
+    include_geom: bool = False
 
     if not gridded:
         if area_and_line_objects.sum() > 0:
@@ -343,7 +340,9 @@ def _overlay_raster_vector(
                 hazard,
                 features[area_and_line_objects][["geometry"]],  # only pass the geometry
                 ["coverage", "values"],
-                **exact_extract_kwargs,
+                include_geom=include_geom,
+                output=output_type,
+                strategy=extract_strategy,
             )
 
             # Set the index to match the features (like gridded case does)
@@ -370,10 +369,7 @@ def _overlay_raster_vector(
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
-            if (
-                pyproj.CRS.from_epsg(hazard_crs.to_epsg()).axis_info[0].unit_name
-                == "metre"
-            ):
+            if _crs_is_meters(hazard_crs):
                 grid_cell_size = 50000  # in meters
             else:
                 grid_cell_size = 0.5  # in degrees
@@ -434,7 +430,9 @@ def _overlay_raster_vector(
                             ["geometry"]
                         ],  # only pass the geometry
                         ["coverage", "values"],
-                        **exact_extract_kwargs,
+                        include_geom=include_geom,
+                        output=output_type,
+                        strategy=extract_strategy
                     )
 
                     # make sure we can connect the results with the features
@@ -936,6 +934,7 @@ def VectorScanner(
         KeyError: If object types in exposure are not covered by maximum damage data.
     """
     # Load hazard and exposure data, and perform the overlay
+    features: gpd.GeoDataFrame
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
         hazard_file=hazard_file,
         feature_file=feature_file,
@@ -1004,7 +1003,7 @@ def VectorScanner(
 
     # Calculate damage
     if not multi_curves:
-        features = _estimate_damage(features, curves, object_col, cell_area_m2)
+        features: gpd.GeoDataFrame = _estimate_damage(features, curves, object_col, cell_area_m2)
     else:
         collect_sub_outcomes = []
         for curve_id in multi_curves:
@@ -1020,6 +1019,6 @@ def VectorScanner(
         features.loc[:, all_curve_damages.columns] = all_curve_damages
 
         if "damage" in features.columns:
-            features = features.drop(columns="damage")
+            features: gpd.GeoDataFrame = features.drop(columns="damage")  # ty: ignore[invalid-assignment]
 
     return features

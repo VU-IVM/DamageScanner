@@ -368,7 +368,7 @@ def create_point_from_polygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def _extract_value(text: str | None, key: str) -> str | None:
+def _extract_value(text: str | float | None, key: str) -> str | None:
     """
     Parse the value of a specific key from a semi-structured OSM tag string.
 
@@ -379,7 +379,7 @@ def _extract_value(text: str | None, key: str) -> str | None:
     Returns:
         Extracted value or None.
     """
-    if text is None:
+    if text is None or isinstance(text, float):
         return None
     pattern = rf'"{key}"=>"([^"]+)"'
     match = re.search(pattern, text)
