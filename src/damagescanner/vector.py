@@ -432,7 +432,7 @@ def _overlay_raster_vector(
                         ["coverage", "values"],
                         include_geom=include_geom,
                         output=output_type,
-                        strategy=extract_strategy
+                        strategy=extract_strategy,
                     )
 
                     # make sure we can connect the results with the features
@@ -1003,7 +1003,9 @@ def VectorScanner(
 
     # Calculate damage
     if not multi_curves:
-        features: gpd.GeoDataFrame = _estimate_damage(features, curves, object_col, cell_area_m2)
+        features: gpd.GeoDataFrame = _estimate_damage(
+            features, curves, object_col, cell_area_m2
+        )
     else:
         collect_sub_outcomes = []
         for curve_id in multi_curves:
