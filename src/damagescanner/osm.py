@@ -4,6 +4,7 @@ import functools
 import operator
 import re
 from pathlib import Path
+from typing import Any
 
 import geopandas as gpd
 import numpy as np
@@ -16,7 +17,7 @@ from shapely.geometry import (
 
 from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
-DICT_CIS_OSM = {
+DICT_CIS_OSM: dict[str, dict[str, Any]] = {
     "roads": {
         "osm_keys": [
             "highway",
@@ -367,7 +368,7 @@ def create_point_from_polygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     return gdf
 
 
-def _extract_value(text: str, key: str) -> str | None:
+def _extract_value(text: str | None, key: str) -> str | None:
     """
     Parse the value of a specific key from a semi-structured OSM tag string.
 
@@ -378,14 +379,14 @@ def _extract_value(text: str, key: str) -> str | None:
     Returns:
         Extracted value or None.
     """
+    if text is None:
+        return None
     pattern = rf'"{key}"=>"([^"]+)"'
-    try:
-        match = re.search(pattern, text)
-        if match:
-            return match.group(1)
-        return None
-    except Exception:
-        return None
+    match = re.search(pattern, text)
+    if match:
+        return match.group(1)
+    return None
+
 
 
 def extract(

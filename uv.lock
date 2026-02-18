@@ -380,7 +380,7 @@ wheels = [
 
 [[package]]
 name = "damagescanner"
-version = "1.0.0b1"
+version = "1.0.0b2"
 source = { editable = "." }
 dependencies = [
     { name = "exactextract" },
