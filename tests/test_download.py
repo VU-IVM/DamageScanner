@@ -1,23 +1,26 @@
-import pytest
+"""Tests for damagescanner.download module."""
+
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from .helpers import tmp_folder
+import pytest
 
+from damagescanner.config import GEOFABRIK_URL, PLANET_URL
 from damagescanner.download import (
     _create_gf_download_url,
     _download_file,
     get_country_geofabrik,
-    get_region_geofabrik,
     get_planet_file,
+    get_region_geofabrik,
 )
-from damagescanner.config import GEOFABRIK_URL, PLANET_URL
+
+from .helpers import tmp_folder
 
 
 class TestCreateGfDownloadUrl:
     """Tests for _create_gf_download_url function."""
 
-    def test_creates_pbf_url(self):
+    def test_creates_pbf_url(self) -> None:
         """Test creating a PBF download URL."""
         url = _create_gf_download_url("NLD", "pbf")
 
@@ -25,7 +28,7 @@ class TestCreateGfDownloadUrl:
         assert url.endswith(".osm.pbf")
         assert "netherlands" in url.lower()
 
-    def test_creates_shp_url(self):
+    def test_creates_shp_url(self) -> None:
         """Test creating a SHP download URL."""
         url = _create_gf_download_url("NLD", "shp")
 
@@ -33,22 +36,22 @@ class TestCreateGfDownloadUrl:
         assert url.endswith("-free.shp.zip")
         assert "netherlands" in url.lower()
 
-    def test_invalid_iso3_raises_keyerror(self):
+    def test_invalid_iso3_raises_keyerror(self) -> None:
         """Test that invalid ISO3 raises KeyError."""
         with pytest.raises(KeyError):
             _create_gf_download_url("INVALID", "pbf")
 
-    def test_russia_raises_specific_error(self):
+    def test_russia_raises_specific_error(self) -> None:
         """Test that Russia ISO3 raises specific KeyError with guidance."""
         with pytest.raises(KeyError, match="Russia comes in two files"):
             _create_gf_download_url("RUS", "pbf")
 
-    def test_invalid_format_raises_notimplemented(self):
+    def test_invalid_format_raises_notimplemented(self) -> None:
         """Test that invalid format raises NotImplementedError."""
         with pytest.raises(NotImplementedError, match="Invalid file format"):
             _create_gf_download_url("NLD", "geojson")
 
-    def test_various_countries(self):
+    def test_various_countries(self) -> None:
         """Test URL creation for various countries."""
         test_cases = [
             ("DEU", "germany"),
@@ -72,7 +75,7 @@ class TestDownloadFile:
     """Tests for _download_file function."""
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_downloads_new_file(self, mock_urlretrieve):
+    def test_downloads_new_file(self, mock_urlretrieve: MagicMock) -> None:
         """Test that new file is downloaded."""
         filepath = tmp_folder / "test_download.pbf"
 
@@ -87,7 +90,7 @@ class TestDownloadFile:
         )
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_overwrites_existing_file(self, mock_urlretrieve):
+    def test_overwrites_existing_file(self, mock_urlretrieve: MagicMock) -> None:
         """Test that existing file is overwritten when overwrite=True."""
         filepath = tmp_folder / "test_existing.pbf"
 
@@ -103,7 +106,7 @@ class TestDownloadFile:
             filepath.unlink()
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_skips_existing_file_no_overwrite(self, mock_urlretrieve):
+    def test_skips_existing_file_no_overwrite(self, mock_urlretrieve: MagicMock) -> None:
         """Test that existing file is skipped when overwrite=False."""
         filepath = tmp_folder / "test_skip.pbf"
 
@@ -123,14 +126,14 @@ class TestGetCountryGeofabrik:
     """Tests for get_country_geofabrik function."""
 
     @patch("damagescanner.download._download_file")
-    def test_returns_path(self, mock_download):
+    def test_returns_path(self, mock_download: MagicMock) -> None:
         """Test that function returns a Path object."""
         result = get_country_geofabrik("NLD", save_path=tmp_folder)
 
         assert isinstance(result, Path)
 
     @patch("damagescanner.download._download_file")
-    def test_pbf_format(self, mock_download):
+    def test_pbf_format(self, mock_download: MagicMock) -> None:
         """Test downloading in PBF format."""
         result = get_country_geofabrik("NLD", file_format="pbf", save_path=tmp_folder)
 
@@ -138,7 +141,7 @@ class TestGetCountryGeofabrik:
         mock_download.assert_called_once()
 
     @patch("damagescanner.download._download_file")
-    def test_shp_format(self, mock_download):
+    def test_shp_format(self, mock_download: MagicMock) -> None:
         """Test downloading in SHP format."""
         result = get_country_geofabrik("NLD", file_format="shp", save_path=tmp_folder)
 
@@ -146,7 +149,7 @@ class TestGetCountryGeofabrik:
         mock_download.assert_called_once()
 
     @patch("damagescanner.download._download_file")
-    def test_creates_directory(self, mock_download):
+    def test_creates_directory(self, mock_download: MagicMock) -> None:
         """Test that save directory is created if needed."""
         new_dir = tmp_folder / "new_osm_dir"
 
@@ -162,13 +165,13 @@ class TestGetCountryGeofabrik:
         if new_dir.exists():
             new_dir.rmdir()
 
-    def test_invalid_iso3_raises_error(self):
+    def test_invalid_iso3_raises_error(self) -> None:
         """Test that invalid ISO3 raises KeyError."""
         with pytest.raises(KeyError):
             get_country_geofabrik("INVALID", save_path=tmp_folder)
 
     @patch("damagescanner.download._download_file")
-    def test_overwrite_parameter_passed(self, mock_download):
+    def test_overwrite_parameter_passed(self, mock_download: MagicMock) -> None:
         """Test that overwrite parameter is passed to download function."""
         get_country_geofabrik("NLD", save_path=tmp_folder, overwrite=True)
 
@@ -183,14 +186,14 @@ class TestGetRegionGeofabrik:
     """Tests for get_region_geofabrik function."""
 
     @patch("damagescanner.download._download_file")
-    def test_returns_path(self, mock_download):
+    def test_returns_path(self, mock_download: MagicMock) -> None:
         """Test that function returns a Path object."""
         result = get_region_geofabrik("europe", save_path=tmp_folder)
 
         assert isinstance(result, Path)
 
     @patch("damagescanner.download._download_file")
-    def test_correct_url_format(self, mock_download):
+    def test_correct_url_format(self, mock_download: MagicMock  ) -> None:
         """Test that correct URL is constructed."""
         get_region_geofabrik("europe", save_path=tmp_folder)
 
@@ -200,7 +203,7 @@ class TestGetRegionGeofabrik:
         assert "europe-latest.osm.pbf" in download_url
 
     @patch("damagescanner.download._download_file")
-    def test_various_regions(self, mock_download):
+    def test_various_regions(self, mock_download: MagicMock) -> None:
         """Test downloading various regions."""
         regions = ["europe", "africa", "asia", "north-america", "south-america"]
 
@@ -212,7 +215,7 @@ class TestGetRegionGeofabrik:
             assert region in str(result)
 
     @patch("damagescanner.download._download_file")
-    def test_case_insensitive(self, mock_download):
+    def test_case_insensitive(self, mock_download: MagicMock) -> None:
         """Test that region name is converted to lowercase."""
         get_region_geofabrik("EUROPE", save_path=tmp_folder)
 
@@ -227,7 +230,7 @@ class TestGetPlanetFile:
     """Tests for get_planet_file function."""
 
     @patch("damagescanner.download._download_file")
-    def test_returns_path(self, mock_download):
+    def test_returns_path(self, mock_download: MagicMock) -> None:
         """Test that function returns a Path object."""
         save_path = tmp_folder / "planet-latest.osm.pbf"
         result = get_planet_file(save_path=save_path)
@@ -235,7 +238,7 @@ class TestGetPlanetFile:
         assert isinstance(result, Path)
 
     @patch("damagescanner.download._download_file")
-    def test_uses_planet_url(self, mock_download):
+    def test_uses_planet_url(self, mock_download: MagicMock) -> None:
         """Test that Planet URL is used."""
         save_path = tmp_folder / "planet-latest.osm.pbf"
         get_planet_file(save_path=save_path)
@@ -246,7 +249,7 @@ class TestGetPlanetFile:
         assert download_url == PLANET_URL
 
     @patch("damagescanner.download._download_file")
-    def test_overwrite_parameter(self, mock_download):
+    def test_overwrite_parameter(self, mock_download: MagicMock) -> None:
         """Test that overwrite parameter is passed."""
         save_path = tmp_folder / "planet-latest.osm.pbf"
         get_planet_file(save_path=save_path, overwrite=True)
@@ -260,11 +263,11 @@ class TestIntegration:
     """Integration tests (these actually create files but don't download)."""
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_full_workflow_country(self, mock_urlretrieve):
+    def test_full_workflow_country(self, mock_urlretrieve: MagicMock) -> None:
         """Test full workflow for country download."""
 
         # Mock urlretrieve to create an empty file
-        def create_file(url, filepath):
+        def create_file(url: str, filepath: Path) -> None:
             Path(filepath).touch()
 
         mock_urlretrieve.side_effect = create_file
@@ -278,10 +281,10 @@ class TestIntegration:
             result.unlink()
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_full_workflow_region(self, mock_urlretrieve):
+    def test_full_workflow_region(self, mock_urlretrieve: MagicMock) -> None:
         """Test full workflow for region download."""
 
-        def create_file(url, filepath):
+        def create_file(url: str, filepath: Path) -> None:
             Path(filepath).touch()
 
         mock_urlretrieve.side_effect = create_file

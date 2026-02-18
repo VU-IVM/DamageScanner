@@ -1,68 +1,72 @@
-import pytest
-import numpy as np
+"""Tests for damagescanner.osm module."""
+
+from pathlib import Path
+
 import geopandas as gpd
+import numpy as np
+import pytest
 from shapely.geometry import (
+    GeometryCollection,
+    MultiPolygon,
     Point,
     Polygon,
-    MultiPolygon,
-    GeometryCollection,
 )
 
-from .helpers import data_path
-
 from damagescanner.osm import (
+    DICT_CIS_OSM,
     _combine_columns,
+    _extract_value,
     _filter_dataframe,
     _remove_contained_assets,
     _remove_contained_points,
     _remove_contained_polys,
-    extract_first_geom,
     create_point_from_polygon,
-    _extract_value,
+    extract_first_geom,
     read_osm_data,
-    DICT_CIS_OSM,
 )
+
+from .helpers import data_path
 
 
 class TestCombineColumns:
     """Tests for _combine_columns function."""
 
-    def test_only_first_value(self):
+    def test_only_first_value(self) -> None:
         """Test when only first value is present."""
         result = _combine_columns("highway", None)
         assert result == "highway"
 
-    def test_only_second_value(self):
+    def test_only_second_value(self) -> None:
         """Test when only second value is present."""
         result = _combine_columns(None, "residential")
         assert result == "residential"
 
-    def test_both_values_same(self):
+    def test_both_values_same(self) -> None:
         """Test when both values are the same."""
         result = _combine_columns("school", "school")
         assert result == "school"
 
-    def test_both_values_different(self):
+    def test_both_values_different(self) -> None:
         """Test when both values are different."""
         result = _combine_columns("primary", "secondary")
         assert result == "primary"  # First value takes precedence
 
-    def test_first_value_is_yes(self):
+    def test_first_value_is_yes(self) -> None:
         """Test when first value is 'yes'."""
         result = _combine_columns("yes", "residential")
         assert result == "residential"
 
-    def test_second_value_is_yes(self):
+    def test_second_value_is_yes(self) -> None:
         """Test when second value is 'yes'."""
         result = _combine_columns("residential", "yes")
         assert result == "residential"
 
-    def test_both_none(self):
+    def test_both_none(self) -> None:
         """Test when both values are None."""
         result = _combine_columns(None, None)
         assert result is None
 
-    def test_with_nan(self):
+    def test_with_nan(self) -> None:
         """Test with NaN values."""
         result = _combine_columns(np.nan, "value")
         assert result == "value"
@@ -71,7 +75,7 @@ class TestCombineColumns:
 class TestFilterDataframe:
     """Tests for _filter_dataframe function."""
 
-    def test_filter_with_two_columns(self):
+    def test_filter_with_two_columns(self) -> None:
         """Test filtering with two columns."""
         gdf = gpd.GeoDataFrame(
             {
@@ -87,7 +91,7 @@ class TestFilterDataframe:
         assert "col1" not in result.columns
         assert "col2" not in result.columns
 
-    def test_filter_with_three_columns(self):
+    def test_filter_with_three_columns(self) -> None:
         """Test filtering with three columns."""
         gdf = gpd.GeoDataFrame(
             {
@@ -109,7 +113,7 @@ class TestFilterDataframe:
 class TestExtractFirstGeom:
     """Tests for extract_first_geom function."""
 
-    def test_geometry_collection(self):
+    def test_geometry_collection(self) -> None:
         """Test extracting from GeometryCollection."""
         point = Point(0, 0)
         polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
@@ -119,19 +123,19 @@ class TestExtractFirstGeom:
 
         assert result == point
 
-    def test_empty_geometry_collection(self):
+    def test_empty_geometry_collection(self) -> None:
         """Test with empty GeometryCollection."""
         gc = GeometryCollection([])
         result = extract_first_geom(gc)
         assert result == gc  # Returns unchanged
 
-    def test_regular_geometry(self):
+    def test_regular_geometry(self) -> None:
         """Test with regular geometry (not collection)."""
         point = Point(0, 0)
         result = extract_first_geom(point)
         assert result == point
 
-    def test_polygon(self):
+    def test_polygon(self) -> None:
         """Test with polygon geometry."""
         polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         result = extract_first_geom(polygon)
@@ -141,7 +145,7 @@ class TestExtractFirstGeom:
 class TestRemoveContainedPoints:
     """Tests for _remove_contained_points function."""
 
-    def test_point_inside_polygon_removed(self):
+    def test_point_inside_polygon_removed(self) -> None:
         """Test that points inside polygons are removed."""
         polygon = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         point_inside = Point(5, 5)
@@ -160,7 +164,7 @@ class TestRemoveContainedPoints:
         assert Point(20, 20) in result.geometry.values
         assert Point(5, 5) not in result.geometry.values
 
-    def test_no_points_inside(self):
+    def test_no_points_inside(self) -> None:
         """Test when no points are inside polygons."""
         polygon = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         point = Point(10, 10)
@@ -180,7 +184,7 @@ class TestRemoveContainedPoints:
 class TestRemoveContainedPolys:
     """Tests for _remove_contained_polys function."""
 
-    def test_smaller_polygon_inside_larger_removed(self):
+    def test_smaller_polygon_inside_larger_removed(self) -> None:
         """Test that smaller polygons inside larger ones are removed."""
         large_polygon = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         small_polygon = Polygon([(2, 2), (4, 2), (4, 4), (2, 4)])
@@ -197,7 +201,7 @@ class TestRemoveContainedPolys:
 
         assert len(result) == 2
 
-    def test_no_contained_polygons(self):
+    def test_no_contained_polygons(self) -> None:
         """Test when no polygons are contained."""
         polygon1 = Polygon([(0, 0), (1, 0), (1, 1), (0, 1)])
         polygon2 = Polygon([(5, 5), (6, 5), (6, 6), (5, 6)])
@@ -217,7 +221,7 @@ class TestRemoveContainedPolys:
 class TestRemoveContainedAssets:
     """Tests for _remove_contained_assets function."""
 
-    def test_removes_points_and_polygons(self):
+    def test_removes_points_and_polygons(self) -> None:
         """Test that both contained points and polygons are removed."""
         large_polygon = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
         small_polygon = Polygon([(2, 2), (4, 2), (4, 4), (2, 4)])
@@ -240,7 +244,7 @@ class TestRemoveContainedAssets:
 class TestCreatePointFromPolygon:
     """Tests for create_point_from_polygon function."""
 
-    def test_polygon_converted_to_centroid(self):
+    def test_polygon_converted_to_centroid(self) -> None:
         """Test that polygons are converted to their centroids."""
         polygon = Polygon([(0, 0), (4, 0), (4, 4), (0, 4)])
 
@@ -258,7 +262,7 @@ class TestCreatePointFromPolygon:
         assert result.geometry.iloc[0].x == 2.0
         assert result.geometry.iloc[0].y == 2.0
 
-    def test_multipolygon_converted(self):
+    def test_multipolygon_converted(self) -> None:
         """Test that multipolygons are converted to centroids."""
         poly1 = Polygon([(0, 0), (2, 0), (2, 2), (0, 2)])
         poly2 = Polygon([(4, 4), (6, 4), (6, 6), (4, 6)])
@@ -279,30 +283,30 @@ class TestCreatePointFromPolygon:
 class TestExtractValue:
     """Tests for _extract_value function."""
 
-    def test_extract_existing_key(self):
+    def test_extract_existing_key(self) -> None:
         """Test extracting an existing key."""
         text = '"highway"=>"primary","name"=>"Main Street"'
         result = _extract_value(text, "highway")
         assert result == "primary"
 
-    def test_extract_name(self):
+    def test_extract_name(self) -> None:
         """Test extracting name key."""
         text = '"highway"=>"primary","name"=>"Main Street"'
         result = _extract_value(text, "name")
         assert result == "Main Street"
 
-    def test_extract_missing_key(self):
+    def test_extract_missing_key(self) -> None:
         """Test extracting a missing key returns None."""
         text = '"highway"=>"primary"'
         result = _extract_value(text, "lanes")
         assert result is None
 
-    def test_extract_from_none(self):
+    def test_extract_from_none(self) -> None:
         """Test extracting from None returns None."""
         result = _extract_value(None, "highway")
         assert result is None
 
-    def test_extract_complex_value(self):
+    def test_extract_complex_value(self) -> None:
         """Test extracting complex value with special characters."""
         text = '"voltage"=>"110000","operator"=>"National Grid"'
         result = _extract_value(text, "voltage")
@@ -312,27 +316,27 @@ class TestExtractValue:
 class TestDictCisOsm:
     """Tests for DICT_CIS_OSM configuration."""
 
-    def test_all_asset_types_have_required_keys(self):
+    def test_all_asset_types_have_required_keys(self) -> None:
         """Test that all asset types have osm_keys and osm_query."""
         for asset_type, config in DICT_CIS_OSM.items():
             assert "osm_keys" in config, f"{asset_type} missing osm_keys"
             assert "osm_query" in config, f"{asset_type} missing osm_query"
 
-    def test_osm_keys_are_lists(self):
+    def test_osm_keys_are_lists(self) -> None:
         """Test that osm_keys are lists."""
         for asset_type, config in DICT_CIS_OSM.items():
             assert isinstance(config["osm_keys"], list), (
                 f"{asset_type} osm_keys not a list"
             )
 
-    def test_osm_query_are_dicts(self):
+    def test_osm_query_are_dicts(self) -> None:
         """Test that osm_query are dicts."""
         for asset_type, config in DICT_CIS_OSM.items():
             assert isinstance(config["osm_query"], dict), (
                 f"{asset_type} osm_query not a dict"
             )
 
-    def test_expected_asset_types_exist(self):
+    def test_expected_asset_types_exist(self) -> None:
         """Test that expected asset types exist."""
         expected_types = [
             "roads",
@@ -359,19 +363,23 @@ class TestReadOsmData:
     """Tests for read_osm_data function using Jamaica OSM data."""
 
     @pytest.fixture
-    def osm_file(self):
-        """Fixture for OSM file path."""
+    def osm_file(self) -> Path:
+        """Fixture for OSM file path.
+        
+        Returns:
+            Path to Jamaica OSM data file, or skips tests if not available.
+        """
         jamaica_path = data_path / "jamaica" / "exposure" / "jamaica-latest.osm.pbf"
         if not jamaica_path.exists():
             pytest.skip("OSM test data not available")
         return jamaica_path
 
-    def test_read_osm_data_returns_geodataframe(self, osm_file):
+    def test_read_osm_data_returns_geodataframe(self, osm_file: Path) -> None:
         """Test that read_osm_data returns a GeoDataFrame."""
         result = read_osm_data(osm_file, "main_roads")
         assert isinstance(result, gpd.GeoDataFrame)
 
-    def test_read_osm_data_has_required_columns(self, osm_file):
+    def test_read_osm_data_has_required_columns(self, osm_file: Path) -> None:
         """Test that result has required columns."""
         result = read_osm_data(osm_file, "main_roads")
 
@@ -379,26 +387,26 @@ class TestReadOsmData:
         assert "geometry" in result.columns
         assert "object_type" in result.columns
 
-    def test_read_osm_data_invalid_asset_type(self, osm_file):
+    def test_read_osm_data_invalid_asset_type(self, osm_file: Path) -> None:
         """Test that invalid asset type raises warning."""
         with pytest.raises(ImportWarning):
             read_osm_data(osm_file, "invalid_asset_type")
 
-    def test_read_osm_data_geometries_valid(self, osm_file):
+    def test_read_osm_data_geometries_valid(self, osm_file: Path) -> None:
         """Test that all geometries are valid."""
         result = read_osm_data(osm_file, "main_roads")
 
         if len(result) > 0:
             assert result.geometry.is_valid.all()
 
-    def test_read_osm_main_roads(self, osm_file):
+    def test_read_osm_main_roads(self, osm_file: Path) -> None:
         """Test extraction of main roads."""
         result = read_osm_data(osm_file, "main_roads")
 
         assert len(result) > 0
         assert all(result.geometry.geom_type.isin(["LineString", "MultiLineString"]))
 
-    def test_read_osm_roads(self, osm_file):
+    def test_read_osm_roads(self, osm_file: Path) -> None:
         """Test extraction of all roads."""
         result = read_osm_data(osm_file, "roads")
 
@@ -407,7 +415,7 @@ class TestReadOsmData:
         main_roads = read_osm_data(osm_file, "main_roads")
         assert len(result) >= len(main_roads)
 
-    def test_read_osm_buildings(self, osm_file):
+    def test_read_osm_buildings(self, osm_file: Path) -> None:
         """Test extraction of buildings."""
         result = read_osm_data(osm_file, "buildings")
 
@@ -422,7 +430,7 @@ class TestReadOsmData:
         ]
         assert all(result.geometry.geom_type.isin(valid_types))
 
-    def test_read_osm_healthcare(self, osm_file):
+    def test_read_osm_healthcare(self, osm_file: Path) -> None:
         """Test extraction of healthcare facilities."""
         result = read_osm_data(osm_file, "healthcare")
 
@@ -432,7 +440,7 @@ class TestReadOsmData:
             valid_types = ["Point", "Polygon", "MultiPolygon"]
             assert all(result.geometry.geom_type.isin(valid_types))
 
-    def test_read_osm_education(self, osm_file):
+    def test_read_osm_education(self, osm_file: Path) -> None:
         """Test extraction of education facilities."""
         result = read_osm_data(osm_file, "education")
 
@@ -441,7 +449,7 @@ class TestReadOsmData:
             valid_types = ["Point", "Polygon", "MultiPolygon"]
             assert all(result.geometry.geom_type.isin(valid_types))
 
-    def test_read_osm_power(self, osm_file):
+    def test_read_osm_power(self, osm_file: Path) -> None:
         """Test extraction of power infrastructure."""
         result = read_osm_data(osm_file, "power")
 
@@ -457,7 +465,7 @@ class TestReadOsmData:
             ]
             assert all(result.geometry.geom_type.isin(valid_types))
 
-    def test_read_osm_rail(self, osm_file):
+    def test_read_osm_rail(self, osm_file: Path) -> None:
         """Test extraction of rail infrastructure."""
         result = read_osm_data(osm_file, "rail")
 
@@ -467,7 +475,7 @@ class TestReadOsmData:
                 result.geometry.geom_type.isin(["LineString", "MultiLineString"])
             )
 
-    def test_read_osm_telecom(self, osm_file):
+    def test_read_osm_telecom(self, osm_file: Path) -> None:
         """Test extraction of telecom infrastructure."""
         result = read_osm_data(osm_file, "telecom")
 
@@ -476,20 +484,20 @@ class TestReadOsmData:
             valid_types = ["Point", "Polygon", "MultiPolygon"]
             assert all(result.geometry.geom_type.isin(valid_types))
 
-    def test_read_osm_water_supply(self, osm_file):
+    def test_read_osm_water_supply(self, osm_file: Path) -> None:
         """Test extraction of water supply infrastructure."""
         result = read_osm_data(osm_file, "water_supply")
 
         assert isinstance(result, gpd.GeoDataFrame)
 
-    def test_read_osm_no_geometry_collections(self, osm_file):
+    def test_read_osm_no_geometry_collections(self, osm_file: Path) -> None:
         """Test that no GeometryCollections remain after extraction."""
         result = read_osm_data(osm_file, "main_roads")
 
         if len(result) > 0:
             assert not any(result.geometry.geom_type == "GeometryCollection")
 
-    def test_read_osm_unique_geometries(self, osm_file):
+    def test_read_osm_unique_geometries(self, osm_file: Path) -> None:
         """Test that contained geometries are removed."""
         result = read_osm_data(osm_file, "buildings")
 
@@ -498,7 +506,7 @@ class TestReadOsmData:
             # (index should be reset)
             assert result.index.is_unique
 
-    def test_read_osm_object_types_in_vulnerability_dict(self, osm_file):
+    def test_read_osm_object_types_in_vulnerability_dict(self, osm_file: Path) -> None:
         """Test that object types are filtered to vulnerability dict."""
         from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
@@ -513,14 +521,18 @@ class TestExtract:
     """Tests for extract function using Jamaica OSM data."""
 
     @pytest.fixture
-    def osm_file(self):
-        """Fixture for OSM file path."""
+    def osm_file(self) -> Path:
+        """Fixture for OSM file path.
+        
+        Returns:
+            Path to Jamaica OSM data file, or skips tests if not available.
+        """
         jamaica_path = data_path / "jamaica" / "exposure" / "jamaica-latest.osm.pbf"
         if not jamaica_path.exists():
             pytest.skip("OSM test data not available")
         return jamaica_path
 
-    def test_extract_lines(self, osm_file):
+    def test_extract_lines(self, osm_file: Path) -> None:
         """Test extracting line features."""
         from damagescanner.osm import extract
 
@@ -536,7 +548,7 @@ class TestExtract:
         assert "object_type" in result.columns
         assert "osm_id" in result.columns
 
-    def test_extract_points(self, osm_file):
+    def test_extract_points(self, osm_file: Path) -> None:
         """Test extracting point features."""
         from damagescanner.osm import extract
 
@@ -550,7 +562,7 @@ class TestExtract:
         assert isinstance(result, gpd.GeoDataFrame)
         assert "object_type" in result.columns
 
-    def test_extract_multipolygons(self, osm_file):
+    def test_extract_multipolygons(self, osm_file: Path) -> None:
         """Test extracting multipolygon features."""
         from damagescanner.osm import extract
 

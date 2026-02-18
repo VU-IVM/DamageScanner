@@ -1,24 +1,27 @@
-"""DamageScanner - a directe damage assessment toolkit
+"""DamageScanner - a directe damage assessment toolkit.
 
 Raster specific functions
 """
 
-import rasterio
-import xarray as xr
+import warnings
+from pathlib import Path, PurePath
+from typing import Any
+
+import geopandas as gpd
 import numpy as np
 import pandas as pd
-import geopandas as gpd
-from affine import Affine
-import warnings
-from pathlib import PurePath
+import rasterio
 import shapely
-import rasterio.transform
+import xarray as xr
+from affine import Affine
 from rasterio.windows import Window
 
 from damagescanner.utils import _check_output_path, _check_scenario_name
 
 
-def match_and_load_rasters(raster_in1, raster_in2):
+def match_and_load_rasters(
+    raster_in1: str | Path, raster_in2: str | Path
+) -> tuple[np.ndarray, np.ndarray, Affine]:
     """
     Match and clip two raster files to their common spatial extent and resolution.
 
@@ -26,14 +29,17 @@ def match_and_load_rasters(raster_in1, raster_in2):
 
 
     Args:
-        raster_in1 (str or Path): Path to the first raster file.
-        raster_in2 (str or Path): Path to the second raster file.
+        raster_in1: Path to the first raster file.
+        raster_in2: Path to the second raster file.
 
     Returns:
-        tuple:
-            - np.ndarray: Clipped raster array from the first file.
-            - np.ndarray: Clipped raster array from the second file.
-            - Affine: Affine transform of the intersecting region.
+        tuple: (data1, data2, transform)
+            - Clipped raster array from the first file.
+            - Clipped raster array from the second file.
+            - Affine transform of the intersecting region.
+
+    Raises:
+        ValueError: If the rasters have different CRS or resolution.
     """
     with rasterio.open(raster_in1) as src1, rasterio.open(raster_in2) as src2:
         if src1.crs != src2.crs:
@@ -80,22 +86,29 @@ def match_and_load_rasters(raster_in1, raster_in2):
     return data1, data2, transform
 
 
-def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard_col):
+def _match_raster_to_vector(
+    hazard: xr.Dataset,
+    landuse: xr.Dataset,
+    lu_crs: int,
+    haz_crs: int,
+    resolution: float,
+    hazard_col: str,
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Align hazard and land-use rasters by CRS, extent, and resolution.
 
     Args:
-        hazard (xr.Dataset): Hazard dataset.
-        landuse (xr.Dataset): Land-use dataset.
-        lu_crs (int): EPSG code of the land-use CRS.
-        haz_crs (int): EPSG code of the hazard CRS.
-        resolution (float): Target resolution in projected units.
-        hazard_col (str): Column name containing hazard intensity.
+        hazard: Hazard dataset.
+        landuse: Land-use dataset.
+        lu_crs: EPSG code of the land-use CRS.
+        haz_crs: EPSG code of the hazard CRS.
+        resolution: Target resolution in projected units.
+        hazard_col: Column name containing hazard intensity.
 
     Returns:
-        tuple:
-            - np.ndarray: Reprojected hazard raster as array.
-            - np.ndarray: Reprojected land-use raster as array.
+        tuple: (hazard_array, landuse_array)
+            - Reprojected hazard raster as array.
+            - Reprojected land-use raster as array.
     """
     # Set the crs of the hazard variable to haz_crs
     hazard.rio.write_crs(haz_crs, inplace=True)
@@ -159,53 +172,53 @@ def _match_raster_to_vector(hazard, landuse, lu_crs, haz_crs, resolution, hazard
 
 
 def RasterScanner(
-    exposure_file,
-    hazard_file,
-    curve_path,
-    maxdam_path,
-    lu_crs=28992,
-    haz_crs=4326,
-    hazard_col="FX",
-    dtype=np.int32,
-    save=False,
-    **kwargs,
-):
+    exposure_file: Path | np.ndarray | str,
+    hazard_file: Path | np.ndarray | xr.Dataset | str,
+    curve_path: Path | pd.DataFrame | np.ndarray | str,
+    maxdam_path: Path | pd.DataFrame | np.ndarray | str,
+    lu_crs: int = 28992,
+    haz_crs: int = 4326,
+    hazard_col: str = "FX",
+    dtype: type = np.int32,
+    save: bool = False,
+    **kwargs: Any,
+) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, xr.Dataset | np.ndarray]:
     """
     Run a raster-based direct damage assessment using hazard and exposure layers.
 
     Args:
-        exposure_file (Path | np.ndarray): Path to land-use GeoTIFF or numpy array.
-        hazard_file (Path | np.ndarray | xr.Dataset): Path to hazard raster or dataset.
-        curve_path (Path | pd.DataFrame | np.ndarray): Vulnerability curve(s).
-        maxdam_path (Path | pd.DataFrame | np.ndarray): Maximum damage values.
-        lu_crs (int): CRS of the land-use file (default EPSG:28992).
-        haz_crs (int): CRS of the hazard file (default EPSG:4326).
-        hazard_col (str): Column containing hazard intensity (default "FX").
-        dtype (type): Output dtype for damage raster.
-        save (bool): If True, saves damage results to file.
+        exposure_file: Path to land-use GeoTIFF or numpy array.
+        hazard_file: Path to hazard raster or dataset.
+        curve_path: Vulnerability curve(s).
+        maxdam_path: Maximum damage values.
+        lu_crs: CRS of the land-use file (default EPSG:28992).
+        haz_crs: CRS of the hazard file (default EPSG:4326).
+        hazard_col: Column containing hazard intensity (default "FX").
+        dtype: Output dtype for damage raster.
+        save: If True, saves damage results to file.
+        kwargs: Additional keyword arguments for saving output and other options.
 
     Keyword Args:
-        nan_value (float): Replace this value in the hazard raster with 0.
-        cellsize (float): Cell size (m²) if exposure and hazard are arrays.
-        resolution (float): Resolution in target projection (used for reprojection).
-        output_path (str or Path): Output directory for saving results.
-        scenario_name (str): Scenario name used for filenames.
-        in_millions (bool): Convert results to millions.
-        crs (CRS): CRS for saving output raster (optional).
-        transform (Affine): Affine transform for saving raster (optional).
+        nan_value: Replace this value in the hazard raster with 0.
+        cellsize: Cell size (m²) if exposure and hazard are arrays.
+        resolution: Resolution in target projection (used for reprojection).
+        output_path: Output directory for saving results.
+        scenario_name: Scenario name used for filenames.
+        in_millions: Convert results to millions.
+        crs: CRS for saving output raster (optional).
+        transform: Affine transform for saving raster (optional).
 
     Raises:
         ValueError: If cell size is not provided when required.
         ValueError: If vulnerability or max damage file has invalid structure.
 
     Returns:
-        tuple:
-            - pd.DataFrame: Damage per land-use category.
-            - np.ndarray: Damage map (grid with estimated damages).
-            - np.ndarray: Reprojected land-use map.
-            - np.ndarray: Reprojected hazard map.
+        tuple: (damage_df, damagemap, landuse_in, hazard)
+            - Damage per land-use category.
+            - Damage map (grid with estimated damages).
+            - Reprojected land-use map.
+            - Reprojected hazard map.
     """
-
     # load land-use map
     if isinstance(exposure_file, PurePath):
         with rasterio.open(exposure_file) as src:

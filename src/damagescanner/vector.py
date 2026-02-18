@@ -1,27 +1,32 @@
-# Get all the needed modules
-import xarray as xr
-import numpy as np
-import shapely
-import pandas as pd
-import geopandas as gpd
-import pyproj
-from pathlib import Path
-from tqdm import tqdm
-from pathlib import PurePath
-import rasterio
-from exactextract import exact_extract
-from pyproj import Geod
-from shapely.geometry import Point, LineString
+"""Vector-based damage estimation functions for DamageScanner."""
 
 import traceback
 import warnings
+from pathlib import Path, PurePath
+
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import pyproj
+import rasterio
+import shapely
+import xarray as xr
+from exactextract import exact_extract
+from pyproj import Geod
+from shapely.geometry import LineString, Point
+from tqdm import tqdm
 
 from damagescanner.osm import read_osm_data
+
 # from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD # removed for the time being
 
 
-def _crs_is_meters(crs):
-    """Check if a CRS uses meters as its unit."""
+def _crs_is_meters(crs: pyproj.CRS) -> bool:
+    """Check if a CRS uses meters as its unit.
+    
+    Returns:
+        True if the CRS uses meters, False otherwise.
+    """
     try:
         epsg_code = crs.to_epsg()
         if epsg_code is not None:
@@ -35,15 +40,15 @@ def _crs_is_meters(crs):
         return False
 
 
-def _convert_to_meters(feature):
+def _convert_to_meters(feature: pd.Series) -> list[float]:
     """
     Convert coverage length to meters for each row with LineString geometries.
 
     Args:
-        feature (gpd.GeoSeries): A GeoSeries row containing geometry and coverage fields.
+        feature: A GeoSeries row containing geometry and coverage fields.
 
     Returns:
-        list: Coverage values in meters.
+        Coverage values in meters.
     """
     line_string = feature.geometry
 
@@ -65,16 +70,16 @@ def _convert_to_meters(feature):
     return coverage_meters
 
 
-def _get_cell_area_m2(features, hazard_resolution):
+def _get_cell_area_m2(features: gpd.GeoDataFrame, hazard_resolution: float) -> float:
     """
     Estimate the area (m²) of a raster grid cell using the feature centroid and resolution.
 
     Args:
-        features (gpd.GeoDataFrame): Feature set used to center the buffer.
-        hazard_resolution (float): Hazard raster resolution (in degrees).
+        features: Feature set used to center the buffer.
+        hazard_resolution: Hazard raster resolution (in degrees).
 
     Returns:
-        float: Grid cell area in square meters.
+        Grid cell area in square meters.
     """
     geod = Geod(ellps="WGS84")
 
@@ -95,16 +100,16 @@ def _get_cell_area_m2(features, hazard_resolution):
     return resolution * resolution
 
 
-def _create_grid(bbox, height):
+def _create_grid(bbox: shapely.Geometry, height: float) -> np.ndarray:
     """
     Create a regular vector grid over a bounding box.
 
     Args:
-        bbox (shapely.Geometry): The bounding box to cover.
-        height (float): Cell height (assumed square cells).
+        bbox: The bounding box to cover.
+        height: Cell height (assumed square cells).
 
     Returns:
-        list: List of shapely Polygon grid cells.
+        List of shapely Polygon grid cells.
     """
     # set xmin,ymin,xmax,and ymax of the grid
     xmin, ymin = shapely.total_bounds(bbox)[0], shapely.total_bounds(bbox)[1]
@@ -145,15 +150,15 @@ def _create_grid(bbox, height):
     return shapely.polygons(res_geoms)
 
 
-def _remove_duplicates(df):
+def _remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     """
     Merge duplicate features by concatenating coverage and values.
 
     Args:
-        df (pd.DataFrame): DataFrame with possible duplicate index entries.
+        df: DataFrame with possible duplicate index entries.
 
     Returns:
-        pd.DataFrame: De-duplicated DataFrame.
+        De-duplicated DataFrame.
     """
     no_duplicates = []
     for row in df.groupby(level=0):
@@ -183,14 +188,18 @@ def _remove_duplicates(df):
     return df_no_duplicates
 
 
-def _reproject(hazard, features, hazard_crs):
+def _reproject(
+    hazard: xr.Dataset | xr.DataArray,
+    features: gpd.GeoDataFrame,
+    hazard_crs: pyproj.CRS,
+) -> tuple[xr.Dataset | xr.DataArray, gpd.GeoDataFrame, str]:
     """
     Reproject features to match hazard CRS. Also infers a suitable UTM CRS.
 
     Args:
-        hazard (xr.Dataset): Hazard dataset.
-        features (gpd.GeoDataFrame): Exposure features.
-        hazard_crs (pyproj.CRS): Coordinate system of hazard layer.
+        hazard: Hazard dataset.
+        features: Exposure features.
+        hazard_crs: Coordinate system of hazard layer.
 
     Returns:
         tuple: (hazard, reprojected_features, approximate_crs)
@@ -220,28 +229,29 @@ def _reproject(hazard, features, hazard_crs):
 
 
 def _overlay_raster_vector(
-    hazard,
-    features,
-    hazard_crs,
-    gridded=True,
-    disable_progress=False,
-    extract_strategy="raster-sequential",
-):
+    hazard: xr.Dataset | xr.DataArray | rasterio.DatasetReader,
+    features: gpd.GeoDataFrame,
+    hazard_crs: pyproj.CRS,
+    gridded: bool = True,
+    disable_progress: bool = False,
+    extract_strategy: str = "raster-sequential",
+    return_full: bool = True,
+) -> gpd.GeoDataFrame:
     """
     Overlay raster hazard data on vector exposure features.
 
     Args:
-        hazard (xr.Dataset | rasterio.io.DatasetReader): Raster hazard layer.
-        features (gpd.GeoDataFrame): Vector exposure features.
-        hazard_crs (pyproj.CRS): CRS of hazard data.
-        gridded (bool): Whether to process in spatial chunks.
-        disable_progress (bool): Disable tqdm progress bar.
-        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
+        hazard: Raster hazard layer.
+        features: Vector exposure features.
+        hazard_crs: CRS of hazard data.
+        gridded: Whether to process in spatial chunks.
+        disable_progress: Disable tqdm progress bar.
+        extract_strategy: exactextract strategy - "feature-sequential" or "raster-sequential".
+        return_full: Whether to return all features, even those with no hazard intersection.
 
     Returns:
-        gpd.GeoDataFrame: Exposure features with added `coverage` and `values`.
+        Exposure features with added `coverage` and `values`.
     """
-
     # make sure the hazard data has a crs
     if hazard_crs.to_epsg() is None:
         RuntimeWarning(
@@ -453,10 +463,20 @@ def _overlay_raster_vector(
 
     # Sometimes, with large datasets, a feature may have been excluded from the bbox
     # this has resulted in a null value for the coverage and values. We remove these features.
-    features = features[~features["values"].isnull()]
+    if not return_full:
+        features = features[~features["values"].isnull()]
 
-    # only keep features with values
-    features = features[features["values"].apply(lambda x: len(x) > 0)]
+        # only keep features with values
+        features = features[features["values"].apply(lambda x: len(x) > 0)]
+
+    else:
+        # If we return all features, ensure values and coverage are at least empty lists
+        features["values"] = features["values"].apply(
+            lambda x: x if x is not None else []
+        )
+        features["coverage"] = features["coverage"].apply(
+            lambda x: x if x is not None else []
+        )
 
     # convert coverage to meters, only do this if the crs is not in meters
     if not _crs_is_meters(hazard_crs):
@@ -478,26 +498,27 @@ def _overlay_raster_vector(
 
 
 def _overlay_vector_vector(
-    hazard,
-    features,
-    hazard_value_col="band_data",
-    gridded=False,
-    disable_progress=False,
-):
+    hazard: gpd.GeoDataFrame,
+    features: gpd.GeoDataFrame,
+    hazard_value_col: str = "band_data",
+    gridded: bool = False,
+    disable_progress: bool = False,
+    return_full: bool = True,
+) -> gpd.GeoDataFrame:
     """
     Overlay a vector hazard layer onto vector exposure features.
 
     Args:
-        hazard (gpd.GeoDataFrame): Hazard vector features with geometry and value column.
-        features (gpd.GeoDataFrame): Exposure vector features.
-        hazard_value_col (str): Column name in hazard containing intensity values.
-        gridded (bool): Chunk processing toggle (not yet implemented).
-        disable_progress (bool): Disable tqdm progress bar.
+        hazard: Hazard vector features with geometry and value column.
+        features: Exposure vector features.
+        hazard_value_col: Column name in hazard containing intensity values.
+        gridded: Chunk processing toggle (not yet implemented).
+        disable_progress: Disable tqdm progress bar.
+        return_full: Whether to return all features, even those with no hazard intersection.
 
     Returns:
-        gpd.GeoDataFrame: Features with added `coverage` and `values` columns.
+        Features with added `coverage` and `values` columns.
     """
-
     # Store original CRS for later conversion
     original_crs = features.crs
 
@@ -642,8 +663,17 @@ def _overlay_vector_vector(
             features.at[idx, "coverage"] = coverage_list
 
     # Remove features with no values
-    features = features[~features["values"].isnull()]
-    features = features[features["values"].apply(lambda x: len(x) > 0)]
+    if not return_full:
+        features = features[~features["values"].isnull()]
+        features = features[features["values"].apply(lambda x: len(x) > 0)]
+    else:
+        # If we return all features, ensure values and coverage are at least empty lists
+        features["values"] = features["values"].apply(
+            lambda x: x if x is not None else []
+        )
+        features["coverage"] = features["coverage"].apply(
+            lambda x: x if x is not None else []
+        )
 
     # Restore original CRS
     if features.crs != original_crs:
@@ -652,18 +682,23 @@ def _overlay_vector_vector(
     return features
 
 
-def _estimate_damage(features, curves, object_col, cell_area_m2):
+def _estimate_damage(
+    features: gpd.GeoDataFrame,
+    curves: pd.DataFrame,
+    object_col: str,
+    cell_area_m2: float,
+) -> gpd.GeoDataFrame:
     """
     Estimate total damage per asset using vulnerability curves.
 
     Args:
-        features (gpd.GeoDataFrame): Exposure with hazard info.
-        curves (pd.DataFrame): Vulnerability curve per asset type.
-        object_col (str): Name of the object type column.
-        cell_area_m2 (float): Area per grid cell in m² (for polygons).
+        features: Exposure with hazard info.
+        curves: Vulnerability curve per asset type.
+        object_col: Name of the object type column.
+        cell_area_m2: Area per grid cell in m² (for polygons).
 
     Returns:
-        gpd.GeoDataFrame: Exposure data with added `damage` column.
+        Exposure data with added `damage` column.
     """
     features["damage"] = features.progress_apply(
         lambda _object: _get_damage_per_object(
@@ -675,17 +710,23 @@ def _estimate_damage(features, curves, object_col, cell_area_m2):
     return features
 
 
-def _get_damage_per_object(asset, curves, object_col, cell_area_m2):
+def _get_damage_per_object(
+    asset: pd.Series, curves: pd.DataFrame, object_col: str, cell_area_m2: float
+) -> float:
     """
     Compute damage for a single asset using interpolated vulnerability.
 
     Args:
-        asset (pd.Series): Single feature with geometry, values, object_type.
-        curves (pd.DataFrame): Vulnerability curves.
-        cell_area_m2 (float | int): Cell area in square meters.
+        asset: Single feature with geometry, values, object_type.
+        curves: Vulnerability curves.
+        object_col: Name of the object type column in asset and curves.
+        cell_area_m2: Cell area in square meters.
 
     Returns:
-        float: Estimated damage value.
+        Estimated damage value.
+
+    Raises:
+        ValueError: If geometry type is unsupported or if object type is not in curves.
     """
     if asset.geometry.geom_type in ("Polygon", "MultiPolygon"):
         coverage = np.array(asset["coverage"]) * cell_area_m2
@@ -706,30 +747,35 @@ def _get_damage_per_object(asset, curves, object_col, cell_area_m2):
 
 
 def VectorExposure(
-    hazard_file,
-    feature_file,
-    asset_type="roads",
-    object_col="object_type",
-    hazard_value_col="band_data",
-    disable_progress=False,
+    hazard_file: Path | xr.Dataset | xr.DataArray | rasterio.DatasetReader | gpd.GeoDataFrame,
+    feature_file: Path | gpd.GeoDataFrame | pd.DataFrame | str,
+    asset_type: str = "roads",
+    object_col: str = "object_type",
+    hazard_value_col: str = "band_data",
+    disable_progress: bool = False,
     gridded: bool = True,
     extract_strategy: str = "raster-sequential",
-):
+    return_full: bool = True,
+) -> tuple[gpd.GeoDataFrame, str, pyproj.CRS | None, float | None]:
     """
     Load and overlay vector or raster hazard with vector exposure data.
 
     Args:
-        hazard_file (Path | xr.Dataset | rasterio.DatasetReader | GeoDataFrame): Hazard input.
-        feature_file (Path | GeoDataFrame | pd.DataFrame): Exposure input.
-        asset_type (str): Infrastructure category (only for OSM).
-        object_col (str): Name of the object type column.
-        hazard_value_col (str): Column name in vector hazard containing intensity values.
-        disable_progress (bool): Whether to suppress progress bars.
-        gridded (bool): Whether to process in spatial chunks.
-        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
+        hazard_file: Hazard input.
+        feature_file: Exposure input.
+        asset_type: Infrastructure category (only for OSM).
+        object_col: Name of the object type column.
+        hazard_value_col: Column name in vector hazard containing intensity values.
+        disable_progress: Whether to suppress progress bars.
+        gridded: Whether to process in spatial chunks.
+        extract_strategy: exactextract strategy - "feature-sequential" or "raster-sequential".
+        return_full: Whether to return all features, even those with no hazard intersection.
 
     Returns:
         tuple: (features, object_col, hazard_crs, cell_area_m2)
+
+    Raises:
+        ValueError: If input files are not in expected formats or if geometry types are unsupported.
     """
     # load exposure data
     if isinstance(feature_file, PurePath):
@@ -774,12 +820,12 @@ def VectorExposure(
 
             # check if crs is already in meters
             if _crs_is_meters(hazard_crs):
-                cell_area_m2 = abs(
+                cell_area_m2: int | float  = abs(
                     (hazard.x[1].values - hazard.x[0].values)
                     * (hazard.y[0].values - hazard.y[1].values)
                 )
             else:
-                cell_area_m2 = _get_cell_area_m2(
+                cell_area_m2: int | float = _get_cell_area_m2(
                     features, abs(hazard.rio.resolution()[0])
                 )
 
@@ -805,7 +851,7 @@ def VectorExposure(
 
         # check if crs is already in meters
         if _crs_is_meters(hazard_crs):
-            cell_area_m2 = abs(
+            cell_area_m2: float | int = abs(
                 (hazard.x[1].values - hazard.x[0].values)
                 * (hazard.y[0].values - hazard.y[1].values)
             )
@@ -831,6 +877,7 @@ def VectorExposure(
             disable_progress=disable_progress,
             gridded=gridded,
             extract_strategy=extract_strategy,
+            return_full=return_full,
         )
 
     elif isinstance(hazard, gpd.GeoDataFrame):
@@ -840,45 +887,50 @@ def VectorExposure(
             hazard_value_col=hazard_value_col,
             gridded=gridded,
             disable_progress=disable_progress,
+            return_full=return_full,
         )
 
     return features, object_col, hazard_crs, cell_area_m2
 
 
 def VectorScanner(
-    hazard_file,
-    feature_file,
-    curve_path,
+    hazard_file: Path | xr.Dataset | xr.DataArray | gpd.GeoDataFrame,
+    feature_file: Path | gpd.GeoDataFrame | str,
+    curve_path: Path | pd.DataFrame | str,
     maxdam_path: Path | pd.DataFrame | dict | None = None,
     asset_type: str | None = None,
     multi_curves: dict = dict(),
-    object_col="object_type",
-    hazard_value_col="band_data",
-    disable_progress=False,
+    object_col: str = "object_type",
+    hazard_value_col: str = "band_data",
+    disable_progress: bool = False,
     gridded: bool = True,
     extract_strategy: str = "raster-sequential",
-    **kwargs,
-):
+    return_full: bool = True,
+) -> gpd.GeoDataFrame:
     """
     Perform vector-based direct damage assessment using hazard and exposure layers.
 
     Args:
-        hazard_file (Path | xr.Dataset | gpd.GeoDataFrame): Hazard input.
-        feature_file (Path | gpd.GeoDataFrame): Exposure input.
-        curve_path (Path | pd.DataFrame): Vulnerability curve(s).
-        maxdam_path (Path | pd.DataFrame | dict): Maximum damage values.
-        asset_type (str): Infrastructure class (only for OSM).
-        multi_curves (dict, optional): Multiple curve sets.
-        object_col (str): Column name with object type.
-        hazard_value_col (str): Column name in vector hazard containing intensity values.
-        disable_progress (bool): Whether to suppress progress bars.
-        gridded (bool): Whether to process in spatial chunks.
-        extract_strategy (str): exactextract strategy - "feature-sequential" or "raster-sequential".
+        hazard_file: Hazard input.
+        feature_file: Exposure input.
+        curve_path: Vulnerability curve(s).
+        maxdam_path: Maximum damage values.
+        asset_type: Infrastructure class (only for OSM).
+        multi_curves: Multiple curve sets.
+        object_col: Column name with object type.
+        hazard_value_col: Column name in vector hazard containing intensity values.
+        disable_progress: Whether to suppress progress bars.
+        gridded: Whether to process in spatial chunks.
+        extract_strategy: exactextract strategy - "feature-sequential" or "raster-sequential".
+        return_full: Whether to return all features, even those with no hazard intersection.
 
     Returns:
-        gpd.GeoDataFrame: Exposure data with calculated damages.
-    """
+        Exposure data with calculated damages.
 
+    Raises:
+        ValueError: If input files are of unsupported formats or if geometry types are not supported.
+        KeyError: If object types in exposure are not covered by maximum damage data.
+    """
     # Load hazard and exposure data, and perform the overlay
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
         hazard_file=hazard_file,
@@ -889,6 +941,7 @@ def VectorScanner(
         disable_progress=disable_progress,
         gridded=gridded,
         extract_strategy=extract_strategy,
+        return_full=return_full,
     )
 
     if len(features) == 0:

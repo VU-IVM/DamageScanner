@@ -1,14 +1,18 @@
-import re
+"""Functions for extracting and processing infrastructure data from OpenStreetMap (OSM) files."""
+
 import functools
 import operator
+import re
+from pathlib import Path
+
+import geopandas as gpd
 import numpy as np
+import pandas as pd
 import shapely
 from shapely.geometry import (
-    MultiPolygon,
     GeometryCollection,
+    MultiPolygon,
 )
-import pandas as pd
-import geopandas as gpd
 
 from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD
 
@@ -183,16 +187,16 @@ DICT_CIS_OSM = {
 }
 
 
-def _combine_columns(a, b):
+def _combine_columns(a: str | None, b: str | None) -> str | None:
     """
     Combine two values into a single object type string.
 
     Args:
-        a (str or None): First attribute value.
-        b (str or None): Second attribute value.
+        a: First attribute value.
+        b: Second attribute value.
 
     Returns:
-        str or None: Combined string or fallback based on logic.
+        Combined string or fallback based on logic.
     """
     if pd.notna(a) and not pd.notna(b):  # if only a contains a string
         return f"{a}"
@@ -212,16 +216,18 @@ def _combine_columns(a, b):
         None  # Decision point: If nones are existent, decide on what to do with Nones. Are we sure that these are education facilities? Delete them? Provide another tag to them?
 
 
-def _filter_dataframe(features, column_names_lst):
+def _filter_dataframe(
+    features: gpd.GeoDataFrame, column_names_lst: list[str]
+) -> gpd.GeoDataFrame:
     """
     Combine values from specified columns to create the `object_type` field.
 
     Args:
-        features (gpd.GeoDataFrame): Input GeoDataFrame with OSM attributes.
-        column_names_lst (list of str): Columns to merge into `object_type` (2 or 3 max).
+        features: Input GeoDataFrame with OSM attributes.
+        column_names_lst: Columns to merge into `object_type` (2 or 3 max).
 
     Returns:
-        gpd.GeoDataFrame: DataFrame with filtered and renamed columns.
+        DataFrame with filtered and renamed columns.
     """
     if len(column_names_lst) == 2:
         features["object_type"] = features.apply(
@@ -251,15 +257,15 @@ def _filter_dataframe(features, column_names_lst):
     return features
 
 
-def _remove_contained_assets(features):
+def _remove_contained_assets(features: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Remove assets whose geometries are fully contained within others.
 
     Args:
-        features (gpd.GeoDataFrame): GeoDataFrame with point and polygon features.
+        features: GeoDataFrame with point and polygon features.
 
     Returns:
-        gpd.GeoDataFrame: Cleaned GeoDataFrame with unique geometries.
+        Cleaned GeoDataFrame with unique geometries.
     """
     features = _remove_contained_polys(
         _remove_contained_points(features)
@@ -268,15 +274,15 @@ def _remove_contained_assets(features):
     return features
 
 
-def extract_first_geom(geom):
+def extract_first_geom(geom: shapely.Geometry) -> shapely.Geometry:
     """
     Extract the first geometry from a GeometryCollection.
 
     Args:
-        geom (shapely.Geometry): Shapely geometry object.
+        geom: Shapely geometry object.
 
     Returns:
-        shapely.Geometry: First geometry or unchanged object.
+        First geometry or unchanged object.
     """
     if isinstance(geom, GeometryCollection) and len(geom.geoms) > 0:
         return geom.geoms[0]
@@ -284,15 +290,15 @@ def extract_first_geom(geom):
     return geom
 
 
-def _remove_contained_points(gdf_p_mp):
+def _remove_contained_points(gdf_p_mp: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Remove point features contained within any polygon in the dataset.
 
     Args:
-        gdf_p_mp (gpd.GeoDataFrame): GeoDataFrame with point and polygon geometries.
+        gdf_p_mp: GeoDataFrame with point and polygon geometries.
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame without contained points.
+        GeoDataFrame without contained points.
     """
     gdf_p_mp = gdf_p_mp.reset_index(drop=True)
 
@@ -310,8 +316,9 @@ def _remove_contained_points(gdf_p_mp):
     return gdf_p_mp.drop(index=ind_dupl).reset_index(drop=True)
 
 
-def _remove_contained_polys(gdf):
-    """
+def _remove_contained_polys(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Removes contained polygon features from a GeoDataFrame.
+
     From a GeoDataFrame containing (multi-)polygons (and potentially other
     geometries), remove those polygon entries that are already fully
     contained in another polygon entries. Removes smaller polygons within
@@ -321,12 +328,11 @@ def _remove_contained_polys(gdf):
     Resets the index of the dataframe.
 
     Args:
-        gdf (gpd.GeoDataFrame): GeoDataFrame with polygon geometries.
+        gdf: GeoDataFrame with polygon geometries.
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame with outermost geometries.
+        GeoDataFrame with outermost geometries.
     """
-
     gdf = gdf.reset_index(drop=True)
 
     contained = gpd.sjoin(
@@ -341,15 +347,15 @@ def _remove_contained_polys(gdf):
     return gdf.drop(index=to_drop).reset_index(drop=True)
 
 
-def create_point_from_polygon(gdf):
+def create_point_from_polygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Convert multipolygon geometries into their centroid points.
 
     Args:
-        gdf (gpd.GeoDataFrame): GeoDataFrame with polygon geometries.
+        gdf: GeoDataFrame with polygon geometries.
 
     Returns:
-        gpd.GeoDataFrame: GeoDataFrame with point geometries instead.
+        GeoDataFrame with point geometries instead.
     """
     gdf["geometry"] = gdf["geometry"].apply(
         lambda geom: MultiPolygon([geom]) if geom.geom_type == "Polygon" else geom
@@ -361,16 +367,16 @@ def create_point_from_polygon(gdf):
     return gdf
 
 
-def _extract_value(text, key):
+def _extract_value(text: str, key: str) -> str | None:
     """
     Parse the value of a specific key from a semi-structured OSM tag string.
 
     Args:
-        text (str): Raw OSM `other_tags` string.
-        key (str): Key to extract value for.
+        text: Raw OSM `other_tags` string.
+        key: Key to extract value for.
 
     Returns:
-        str or None: Extracted value or None.
+        Extracted value or None.
     """
     pattern = rf'"{key}"=>"([^"]+)"'
     try:
@@ -382,18 +388,20 @@ def _extract_value(text, key):
         return None
 
 
-def extract(osm_path, geom_type, osm_keys, osm_query):
+def extract(
+    osm_path: str | Path, geom_type: str, osm_keys: list[str], osm_query: dict
+) -> gpd.GeoDataFrame:
     """
     Extract specific infrastructure features from a .pbf file using OSM keys/values.
 
     Args:
-        osm_path (str or Path): Path to .osm.pbf file.
-        geom_type (str): One of 'points', 'lines', 'multipolygons'.
-        osm_keys (list): Keys to extract from OSM file.
-        osm_query (dict): Key-value mapping used to filter.
+        osm_path: Path to .osm.pbf file.
+        geom_type: One of 'points', 'lines', 'multipolygons'.
+        osm_keys: Keys to extract from OSM file.
+        osm_query: Key-value mapping used to filter.
 
     Returns:
-        gpd.GeoDataFrame: Extracted GeoDataFrame with `object_type` field.
+        Extracted GeoDataFrame with `object_type` field.
     """
     features = gpd.read_file(
         osm_path,
@@ -432,16 +440,16 @@ def extract(osm_path, geom_type, osm_keys, osm_query):
     return features
 
 
-def read_osm_data(osm_path, asset_type):
+def read_osm_data(osm_path: str | Path, asset_type: str) -> gpd.GeoDataFrame:
     """
     Load and extract OSM features for a given critical infrastructure type.
 
     Args:
-        osm_path (str or Path): Path to .osm.pbf file.
-        asset_type (str): One of the keys in DICT_CIS_OSM.
+        osm_path: Path to .osm.pbf file.
+        asset_type: One of the keys in DICT_CIS_OSM.
 
     Returns:
-        gpd.GeoDataFrame: Cleaned and validated exposure GeoDataFrame.
+        Cleaned and validated exposure GeoDataFrame.
 
     Raises:
         ImportWarning: If asset_type is not supported.

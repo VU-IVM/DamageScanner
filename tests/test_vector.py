@@ -1,19 +1,20 @@
-import pytest
-import pandas as pd
+"""Tests for vector-based damage assessment functionality in DamageScanner."""
+
 import geopandas as gpd
+import pandas as pd
+import pytest
 import shapely
 
-from .helpers import data_path
-
 from damagescanner.vector import (
-    VectorScanner,
     VectorExposure,
+    VectorScanner,
     _create_grid,
-    _remove_duplicates,
     _get_cell_area_m2,
     _overlay_vector_vector,
+    _remove_duplicates,
 )
 
+from .helpers import data_path
 
 # Define test data paths
 KAMPEN = data_path / "kampen"
@@ -21,8 +22,12 @@ JAMAICA = data_path / "jamaica"
 
 
 @pytest.fixture
-def vector_files():
-    """Fixture for vector file paths."""
+def vector_files() -> dict:
+    """Fixture for vector file paths.
+    
+    Returns:
+        A dictionary with paths to hazard, exposure, curves, and maxdam files for vector tests
+    """
     return {
         "hazard": KAMPEN / "hazard" / "1in100_inundation_map.tif",
         "exposure": KAMPEN / "exposure" / "landuse.gpkg",
@@ -32,8 +37,12 @@ def vector_files():
 
 
 @pytest.fixture
-def sample_geodataframe():
-    """Create a simple GeoDataFrame for testing."""
+def sample_geodataframe() -> gpd.GeoDataFrame:
+    """Create a simple GeoDataFrame for testing.
+    
+    Returns:
+        A GeoDataFrame with sample points and landuse values.
+    """
     return gpd.GeoDataFrame(
         {
             "id": [1, 2, 3],
@@ -51,7 +60,7 @@ def sample_geodataframe():
 class TestCreateGrid:
     """Tests for _create_grid function."""
 
-    def test_create_grid_returns_polygons(self):
+    def test_create_grid_returns_polygons(self) -> None:
         """Test that _create_grid returns shapely polygons."""
         bbox = shapely.box(0, 0, 10, 10)
         grid = _create_grid(bbox, height=2)
@@ -59,7 +68,7 @@ class TestCreateGrid:
         assert len(grid) > 0
         assert all(shapely.get_type_id(g) == 3 for g in grid)  # 3 = Polygon
 
-    def test_create_grid_correct_number_of_cells(self):
+    def test_create_grid_correct_number_of_cells(self) -> None:
         """Test that grid has expected number of cells."""
         bbox = shapely.box(0, 0, 10, 10)
         grid = _create_grid(bbox, height=2)
@@ -67,7 +76,7 @@ class TestCreateGrid:
         # 10/2 = 5 cells per side, so 5*5 = 25 cells
         assert len(grid) == 25
 
-    def test_create_grid_covers_bbox(self):
+    def test_create_grid_covers_bbox(self) -> None:
         """Test that grid cells cover the bounding box."""
         bbox = shapely.box(0, 0, 10, 10)
         grid = _create_grid(bbox, height=2)
@@ -80,7 +89,7 @@ class TestCreateGrid:
 class TestRemoveDuplicates:
     """Tests for _remove_duplicates function."""
 
-    def test_remove_duplicates_no_duplicates(self):
+    def test_remove_duplicates_no_duplicates(self) -> None:
         """Test with no duplicate indices."""
         df = pd.DataFrame(
             {
@@ -95,7 +104,7 @@ class TestRemoveDuplicates:
         assert len(result) == 2
         assert list(result.index) == [0, 1]
 
-    def test_remove_duplicates_with_duplicates(self):
+    def test_remove_duplicates_with_duplicates(self) -> None:
         """Test with duplicate indices - should concatenate lists."""
         df = pd.DataFrame(
             {
@@ -116,14 +125,14 @@ class TestRemoveDuplicates:
 class TestGetCellAreaM2:
     """Tests for _get_cell_area_m2 function."""
 
-    def test_get_cell_area_returns_positive(self, sample_geodataframe):
+    def test_get_cell_area_returns_positive(self, sample_geodataframe: gpd.GeoDataFrame) -> None:
         """Test that cell area is positive."""
         resolution = 0.001  # degrees
         area = _get_cell_area_m2(sample_geodataframe, resolution)
 
         assert area > 0
 
-    def test_get_cell_area_scales_with_resolution(self, sample_geodataframe):
+    def test_get_cell_area_scales_with_resolution(self, sample_geodataframe: gpd.GeoDataFrame) -> None:
         """Test that area scales with resolution squared."""
         area_small = _get_cell_area_m2(sample_geodataframe, 0.001)
         area_large = _get_cell_area_m2(sample_geodataframe, 0.002)
@@ -136,7 +145,7 @@ class TestGetCellAreaM2:
 class TestVectorExposure:
     """Tests for VectorExposure function."""
 
-    def test_vector_exposure_returns_tuple(self, vector_files):
+    def test_vector_exposure_returns_tuple(self, vector_files: dict) -> None:
         """Test that VectorExposure returns correct tuple structure."""
         result = VectorExposure(
             hazard_file=vector_files["hazard"],
@@ -147,7 +156,7 @@ class TestVectorExposure:
         assert len(result) == 4
         features, object_col, hazard_crs, cell_area_m2 = result
 
-    def test_vector_exposure_returns_geodataframe(self, vector_files):
+    def test_vector_exposure_returns_geodataframe(self, vector_files: dict) -> None:
         """Test that features are returned as GeoDataFrame."""
         features, _, _, _ = VectorExposure(
             hazard_file=vector_files["hazard"],
@@ -156,7 +165,7 @@ class TestVectorExposure:
 
         assert isinstance(features, gpd.GeoDataFrame)
 
-    def test_vector_exposure_adds_coverage_and_values(self, vector_files):
+    def test_vector_exposure_adds_coverage_and_values(self, vector_files: dict) -> None:
         """Test that coverage and values columns are added."""
         features, _, _, _ = VectorExposure(
             hazard_file=vector_files["hazard"],
@@ -167,20 +176,20 @@ class TestVectorExposure:
             assert "coverage" in features.columns
             assert "values" in features.columns
 
-    def test_vector_exposure_cell_area_positive(self, vector_files):
+    def test_vector_exposure_cell_area_positive(self, vector_files: dict) -> None:
         """Test that cell area is positive."""
         _, _, _, cell_area_m2 = VectorExposure(
             hazard_file=vector_files["hazard"],
             feature_file=vector_files["exposure"],
         )
-
+        assert cell_area_m2 is not None
         assert cell_area_m2 > 0
 
 
 class TestVectorScanner:
     """Tests for VectorScanner function."""
 
-    def test_vector_scanner_returns_geodataframe(self, vector_files):
+    def test_vector_scanner_returns_geodataframe(self, vector_files: dict) -> None:
         """Test that VectorScanner returns a GeoDataFrame."""
         result = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -192,7 +201,7 @@ class TestVectorScanner:
 
         assert isinstance(result, (gpd.GeoDataFrame, pd.DataFrame))
 
-    def test_vector_scanner_has_damage_column(self, vector_files):
+    def test_vector_scanner_has_damage_column(self, vector_files: dict) -> None:
         """Test that result contains damage column."""
         result = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -205,7 +214,7 @@ class TestVectorScanner:
         if len(result) > 0:
             assert "damage" in result.columns
 
-    def test_vector_scanner_damages_non_negative(self, vector_files):
+    def test_vector_scanner_damages_non_negative(self, vector_files: dict) -> None:
         """Test that all damage values are non-negative."""
         result = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -216,9 +225,21 @@ class TestVectorScanner:
         )
 
         if len(result) > 0:
+            assert ((result["damage"] >= 0) | result["damage"].isnull()).all()
+
+        result = VectorScanner(
+            hazard_file=vector_files["hazard"],
+            feature_file=vector_files["exposure"],
+            curve_path=vector_files["curves"],
+            maxdam_path=vector_files["maxdam"],
+            object_col="landuse",
+            return_full=False,
+        )
+
+        if len(result) > 0:
             assert (result["damage"] >= 0).all()
 
-    def test_vector_scanner_preserves_geometry(self, vector_files):
+    def test_vector_scanner_preserves_geometry(self, vector_files: dict) -> None:
         """Test that geometry column is preserved."""
         result = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -231,7 +252,7 @@ class TestVectorScanner:
         if len(result) > 0:
             assert "geometry" in result.columns
 
-    def test_vector_scanner_with_dataframe_inputs(self, vector_files):
+    def test_vector_scanner_with_dataframe_inputs(self, vector_files: dict) -> None:
         """Test VectorScanner with DataFrame inputs for curves and maxdam."""
         curves = pd.read_csv(vector_files["curves"], index_col=0)
         maxdam = pd.read_csv(vector_files["maxdam"])
@@ -246,7 +267,7 @@ class TestVectorScanner:
 
         assert isinstance(result, (gpd.GeoDataFrame, pd.DataFrame))
 
-    def test_vector_scanner_with_geodataframe_input(self, vector_files):
+    def test_vector_scanner_with_geodataframe_input(self, vector_files: dict) -> None:
         """Test VectorScanner with GeoDataFrame input for features."""
         features = gpd.read_file(vector_files["exposure"])
 
@@ -260,7 +281,7 @@ class TestVectorScanner:
 
         assert isinstance(result, (gpd.GeoDataFrame, pd.DataFrame))
 
-    def test_vector_scanner_gridded_vs_non_gridded(self, vector_files):
+    def test_vector_scanner_gridded_vs_non_gridded(self, vector_files: dict) -> None:
         """Test that gridded and non-gridded produce similar results."""
         result_gridded = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -291,7 +312,7 @@ class TestVectorScanner:
                 < 0.05
             )
 
-    def test_vector_scanner_total_damage_positive(self, vector_files):
+    def test_vector_scanner_total_damage_positive(self, vector_files: dict) -> None:
         """Test that total damage is positive."""
         result = VectorScanner(
             hazard_file=vector_files["hazard"],
@@ -304,7 +325,7 @@ class TestVectorScanner:
         if len(result) > 0:
             assert result["damage"].sum() > 0
 
-    def test_vector_scanner_empty_features(self, vector_files):
+    def test_vector_scanner_empty_features(self, vector_files: dict) -> None:
         """Test VectorScanner handles empty features gracefully."""
         # Create empty GeoDataFrame
         empty_features = gpd.GeoDataFrame(
@@ -324,8 +345,12 @@ class TestVectorScanner:
 
 
 @pytest.fixture
-def vector_hazard_files():
-    """Fixture for vector-vector overlay test files."""
+def vector_hazard_files() -> dict:
+    """Fixture for vector-vector overlay test files.
+    
+    Returns:
+        A dictionary with paths to hazard, exposure, curves, and maxdam files for vector hazard tests.
+    """
     vector_hazard = KAMPEN / "hazard" / "1in100_inundation_map_vector.parquet"
     if not vector_hazard.exists():
         pytest.skip(
@@ -343,7 +368,7 @@ def vector_hazard_files():
 class TestVectorVectorOverlay:
     """Tests for vector-vector overlay functionality."""
 
-    def test_overlay_vector_vector_returns_geodataframe(self, vector_hazard_files):
+    def test_overlay_vector_vector_returns_geodataframe(self, vector_hazard_files: dict) -> None:
         """Test that vector-vector overlay returns a GeoDataFrame."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -358,7 +383,7 @@ class TestVectorVectorOverlay:
         assert isinstance(result, gpd.GeoDataFrame)
         print(f"\nFeatures with exposure: {len(result)}")
 
-    def test_overlay_vector_vector_has_required_columns(self, vector_hazard_files):
+    def test_overlay_vector_vector_has_required_columns(self, vector_hazard_files: dict) -> None:
         """Test that result has coverage and values columns."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -373,7 +398,7 @@ class TestVectorVectorOverlay:
         assert "coverage" in result.columns
         assert "values" in result.columns
 
-    def test_overlay_vector_vector_values_are_lists(self, vector_hazard_files):
+    def test_overlay_vector_vector_values_are_lists(self, vector_hazard_files: dict) -> None:
         """Test that values and coverage are lists."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -389,7 +414,7 @@ class TestVectorVectorOverlay:
             assert all(isinstance(v, list) for v in result["values"])
             assert all(isinstance(c, list) for c in result["coverage"])
 
-    def test_overlay_vector_vector_coverage_positive(self, vector_hazard_files):
+    def test_overlay_vector_vector_coverage_positive(self, vector_hazard_files: dict) -> None:
         """Test that coverage values are positive."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -405,7 +430,7 @@ class TestVectorVectorOverlay:
             for coverage_list in result["coverage"]:
                 assert all(c > 0 for c in coverage_list)
 
-    def test_vector_exposure_with_vector_hazard(self, vector_hazard_files):
+    def test_vector_exposure_with_vector_hazard(self, vector_hazard_files: dict) -> None:
         """Test VectorExposure with vector hazard input."""
         features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
             hazard_file=vector_hazard_files["hazard"],
@@ -418,7 +443,7 @@ class TestVectorVectorOverlay:
         assert cell_area_m2 == 1  # Vector hazards use coverage in meters directly
         print(f"\nExposed features: {len(features)}")
 
-    def test_vector_scanner_with_vector_hazard(self, vector_hazard_files):
+    def test_vector_scanner_with_vector_hazard(self, vector_hazard_files: dict) -> None:
         """Test VectorScanner with vector hazard input."""
         result = VectorScanner(
             hazard_file=vector_hazard_files["hazard"],
@@ -437,8 +462,8 @@ class TestVectorVectorOverlay:
             print(f"Total damage: {result['damage'].sum():,.2f}")
 
     def test_vector_scanner_with_vector_hazard_damages_non_negative(
-        self, vector_hazard_files
-    ):
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test that damages are non-negative."""
         result = VectorScanner(
             hazard_file=vector_hazard_files["hazard"],
@@ -454,8 +479,12 @@ class TestVectorVectorOverlay:
 
 
 @pytest.fixture
-def osm_files():
-    """Fixture for Jamaica OSM test files."""
+def osm_files() -> dict:
+    """Fixture for Jamaica OSM test files.
+    
+    Returns:
+        A dictionary with paths to hazard, exposure, curves, and maxdam files for Jamaica.
+    """
     osm_path = JAMAICA / "exposure" / "jamaica-latest.osm.pbf"
     hazard_path = JAMAICA / "hazard" / "FD_1in1000.tif"
 
@@ -473,7 +502,7 @@ def osm_files():
 class TestExtractStrategy:
     """Tests for exactextract strategy comparison."""
 
-    def test_gridded_feature_vs_raster_sequential_jamaica_roads(self, osm_files):
+    def test_gridded_feature_vs_raster_sequential_jamaica_roads(self, osm_files: dict) -> None:
         """Test that feature-sequential and raster-sequential produce same results for gridded."""
         # Run with feature-sequential
         result_feature = VectorScanner(

@@ -1,4 +1,5 @@
 """This file is part of OSM-flex.
+
 Copyright (C) 2023 OSM-flex contributors listed in AUTHORS.
 OSM-flex is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free

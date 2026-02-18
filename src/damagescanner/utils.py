@@ -1,10 +1,14 @@
-"""DamageScanner - a directe damage assessment toolkit"""
+"""DamageScanner - a directe damage assessment toolkit."""
 
 from pathlib import Path
 
 
-def _check_output_path(given_args):
-    """Ensures the output directory exists and returns its path."""
+def _check_output_path(given_args: dict) -> Path | str:
+    """Ensures the output directory exists and returns its path.
+    
+    Returns:
+        A Path object for the output directory, or an empty string if no path is provided.
+    """
     output_path = given_args.get("output_path", "")
 
     if output_path == "":
@@ -19,14 +23,14 @@ def _check_output_path(given_args):
     return output_path
 
 
-def _check_scenario_name(given_args):
+def _check_scenario_name(given_args: dict) -> str:
     """Validates that a scenario name is provided in the arguments.
 
     Args:
-        given_args (dict): Dictionary of keyword arguments, expected to contain 'scenario_name'.
+        given_args: Dictionary of keyword arguments, expected to contain 'scenario_name'.
 
     Returns:
-        str: The scenario name.
+        The scenario name.
 
     Raises:
         ValueError: If 'scenario_name' is missing from the arguments.

@@ -40,6 +40,7 @@ dependencies = [
 dev = [
     "pytest>=8.3.5",
     "ruff>=0.11.2",
+    "ty"
 ]
 tests = ["pytest", "pyarrow", "netcdf4"]
 docs = [
@@ -59,3 +60,71 @@ pythonpath = ["src"]
 [project.urls]
 "Homepage" = "https://github.com/VU-IVM/DamageScanner"
 "Documentation" = "https://vu-ivm.github.io/DamageScanner/"
+
+[tool.ruff.lint]
+select = [
+    "ANN002",
+    "ANN003",
+    "ANN204",
+    "ANN205",
+    "ANN206",
+    "DOC102",
+    "DOC201",
+    "DOC202",
+    "DOC402",
+    "DOC501",
+    "DOC502",
+    "ANN001",
+    "ANN003",
+    "ANN201",
+    "ANN202",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D200",
+    "D201",
+    "D202",
+    "D204",
+    "D205",
+    "D206",
+    "D207",
+    "D208",
+    "D209",
+    "D210",
+    "D211",
+    "D300",
+    "D400",
+    "D405",
+    "D406",
+    "D415",
+    "D416",
+    "D417",
+    "D419",
+    "F401",
+    "UP006",
+    "UP007",
+    "UP008",
+    "UP009",
+    "UP010",
+    "UP012",
+    "UP017",
+    "UP022",
+    "UP029",
+    "UP037",
+    "UP044",
+    "UP045",
+]
+extend-select = ["I"]
+preview = true
+
+[tool.ruff.lint.isort]
+known-first-party = ["geb"]
+combine-as-imports = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

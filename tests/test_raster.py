@@ -1,20 +1,25 @@
-import pytest
-import rasterio
+"""Tests for raster-based damage assessment functionality in DamageScanner."""
+
 import numpy as np
 import pandas as pd
+import pytest
+import rasterio
 
-from .helpers import tmp_folder, data_path
+from damagescanner.raster import RasterScanner, match_and_load_rasters
 
-from damagescanner.raster import match_and_load_rasters, RasterScanner
-
+from .helpers import data_path, tmp_folder
 
 # Define test data paths
 KAMPEN = data_path / "kampen"
 
 
 @pytest.fixture
-def raster_files():
-    """Fixture for raster file paths."""
+def raster_files() -> dict:
+    """Fixture for raster file paths.
+    
+    Returns:
+        A dictionary with paths to landuse, hazard, curves, and maxdam files for raster tests
+    """
     return {
         "landuse": KAMPEN / "exposure" / "landuse_map.tif",
         "hazard": KAMPEN / "hazard" / "1in100_inundation_map.tif",
@@ -26,7 +31,7 @@ def raster_files():
 class TestMatchAndLoadRasters:
     """Tests for match_and_load_rasters function."""
 
-    def test_match_and_load_rasters_extended(self, raster_files):
+    def test_match_and_load_rasters_extended(self, raster_files: dict) -> None:
         """Test matching rasters when one is extended beyond the other."""
         landuse_file = raster_files["landuse"]
         hazard_file = raster_files["hazard"]
@@ -79,7 +84,7 @@ class TestMatchAndLoadRasters:
             assert np.array_equal(land_use_cropped, landuse_data)
             assert transform == landuse_transform
 
-    def test_match_and_load_rasters_same_extent(self, raster_files):
+    def test_match_and_load_rasters_same_extent(self, raster_files: dict) -> None:
         """Test matching rasters with identical extents."""
         landuse_file = raster_files["landuse"]
         hazard_file = raster_files["hazard"]
@@ -93,7 +98,7 @@ class TestMatchAndLoadRasters:
 class TestRasterScanner:
     """Tests for RasterScanner function."""
 
-    def test_raster_scanner_returns_correct_types(self, raster_files):
+    def test_raster_scanner_returns_correct_types(self, raster_files: dict) -> None:
         """Test that RasterScanner returns correct output types."""
         damage_df, damagemap, landuse, hazard = RasterScanner(
             exposure_file=raster_files["landuse"],
@@ -107,7 +112,7 @@ class TestRasterScanner:
         assert isinstance(landuse, np.ndarray)
         assert isinstance(hazard, np.ndarray)
 
-    def test_raster_scanner_damage_df_structure(self, raster_files):
+    def test_raster_scanner_damage_df_structure(self, raster_files: dict) -> None:
         """Test that damage DataFrame has correct structure."""
         damage_df, _, _, _ = RasterScanner(
             exposure_file=raster_files["landuse"],
@@ -119,7 +124,7 @@ class TestRasterScanner:
         assert "damage" in damage_df.columns
         assert len(damage_df) > 0
 
-    def test_raster_scanner_damages_non_negative(self, raster_files):
+    def test_raster_scanner_damages_non_negative(self, raster_files: dict) -> None:
         """Test that all damage values are non-negative."""
         damage_df, damagemap, _, _ = RasterScanner(
             exposure_file=raster_files["landuse"],
@@ -131,7 +136,7 @@ class TestRasterScanner:
         assert (damage_df["damage"] >= 0).all()
         assert (damagemap >= 0).all()
 
-    def test_raster_scanner_shapes_match(self, raster_files):
+    def test_raster_scanner_shapes_match(self, raster_files: dict) -> None:
         """Test that output arrays have matching shapes."""
         _, damagemap, landuse, hazard = RasterScanner(
             exposure_file=raster_files["landuse"],
@@ -143,7 +148,7 @@ class TestRasterScanner:
         assert damagemap.shape == landuse.shape
         assert damagemap.shape == hazard.shape
 
-    def test_raster_scanner_with_dataframe_inputs(self, raster_files):
+    def test_raster_scanner_with_dataframe_inputs(self, raster_files: dict) -> None:
         """Test RasterScanner with DataFrame inputs for curves and maxdam."""
         curves = pd.read_csv(raster_files["curves"])
         maxdam = pd.read_csv(raster_files["maxdam"])
@@ -158,9 +163,8 @@ class TestRasterScanner:
         assert isinstance(damage_df, pd.DataFrame)
         assert isinstance(damagemap, np.ndarray)
 
-    def test_raster_scanner_with_save(self, raster_files):
+    def test_raster_scanner_with_save(self, raster_files: dict) -> None:
         """Test RasterScanner with save option."""
-
         damage_df, damagemap, _, _ = RasterScanner(
             exposure_file=raster_files["landuse"],
             hazard_file=raster_files["hazard"],
@@ -175,7 +179,7 @@ class TestRasterScanner:
         assert (tmp_folder / "test_output_damages.csv").exists()
         assert (tmp_folder / "test_output_damagemap.tif").exists()
 
-    def test_raster_scanner_total_damage_reasonable(self, raster_files):
+    def test_raster_scanner_total_damage_reasonable(self, raster_files: dict) -> None:
         """Test that total damage is a reasonable positive value."""
         damage_df, _, _, _ = RasterScanner(
             exposure_file=raster_files["landuse"],

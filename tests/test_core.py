@@ -1,7 +1,10 @@
-import pytest
-import pandas as pd
-import geopandas as gpd
+"""Tests for core damage and risk calculation functionality in DamageScanner."""
+
 import pathlib
+
+import geopandas as gpd
+import pandas as pd
+import pytest
 
 from damagescanner import DamageScanner
 
@@ -16,8 +19,12 @@ HAZARDS = data_path / "hazard"
 
 
 @pytest.fixture
-def raster_inputs():
-    """Fixture for raster-based damage calculation inputs."""
+def raster_inputs() -> dict:
+    """Fixture for raster-based damage calculation inputs.
+    
+    Returns:
+        A dictionary containing paths to hazard, exposure, curves, and maxdam files for raster testing
+    """
     return {
         "hazard": KAMPEN / "hazard" / "1in100_inundation_map.tif",
         "exposure": KAMPEN / "exposure" / "landuse_map.tif",
@@ -27,8 +34,12 @@ def raster_inputs():
 
 
 @pytest.fixture
-def vector_inputs():
-    """Fixture for vector-based damage calculation inputs."""
+def vector_inputs() -> dict:
+    """Fixture for vector-based damage calculation inputs.
+    
+    Returns:
+        A dictionary containing paths to hazard, exposure, curves, and maxdam files for vector testing
+    """
     return {
         "hazard": KAMPEN / "hazard" / "1in100_inundation_map.tif",
         "exposure": KAMPEN / "exposure" / "landuse.gpkg",
@@ -38,8 +49,12 @@ def vector_inputs():
 
 
 @pytest.fixture
-def hazard_dict():
-    """Fixture for risk calculation with multiple return periods."""
+def hazard_dict() -> dict:
+    """Fixture for risk calculation with multiple return periods.
+    
+    Returns:
+        A dictionary mapping return periods to hazard file paths for risk testing.
+    """
     return {
         10: KAMPEN / "hazard" / "1in10_inundation_map.tif",
         50: KAMPEN / "hazard" / "1in50_inundation_map.tif",
@@ -50,8 +65,12 @@ def hazard_dict():
 
 
 @pytest.fixture
-def osm_inputs():
-    """Fixture for OSM-based damage calculation inputs."""
+def osm_inputs() -> dict    :
+    """Fixture for OSM-based damage calculation inputs.
+    
+    Returns:
+        A dictionary containing paths to hazard, OSM exposure, curves, and maxdam files for
+    """
     osm_file = JAMAICA / "exposure" / "jamaica-latest.osm.pbf"
     if not osm_file.exists():
         pytest.skip("Jamaica OSM test data not available")
@@ -67,7 +86,7 @@ def osm_inputs():
 class TestDamageScannerInit:
     """Tests for DamageScanner initialization."""
 
-    def test_init_raster_from_path(self, raster_inputs):
+    def test_init_raster_from_path(self, raster_inputs: dict) -> None:
         """Test initialization with raster exposure data."""
         ds = DamageScanner(
             hazard_data=raster_inputs["hazard"],
@@ -77,7 +96,7 @@ class TestDamageScannerInit:
         )
         assert ds.assessment_type == "raster"
 
-    def test_init_vector_from_path(self, vector_inputs):
+    def test_init_vector_from_path(self, vector_inputs: dict) -> None:
         """Test initialization with vector exposure data."""
         ds = DamageScanner(
             hazard_data=vector_inputs["hazard"],
@@ -87,7 +106,7 @@ class TestDamageScannerInit:
         )
         assert ds.assessment_type == "vector"
 
-    def test_init_osm_from_path(self, osm_inputs):
+    def test_init_osm_from_path(self, osm_inputs: dict) -> None:
         """Test initialization with OSM .pbf exposure data."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -102,7 +121,7 @@ class TestDamageScannerInit:
 class TestRasterCalculation:
     """Tests for raster-based damage calculations."""
 
-    def test_calculate_returns_correct_outputs(self, raster_inputs):
+    def test_calculate_returns_correct_outputs(self, raster_inputs: dict) -> None:
         """Test that raster calculation returns damage df, damage map, landuse, and hazard."""
         ds = DamageScanner(
             hazard_data=raster_inputs["hazard"],
@@ -122,7 +141,7 @@ class TestRasterCalculation:
         assert hazard is not None
         assert len(damage_df) > 0
 
-    def test_damages_are_non_negative(self, raster_inputs):
+    def test_damages_are_non_negative(self, raster_inputs: dict) -> None:
         """Test that calculated damages are non-negative."""
         ds = DamageScanner(
             hazard_data=raster_inputs["hazard"],
@@ -139,7 +158,7 @@ class TestRasterCalculation:
 class TestVectorCalculation:
     """Tests for vector-based damage calculations."""
 
-    def test_calculate_returns_dataframe(self, vector_inputs):
+    def test_calculate_returns_dataframe(self, vector_inputs: dict) -> None:
         """Test that vector calculation returns a dataframe."""
         ds = DamageScanner(
             hazard_data=vector_inputs["hazard"],
@@ -151,7 +170,7 @@ class TestVectorCalculation:
 
         assert isinstance(result, pd.DataFrame)
 
-    def test_damage_column_exists(self, vector_inputs):
+    def test_damage_column_exists(self, vector_inputs: dict) -> None:
         """Test that result contains damage column."""
         ds = DamageScanner(
             hazard_data=vector_inputs["hazard"],
@@ -168,7 +187,7 @@ class TestVectorCalculation:
 class TestRiskCalculation:
     """Tests for risk assessment across multiple return periods."""
 
-    def test_risk_raster(self, raster_inputs, hazard_dict):
+    def test_risk_raster(self, raster_inputs: dict, hazard_dict: dict) -> None:
         """Test risk calculation with raster data."""
         ds = DamageScanner(
             hazard_data=raster_inputs["hazard"],
@@ -185,7 +204,7 @@ class TestRiskCalculation:
 class TestOSMExposure:
     """Tests for OSM-based exposure analysis."""
 
-    def test_exposure_returns_geodataframe(self, osm_inputs):
+    def test_exposure_returns_geodataframe(self, osm_inputs: dict) -> None:
         """Test that exposure() returns a GeoDataFrame for OSM data."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -197,7 +216,7 @@ class TestOSMExposure:
 
         assert isinstance(result, gpd.GeoDataFrame)
 
-    def test_exposure_has_required_columns(self, osm_inputs):
+    def test_exposure_has_required_columns(self, osm_inputs: dict) -> None:
         """Test that exposure result has required columns."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -221,7 +240,7 @@ class TestOSMExposure:
             "education",
         ],
     )
-    def test_exposure_various_asset_types(self, osm_inputs, asset_type):
+    def test_exposure_various_asset_types(self, osm_inputs: dict, asset_type: str) -> None:
         """Test exposure analysis for various asset types."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -237,7 +256,7 @@ class TestOSMExposure:
 class TestOSMCalculation:
     """Tests for OSM-based damage calculations."""
 
-    def test_calculate_returns_dataframe(self, osm_inputs):
+    def test_calculate_returns_dataframe(self, osm_inputs: dict) -> None:
         """Test that calculate() returns a DataFrame for OSM data."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -249,7 +268,7 @@ class TestOSMCalculation:
 
         assert isinstance(result, (pd.DataFrame, gpd.GeoDataFrame))
 
-    def test_calculate_has_damage_column(self, osm_inputs):
+    def test_calculate_has_damage_column(self, osm_inputs: dict) -> None:
         """Test that OSM calculation result has damage column."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -262,7 +281,7 @@ class TestOSMCalculation:
         if len(result) > 0:
             assert "damage" in result.columns
 
-    def test_calculate_damages_non_negative(self, osm_inputs):
+    def test_calculate_damages_non_negative(self, osm_inputs: dict) -> None:
         """Test that OSM damages are non-negative."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -275,7 +294,7 @@ class TestOSMCalculation:
         if len(result) > 0:
             assert (result["damage"] >= 0).all()
 
-    def test_calculate_total_damage_positive(self, osm_inputs):
+    def test_calculate_total_damage_positive(self, osm_inputs: dict) -> None:
         """Test that total damage is positive for main_roads."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -296,8 +315,14 @@ class TestOSMCalculation:
             #        "buildings",
         ],
     )
-    def test_calculate_various_asset_types(self, osm_inputs, asset_type):
-        """Test damage calculation for various asset types."""
+    def test_calculate_various_asset_types(self, osm_inputs: dict, asset_type: str) -> None:
+        """Test damage calculation for various asset types.
+        
+        Args:
+            osm_inputs: Dictionary of OSM input data paths.
+            asset_type: The type of asset to test (e.g., "main_roads", "buildings").
+
+        """
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
             feature_data=osm_inputs["exposure"],
@@ -312,8 +337,12 @@ class TestOSMCalculation:
 
 
 @pytest.fixture
-def netcdf_inputs():
-    """Fixture for NetCDF windstorm hazard inputs."""
+def netcdf_inputs() -> dict:
+    """Fixture for NetCDF windstorm hazard inputs.
+    
+    Returns:
+        A dictionary containing paths to hazard, exposure, curves, and maxdam files for NetCDF testing.
+    """
     nc_file = KAMPEN / "hazard" / "windstorm.nc"
     if not nc_file.exists():
         pytest.skip("NetCDF windstorm test data not available")
@@ -334,7 +363,7 @@ def netcdf_inputs():
 class TestNetCDFExposure:
     """Tests for NetCDF hazard data handling."""
 
-    def test_init_with_netcdf_hazard(self, netcdf_inputs):
+    def test_init_with_netcdf_hazard(self, netcdf_inputs: dict) -> None:
         """Test initialization with NetCDF hazard file."""
         ds = DamageScanner(
             hazard_data=netcdf_inputs["hazard"],
@@ -345,7 +374,7 @@ class TestNetCDFExposure:
         assert ds.assessment_type == "vector"
         assert ds.osm
 
-    def test_exposure_with_netcdf_buildings(self, netcdf_inputs):
+    def test_exposure_with_netcdf_buildings(self, netcdf_inputs: dict) -> None:
         """Test exposure calculation with NetCDF hazard and OSM buildings."""
         ds = DamageScanner(
             hazard_data=netcdf_inputs["hazard"],
@@ -365,7 +394,7 @@ class TestNetCDFExposure:
             assert "object_type" in result.columns
             print(f"Building types: {result['object_type'].value_counts().to_dict()}")
 
-    def test_netcdf_hazard_loads_as_xarray(self, netcdf_inputs):
+    def test_netcdf_hazard_loads_as_xarray(self, netcdf_inputs: dict) -> None:
         """Test that NetCDF hazard is loaded correctly as xarray."""
         import xarray as xr
 

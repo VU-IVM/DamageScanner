@@ -1,4 +1,5 @@
 """This file is part of OSM-flex.
+
 Copyright (C) 2023 OSM-flex contributors listed in AUTHORS.
 OSM-flex is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free
@@ -24,10 +25,11 @@ See Also:
 """
 
 import logging
-from pathlib import Path
 import urllib.request
+from pathlib import Path
 from urllib.parse import urljoin
-from damagescanner.config import DICT_GEOFABRIK, GEOFABRIK_URL, PLANET_URL, OSM_DATA_DIR
+
+from damagescanner.config import DICT_GEOFABRIK, GEOFABRIK_URL, OSM_DATA_DIR, PLANET_URL
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,15 +38,15 @@ LOGGER = logging.getLogger(__name__)
 # =============================================================================
 
 
-def _create_gf_download_url(iso3, file_format):
+def _create_gf_download_url(iso3: str, file_format: str) -> str:
     """Generates a download URL for a country from Geofabrik.
 
     Args:
-        iso3 (str): ISO3 code of the country (e.g., 'NLD' for Netherlands).
-        file_format (str): File format to download; either 'shp' or 'pbf'.
+        iso3: ISO3 code of the country (e.g., 'NLD' for Netherlands).
+        file_format: File format to download; either 'shp' or 'pbf'.
 
     Returns:
-        str: The full Geofabrik download URL.
+        The full Geofabrik download URL.
 
     Raises:
         KeyError: If the ISO3 code is not found in DICT_GEOFABRIK.
@@ -83,16 +85,13 @@ def _create_gf_download_url(iso3, file_format):
     return urljoin(GEOFABRIK_URL, f"{continent}/{country}-latest{ext}")
 
 
-def _download_file(download_url: str, filepath: Path, overwrite: bool = True):
+def _download_file(download_url: str, filepath: Path, overwrite: bool = True) -> None:
     """Downloads a file from a URL to a local path.
 
     Args:
-        download_url (str): The URL of the file to download.
-        filepath (Path): Destination path for the downloaded file.
-        overwrite (bool, optional): If True, overwrite existing file. Defaults to True.
-
-    Returns:
-        None
+        download_url: The URL of the file to download.
+        filepath: Destination path for the downloaded file.
+        overwrite: If True, overwrite existing file.
     """
     if not Path(filepath).is_file() or overwrite:
         LOGGER.info(f"Download file: {filepath}")
@@ -100,30 +99,26 @@ def _download_file(download_url: str, filepath: Path, overwrite: bool = True):
     else:
         LOGGER.info(f"Skip existing file: {filepath}")
 
-
-# TODO: decide whether to issue warnings for multi-country files
-
-
 def get_country_geofabrik(
-    iso3, file_format="pbf", save_path=OSM_DATA_DIR, overwrite=False
-):
+    iso3: str,
+    file_format: str = "pbf",
+    save_path: str | Path = OSM_DATA_DIR,
+    overwrite: bool = False,
+) -> Path:
     """Downloads an OSM dataset for a country from Geofabrik.
 
     Args:
-        iso3 (str): ISO3 country code (e.g., 'NLD').
-        file_format (str, optional): Either 'pbf' or 'shp'. Defaults to 'pbf'.
-        save_path (Union[str, Path], optional): Directory to save the file. Defaults to OSM_DATA_DIR.
-        overwrite (bool, optional): If True, overwrite existing file. Defaults to False.
+        iso3: ISO3 country code (e.g., 'NLD').
+        file_format: Either 'pbf' or 'shp'.
+        save_path: Directory to save the file.
+        overwrite: If True, overwrite existing file.
 
     Returns:
-        Path: The local path to the downloaded file.
-
-    Raises:
-        KeyError: If the ISO3 code is not recognized.
-        NotImplementedError: If the file format is not supported.
+        The local path to the downloaded file.
 
     See Also:
         DICT_GEOFABRIK: ISO3-to-Geofabrik region mapping.
+
     """
     download_url = _create_gf_download_url(iso3, file_format)
     filepath = Path(save_path, Path(download_url).name)
@@ -134,16 +129,18 @@ def get_country_geofabrik(
 
 
 # TODO: allow for several spelling options like "Central America", "Australia", ...
-def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
+def get_region_geofabrik(
+    region: str, save_path: str | Path = OSM_DATA_DIR, overwrite: bool = False
+) -> Path:
     """Downloads an OSM dataset for an entire region from Geofabrik.
 
     Args:
-        region (str): Name of the region (e.g., 'Europe', 'Africa', 'Asia').
-        save_path (Union[str, Path], optional): Directory to save the file. Defaults to OSM_DATA_DIR.
-        overwrite (bool, optional): If True, overwrite existing file. Defaults to False.
+        region: Name of the region (e.g., 'Europe', 'Africa', 'Asia').
+        save_path: Directory to save the file.
+        overwrite: If True, overwrite existing file.
 
     Returns:
-        Path: The local path to the downloaded file.
+        The local path to the downloaded file.
     """
     download_url = f"{GEOFABRIK_URL}{region.lower()}-latest.osm.pbf"
     filepath = Path(save_path, Path(download_url).name)
@@ -154,16 +151,17 @@ def get_region_geofabrik(region, save_path=OSM_DATA_DIR, overwrite=False):
 
 
 def get_planet_file(
-    save_path=Path(OSM_DATA_DIR, "planet-latest.osm.pbf"), overwrite=False
-):
+    save_path: str | Path = Path(OSM_DATA_DIR, "planet-latest.osm.pbf"),
+    overwrite: bool = False,
+) -> Path:
     """Downloads the full OSM planet file (~60 GB) from planet.openstreetmap.org.
 
     Args:
-        save_path (Union[str, Path], optional): Destination path for the file. Defaults to `OSM_DATA_DIR/planet-latest.osm.pbf`.
-        overwrite (bool, optional): If True, overwrite existing file. Defaults to False.
+        save_path: Destination path for the file.
+        overwrite: If True, overwrite existing file.
 
     Returns:
-        Path: The local path to the downloaded planet file.
+        The local path to the downloaded planet file.
     """
     _download_file(PLANET_URL, save_path, overwrite)
     return Path(save_path)
