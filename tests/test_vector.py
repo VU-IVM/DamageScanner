@@ -24,7 +24,7 @@ JAMAICA = data_path / "jamaica"
 @pytest.fixture
 def vector_files() -> dict:
     """Fixture for vector file paths.
-    
+
     Returns:
         A dictionary with paths to hazard, exposure, curves, and maxdam files for vector tests
     """
@@ -39,7 +39,7 @@ def vector_files() -> dict:
 @pytest.fixture
 def sample_geodataframe() -> gpd.GeoDataFrame:
     """Create a simple GeoDataFrame for testing.
-    
+
     Returns:
         A GeoDataFrame with sample points and landuse values.
     """
@@ -125,14 +125,18 @@ class TestRemoveDuplicates:
 class TestGetCellAreaM2:
     """Tests for _get_cell_area_m2 function."""
 
-    def test_get_cell_area_returns_positive(self, sample_geodataframe: gpd.GeoDataFrame) -> None:
+    def test_get_cell_area_returns_positive(
+        self, sample_geodataframe: gpd.GeoDataFrame
+    ) -> None:
         """Test that cell area is positive."""
         resolution = 0.001  # degrees
         area = _get_cell_area_m2(sample_geodataframe, resolution)
 
         assert area > 0
 
-    def test_get_cell_area_scales_with_resolution(self, sample_geodataframe: gpd.GeoDataFrame) -> None:
+    def test_get_cell_area_scales_with_resolution(
+        self, sample_geodataframe: gpd.GeoDataFrame
+    ) -> None:
         """Test that area scales with resolution squared."""
         area_small = _get_cell_area_m2(sample_geodataframe, 0.001)
         area_large = _get_cell_area_m2(sample_geodataframe, 0.002)
@@ -347,7 +351,7 @@ class TestVectorScanner:
 @pytest.fixture
 def vector_hazard_files() -> dict:
     """Fixture for vector-vector overlay test files.
-    
+
     Returns:
         A dictionary with paths to hazard, exposure, curves, and maxdam files for vector hazard tests.
     """
@@ -368,7 +372,9 @@ def vector_hazard_files() -> dict:
 class TestVectorVectorOverlay:
     """Tests for vector-vector overlay functionality."""
 
-    def test_overlay_vector_vector_returns_geodataframe(self, vector_hazard_files: dict) -> None:
+    def test_overlay_vector_vector_returns_geodataframe(
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test that vector-vector overlay returns a GeoDataFrame."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -383,7 +389,9 @@ class TestVectorVectorOverlay:
         assert isinstance(result, gpd.GeoDataFrame)
         print(f"\nFeatures with exposure: {len(result)}")
 
-    def test_overlay_vector_vector_has_required_columns(self, vector_hazard_files: dict) -> None:
+    def test_overlay_vector_vector_has_required_columns(
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test that result has coverage and values columns."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -398,7 +406,9 @@ class TestVectorVectorOverlay:
         assert "coverage" in result.columns
         assert "values" in result.columns
 
-    def test_overlay_vector_vector_values_are_lists(self, vector_hazard_files: dict) -> None:
+    def test_overlay_vector_vector_values_are_lists(
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test that values and coverage are lists."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -414,7 +424,9 @@ class TestVectorVectorOverlay:
             assert all(isinstance(v, list) for v in result["values"])
             assert all(isinstance(c, list) for c in result["coverage"])
 
-    def test_overlay_vector_vector_coverage_positive(self, vector_hazard_files: dict) -> None:
+    def test_overlay_vector_vector_coverage_positive(
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test that coverage values are positive."""
         hazard = gpd.read_parquet(vector_hazard_files["hazard"])
         features = gpd.read_file(vector_hazard_files["exposure"])
@@ -430,7 +442,9 @@ class TestVectorVectorOverlay:
             for coverage_list in result["coverage"]:
                 assert all(c > 0 for c in coverage_list)
 
-    def test_vector_exposure_with_vector_hazard(self, vector_hazard_files: dict) -> None:
+    def test_vector_exposure_with_vector_hazard(
+        self, vector_hazard_files: dict
+    ) -> None:
         """Test VectorExposure with vector hazard input."""
         features, object_col, hazard_crs, cell_area_m2 = VectorExposure(
             hazard_file=vector_hazard_files["hazard"],
@@ -481,7 +495,7 @@ class TestVectorVectorOverlay:
 @pytest.fixture
 def osm_files() -> dict:
     """Fixture for Jamaica OSM test files.
-    
+
     Returns:
         A dictionary with paths to hazard, exposure, curves, and maxdam files for Jamaica.
     """
@@ -502,7 +516,9 @@ def osm_files() -> dict:
 class TestExtractStrategy:
     """Tests for exactextract strategy comparison."""
 
-    def test_gridded_feature_vs_raster_sequential_jamaica_roads(self, osm_files: dict) -> None:
+    def test_gridded_feature_vs_raster_sequential_jamaica_roads(
+        self, osm_files: dict
+    ) -> None:
         """Test that feature-sequential and raster-sequential produce same results for gridded."""
         # Run with feature-sequential
         result_feature = VectorScanner(

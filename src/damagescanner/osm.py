@@ -388,7 +388,6 @@ def _extract_value(text: str | None, key: str) -> str | None:
     return None
 
 
-
 def extract(
     osm_path: str | Path, geom_type: str, osm_keys: list[str], osm_query: dict
 ) -> gpd.GeoDataFrame:

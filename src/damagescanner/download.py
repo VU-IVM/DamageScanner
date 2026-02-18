@@ -99,6 +99,7 @@ def _download_file(download_url: str, filepath: Path, overwrite: bool = True) ->
     else:
         LOGGER.info(f"Skip existing file: {filepath}")
 
+
 def get_country_geofabrik(
     iso3: str,
     file_format: str = "pbf",

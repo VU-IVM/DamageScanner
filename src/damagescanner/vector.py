@@ -23,7 +23,7 @@ from damagescanner.osm import read_osm_data
 
 def _crs_is_meters(crs: pyproj.CRS) -> bool:
     """Check if a CRS uses meters as its unit.
-    
+
     Returns:
         True if the CRS uses meters, False otherwise.
     """
@@ -747,7 +747,11 @@ def _get_damage_per_object(
 
 
 def VectorExposure(
-    hazard_file: Path | xr.Dataset | xr.DataArray | rasterio.DatasetReader | gpd.GeoDataFrame,
+    hazard_file: Path
+    | xr.Dataset
+    | xr.DataArray
+    | rasterio.DatasetReader
+    | gpd.GeoDataFrame,
     feature_file: Path | gpd.GeoDataFrame | pd.DataFrame | str,
     asset_type: str = "roads",
     object_col: str = "object_type",
@@ -820,7 +824,7 @@ def VectorExposure(
 
             # check if crs is already in meters
             if _crs_is_meters(hazard_crs):
-                cell_area_m2: int | float  = abs(
+                cell_area_m2: int | float = abs(
                     (hazard.x[1].values - hazard.x[0].values)
                     * (hazard.y[0].values - hazard.y[1].values)
                 )

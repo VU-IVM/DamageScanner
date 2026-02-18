@@ -106,7 +106,9 @@ class TestDownloadFile:
             filepath.unlink()
 
     @patch("damagescanner.download.urllib.request.urlretrieve")
-    def test_skips_existing_file_no_overwrite(self, mock_urlretrieve: MagicMock) -> None:
+    def test_skips_existing_file_no_overwrite(
+        self, mock_urlretrieve: MagicMock
+    ) -> None:
         """Test that existing file is skipped when overwrite=False."""
         filepath = tmp_folder / "test_skip.pbf"
 
@@ -193,7 +195,7 @@ class TestGetRegionGeofabrik:
         assert isinstance(result, Path)
 
     @patch("damagescanner.download._download_file")
-    def test_correct_url_format(self, mock_download: MagicMock  ) -> None:
+    def test_correct_url_format(self, mock_download: MagicMock) -> None:
         """Test that correct URL is constructed."""
         get_region_geofabrik("europe", save_path=tmp_folder)
 

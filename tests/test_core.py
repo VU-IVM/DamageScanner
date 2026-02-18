@@ -21,7 +21,7 @@ HAZARDS = data_path / "hazard"
 @pytest.fixture
 def raster_inputs() -> dict:
     """Fixture for raster-based damage calculation inputs.
-    
+
     Returns:
         A dictionary containing paths to hazard, exposure, curves, and maxdam files for raster testing
     """
@@ -36,7 +36,7 @@ def raster_inputs() -> dict:
 @pytest.fixture
 def vector_inputs() -> dict:
     """Fixture for vector-based damage calculation inputs.
-    
+
     Returns:
         A dictionary containing paths to hazard, exposure, curves, and maxdam files for vector testing
     """
@@ -51,7 +51,7 @@ def vector_inputs() -> dict:
 @pytest.fixture
 def hazard_dict() -> dict:
     """Fixture for risk calculation with multiple return periods.
-    
+
     Returns:
         A dictionary mapping return periods to hazard file paths for risk testing.
     """
@@ -65,9 +65,9 @@ def hazard_dict() -> dict:
 
 
 @pytest.fixture
-def osm_inputs() -> dict    :
+def osm_inputs() -> dict:
     """Fixture for OSM-based damage calculation inputs.
-    
+
     Returns:
         A dictionary containing paths to hazard, OSM exposure, curves, and maxdam files for
     """
@@ -240,7 +240,9 @@ class TestOSMExposure:
             "education",
         ],
     )
-    def test_exposure_various_asset_types(self, osm_inputs: dict, asset_type: str) -> None:
+    def test_exposure_various_asset_types(
+        self, osm_inputs: dict, asset_type: str
+    ) -> None:
         """Test exposure analysis for various asset types."""
         ds = DamageScanner(
             hazard_data=osm_inputs["hazard"],
@@ -315,9 +317,11 @@ class TestOSMCalculation:
             #        "buildings",
         ],
     )
-    def test_calculate_various_asset_types(self, osm_inputs: dict, asset_type: str) -> None:
+    def test_calculate_various_asset_types(
+        self, osm_inputs: dict, asset_type: str
+    ) -> None:
         """Test damage calculation for various asset types.
-        
+
         Args:
             osm_inputs: Dictionary of OSM input data paths.
             asset_type: The type of asset to test (e.g., "main_roads", "buildings").
@@ -339,7 +343,7 @@ class TestOSMCalculation:
 @pytest.fixture
 def netcdf_inputs() -> dict:
     """Fixture for NetCDF windstorm hazard inputs.
-    
+
     Returns:
         A dictionary containing paths to hazard, exposure, curves, and maxdam files for NetCDF testing.
     """

@@ -365,7 +365,7 @@ class TestReadOsmData:
     @pytest.fixture
     def osm_file(self) -> Path:
         """Fixture for OSM file path.
-        
+
         Returns:
             Path to Jamaica OSM data file, or skips tests if not available.
         """
@@ -523,7 +523,7 @@ class TestExtract:
     @pytest.fixture
     def osm_file(self) -> Path:
         """Fixture for OSM file path.
-        
+
         Returns:
             Path to Jamaica OSM data file, or skips tests if not available.
         """

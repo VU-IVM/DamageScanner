@@ -16,7 +16,7 @@ KAMPEN = data_path / "kampen"
 @pytest.fixture
 def raster_files() -> dict:
     """Fixture for raster file paths.
-    
+
     Returns:
         A dictionary with paths to landuse, hazard, curves, and maxdam files for raster tests
     """

@@ -29,7 +29,12 @@ class DamageScanner(object):
     def __init__(
         self,
         hazard_data: str | Path | xr.DataArray | xr.Dataset,
-        feature_data: str | Path | pd.DataFrame | gpd.GeoDataFrame | xr.DataArray | xr.Dataset,
+        feature_data: str
+        | Path
+        | pd.DataFrame
+        | gpd.GeoDataFrame
+        | xr.DataArray
+        | xr.Dataset,
         curves: str | Path | pd.DataFrame,
         maxdam: str | Path | pd.DataFrame,
     ) -> None:
@@ -187,7 +192,10 @@ class DamageScanner(object):
         disable_progress: bool = False,
         output_path: str | None = None,
         **kwargs: Any,
-    ) -> pd.DataFrame | tuple[pd.DataFrame, np.ndarray, np.ndarray, xr.Dataset | np.ndarray]:
+    ) -> (
+        pd.DataFrame
+        | tuple[pd.DataFrame, np.ndarray, np.ndarray, xr.Dataset | np.ndarray]
+    ):
         """
         Perform a damage calculation using the provided inputs.
 

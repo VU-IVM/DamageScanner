@@ -5,7 +5,7 @@ from pathlib import Path
 
 def _check_output_path(given_args: dict) -> Path | str:
     """Ensures the output directory exists and returns its path.
-    
+
     Returns:
         A Path object for the output directory, or an empty string if no path is provided.
     """
