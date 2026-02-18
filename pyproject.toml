@@ -21,7 +21,7 @@ classifiers=[
     "Topic :: Utilities",
 ]
 readme = "README.md"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.11,<3.15"
 dependencies = [
     "numpy>=2.0.0",
     "geopandas>=1.0.0",
