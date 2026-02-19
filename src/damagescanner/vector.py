@@ -41,6 +41,29 @@ def _crs_is_meters(crs: pyproj.CRS) -> bool:
         return False
 
 
+def _ensure_list(x) -> list:
+    """
+    Ensure a value is a Python list.
+
+    Converts numpy arrays to lists, handles None and NaN values.
+
+    Args:
+        x: Input value (can be list, np.ndarray, None, float, or NaN).
+
+    Returns:
+        A Python list (empty if input was None/NaN).
+    """
+    if x is None:
+        return []
+    if isinstance(x, float) and np.isnan(x):
+        return []
+    if isinstance(x, np.ndarray):
+        return x.tolist()
+    if isinstance(x, list):
+        return x
+    return []
+    
+
 def _convert_to_meters(feature: pd.Series) -> list[float]:
     """
     Convert coverage length to meters for each row with LineString geometries.
@@ -470,12 +493,8 @@ def _overlay_raster_vector(
 
     else:
         # If we return all features, ensure values and coverage are at least empty lists
-        features["values"] = features["values"].apply(
-            lambda x: x if x is not None else []
-        )
-        features["coverage"] = features["coverage"].apply(
-            lambda x: x if x is not None else []
-        )
+        features["values"] = features["values"].apply(_ensure_list)
+        features["coverage"] = features["coverage"].apply(_ensure_list)
 
     # convert coverage to meters, only do this if the crs is not in meters
     if not _crs_is_meters(hazard_crs):
@@ -485,16 +504,7 @@ def _overlay_raster_vector(
             lambda feature: _convert_to_meters(feature), axis=1
         )
 
-    # Ensure consistent list type for all values/coverage (exactextract returns numpy arrays)
-    features["values"] = features["values"].apply(
-        lambda x: x.tolist() if isinstance(x, np.ndarray) else x
-    )
-    features["coverage"] = features["coverage"].apply(
-        lambda x: x.tolist() if isinstance(x, np.ndarray) else x
-    )
-
     return features
-
 
 def _overlay_vector_vector(
     hazard: gpd.GeoDataFrame,
