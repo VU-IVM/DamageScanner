@@ -9,19 +9,30 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+        resolution: ["lowest-direct", "highest"]
+    
     steps:
       - uses: actions/checkout@v4
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       
       - name: Set up uv
         run: curl -LsSf https://astral.sh/uv/install.sh | sh
       
       - name: Install the project
-        run: uv sync --group dev --group tests
+        run: |
+          if [ "${{ matrix.resolution }}" == "lowest-direct" ]; then
+            uv sync --group dev --group tests --resolution lowest-direct
+          else
+            uv sync --group dev --group tests
+          fi
       
       - name: Run tests
         run: uv run pytest -s
