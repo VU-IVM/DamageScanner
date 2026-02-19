@@ -1,8 +1,12 @@
 """Tests for vector-based damage assessment functionality in DamageScanner."""
 
+from pathlib import Path
+
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import pytest
+import rasterio
 import shapely
 
 from damagescanner.vector import (
@@ -346,6 +350,82 @@ class TestVectorScanner:
         )
 
         assert len(result) == 0
+
+    def test_vector_scanner_return_full_on(self, vector_files: dict) -> None:
+        """Test that return_full=True returns all features."""
+        # Get total count of features first
+        features = gpd.read_file(vector_files["exposure"])
+
+        result = VectorScanner(
+            hazard_file=vector_files["hazard"],
+            feature_file=vector_files["exposure"],
+            curve_path=vector_files["curves"],
+            maxdam_path=vector_files["maxdam"],
+            object_col="landuse",
+            return_full=True,
+        )
+
+        assert len(result) == len(features)
+
+    def test_vector_scanner_return_full_off(self, vector_files: dict) -> None:
+        """Test that return_full=False returns only features with hazard intersection."""
+        # Get total count of features first
+        features_all = gpd.read_file(vector_files["exposure"])
+
+        result = VectorScanner(
+            hazard_file=vector_files["hazard"],
+            feature_file=vector_files["exposure"],
+            curve_path=vector_files["curves"],
+            maxdam_path=vector_files["maxdam"],
+            object_col="landuse",
+            return_full=False,
+        )
+
+        # Features with no hazard intersection should be removed
+        assert len(result) < len(features_all)
+        # All returned features should have non-empty values
+        assert result["values"].apply(lambda x: len(x) > 0).all()
+
+    def test_vector_scanner_nodata_hazard(
+        self, vector_files: dict, tmp_path: Path
+    ) -> None:
+        """Test VectorScanner with hazard that has no overlapping data."""
+        # Create a hazard raster that is far away from the exposure
+        with rasterio.open(vector_files["hazard"]) as src:
+            data = src.read()
+            profile = src.profile.copy()
+
+            # Move the hazard far away
+            profile.update(
+                {"transform": rasterio.Affine(1, 0, 1000000, 0, -1, 1000000)}
+            )
+
+            nodata_hazard = tmp_path / "nodata_hazard.tif"
+            with rasterio.open(nodata_hazard, "w", **profile) as dst:
+                dst.write(np.zeros_like(data))
+
+        # Test with return_full=True
+        result_full = VectorScanner(
+            hazard_file=nodata_hazard,
+            feature_file=vector_files["exposure"],
+            curve_path=vector_files["curves"],
+            maxdam_path=vector_files["maxdam"],
+            object_col="landuse",
+            return_full=True,
+        )
+        assert len(result_full) > 0
+        assert (result_full["damage"] == 0).all()
+
+        # Test with return_full=False
+        result_none = VectorScanner(
+            hazard_file=nodata_hazard,
+            feature_file=vector_files["exposure"],
+            curve_path=vector_files["curves"],
+            maxdam_path=vector_files["maxdam"],
+            object_col="landuse",
+            return_full=False,
+        )
+        assert len(result_none) == 0
 
 
 @pytest.fixture
