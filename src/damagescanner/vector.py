@@ -60,7 +60,7 @@ def _ensure_list(x: None | float | np.ndarray | list) -> list:
     if isinstance(x, list):
         return x
     return []
-    
+
 
 def _convert_to_meters(feature: pd.Series) -> list[float]:
     """
@@ -470,7 +470,9 @@ def _overlay_raster_vector(
                         traceback.print_exc()
 
             if len(collect_overlay) == 0:
-                df: pd.DataFrame = pd.DataFrame(columns=["coverage", "values"], dtype=object)
+                df: pd.DataFrame = pd.DataFrame(
+                    columns=["coverage", "values"], dtype=object
+                )
             else:
                 df: pd.DataFrame = pd.concat(collect_overlay).sort_index()
 
@@ -506,6 +508,7 @@ def _overlay_raster_vector(
         )
 
     return features
+
 
 def _overlay_vector_vector(
     hazard: gpd.GeoDataFrame,
