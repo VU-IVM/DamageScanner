@@ -70,7 +70,6 @@ class DamageScanner(object):
         self.curves = curves
         self.maxdam = maxdam
 
-
         # Check the type of the exposure data
         if isinstance(self.feature_data, Path):
             if self.feature_data.suffix in [".tif", ".tiff", ".nc"]:

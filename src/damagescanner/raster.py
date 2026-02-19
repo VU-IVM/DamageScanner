@@ -233,9 +233,14 @@ def RasterScanner(
         hazard_file = Path(hazard_file)
 
     # Initialize metadata
-    has_raster_metadata = isinstance(exposure_file, Path) or (
-        isinstance(hazard_file, Path) and hazard_file.suffix.lower() in [".tif", ".tiff"]
-    ) or isinstance(hazard_file, xr.Dataset)
+    has_raster_metadata = (
+        isinstance(exposure_file, Path)
+        or (
+            isinstance(hazard_file, Path)
+            and hazard_file.suffix.lower() in [".tif", ".tiff"]
+        )
+        or isinstance(hazard_file, xr.Dataset)
+    )
 
     if has_raster_metadata:
         if "cellsize" in kwargs or "transform" in kwargs:

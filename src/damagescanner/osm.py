@@ -253,7 +253,9 @@ def _filter_dataframe(
         column_names_lst.append("object_type_temp")
     else:
         print("Warning: column_names_lst should contain 2 or 3 items")
-    features = features.drop(columns=column_names_lst)  # drop columns  # ty:ignore[invalid-assignment]
+    features = features.drop(
+        columns=column_names_lst
+    )  # drop columns  # ty:ignore[invalid-assignment]
 
     return features
 
