@@ -47,12 +47,12 @@ def match_and_load_rasters(
         if src1.res != src2.res:
             raise ValueError("Different resolution: Cell sizes must be the same.")
 
-        top_delta = round((src2.bounds.top - src1.bounds.top) / src1.transform.e)
-        bottom_delta = round(
+        top_delta: int = round((src2.bounds.top - src1.bounds.top) / src1.transform.e)
+        bottom_delta: int = round(
             (src2.bounds.bottom - src1.bounds.bottom) / src1.transform.e
         )
-        left_delta = round((src2.bounds.left - src1.bounds.left) / src1.transform.a)
-        right_delta = round((src2.bounds.right - src1.bounds.right) / src1.transform.a)
+        left_delta: int = round((src2.bounds.left - src1.bounds.left) / src1.transform.a)
+        right_delta: int = round((src2.bounds.right - src1.bounds.right) / src1.transform.a)
 
         data1 = src1.read(
             1,

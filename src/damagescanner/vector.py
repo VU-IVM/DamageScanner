@@ -382,10 +382,10 @@ def _overlay_raster_vector(
                 hazard.rio.bounds()[3],
             )
 
-            gridded = _create_grid(bbox, grid_cell_size)
+            grid = _create_grid(bbox, grid_cell_size)
 
             # get all bounds
-            all_bounds = gpd.GeoDataFrame(gridded, columns=["geometry"]).bounds
+            all_bounds = gpd.GeoDataFrame(grid, columns=["geometry"]).bounds
 
             collect_overlay = []
 
