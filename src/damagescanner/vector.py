@@ -19,8 +19,6 @@ from tqdm import tqdm
 
 from damagescanner.osm import read_osm_data
 
-# from damagescanner.config import DICT_CIS_VULNERABILITY_FLOOD # removed for the time being
-
 
 def _crs_is_meters(crs: pyproj.CRS) -> bool:
     """Check if a CRS uses meters as its unit.
@@ -41,7 +39,7 @@ def _crs_is_meters(crs: pyproj.CRS) -> bool:
         return False
 
 
-def _ensure_list(x) -> list:
+def _ensure_list(x: None | float | np.ndarray | list) -> list:
     """
     Ensure a value is a Python list.
 
@@ -471,7 +469,10 @@ def _overlay_raster_vector(
                     if error_to_ignore not in get_error:
                         traceback.print_exc()
 
-            df = pd.concat(collect_overlay).sort_index()
+            if len(collect_overlay) == 0:
+                df: pd.DataFrame = pd.DataFrame(columns=["coverage", "values"], dtype=object)
+            else:
+                df: pd.DataFrame = pd.concat(collect_overlay).sort_index()
 
             # remove duplicates
             df_no_duplicates = _remove_duplicates(df)
