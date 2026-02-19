@@ -188,7 +188,7 @@ DICT_CIS_OSM: dict[str, dict[str, Any]] = {
 }
 
 
-def _combine_columns(a: str | None, b: str | None) -> str | None:
+def _combine_columns(a: str | float | None, b: str | None) -> str | None:
     """
     Combine two values into a single object type string.
 
@@ -253,7 +253,7 @@ def _filter_dataframe(
         column_names_lst.append("object_type_temp")
     else:
         print("Warning: column_names_lst should contain 2 or 3 items")
-    features = features.drop(columns=column_names_lst)  # drop columns
+    features = features.drop(columns=column_names_lst)  # drop columns  # ty:ignore[invalid-assignment]
 
     return features
 
@@ -334,7 +334,7 @@ def _remove_contained_polys(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     Returns:
         GeoDataFrame with outermost geometries.
     """
-    gdf = gdf.reset_index(drop=True)
+    gdf = gdf.reset_index(drop=True)  # ty:ignore[invalid-assignment]
 
     contained = gpd.sjoin(
         gdf[(gdf.geometry.type == "MultiPolygon") | (gdf.geometry.type == "Polygon")],
@@ -345,7 +345,7 @@ def _remove_contained_polys(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     subset = contained[contained.index != contained.index_right]
     to_drop = set(subset.index_right) - set(subset.index)
 
-    return gdf.drop(index=to_drop).reset_index(drop=True)
+    return gdf.drop(index=to_drop).reset_index(drop=True)  # ty:ignore[invalid-return-type]
 
 
 def create_point_from_polygon(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -379,9 +379,9 @@ def _extract_value(text: str | float | None, key: str) -> str | None:
     Returns:
         Extracted value or None.
     """
-    if text is None or isinstance(text, float):
+    if text is None or isinstance(text, (float, int)):
         return None
-    pattern = rf'"{key}"=>"([^"]+)"'
+    pattern: str = rf'"{key}"=>"([^"]+)"'
     match = re.search(pattern, text)
     if match:
         return match.group(1)

@@ -51,24 +51,25 @@ class DamageScanner(object):
             ImportError: If the input data formats are not supported or if required data is missing.
             ImportWarning: If the curves or maxdam data is not in the expected format.
         """
+        # Convert the input to a Path object if it is a string
+        if isinstance(feature_data, str):
+            feature_data = Path(feature_data)
+
+        if isinstance(hazard_data, str):
+            hazard_data = Path(hazard_data)
+
+        if isinstance(curves, str):
+            curves = Path(curves)
+
+        if isinstance(maxdam, str):
+            maxdam = Path(maxdam)
+
         # Collect the input data
         self.hazard_data = hazard_data
         self.feature_data = feature_data
         self.curves = curves
         self.maxdam = maxdam
 
-        # Convert the input to a Path object if it is a string
-        if isinstance(self.feature_data, str):
-            self.feature_data = Path(feature_data)
-
-        if isinstance(self.hazard_data, str):
-            self.hazard_data = Path(hazard_data)
-
-        if isinstance(self.curves, str):
-            self.curves = Path(curves)
-
-        if isinstance(self.maxdam, str):
-            self.maxdam = Path(maxdam)
 
         # Check the type of the exposure data
         if isinstance(self.feature_data, Path):
@@ -119,7 +120,7 @@ class DamageScanner(object):
     def exposure(
         self,
         disable_progress: bool = False,
-        output_path: str | None = None,
+        output_path: Path | str | None = None,
         **kwargs: Any,
     ) -> gpd.GeoDataFrame | xr.DataArray:
         """
@@ -147,9 +148,15 @@ class DamageScanner(object):
             - If `output_path` is provided, the method saves the exposure data to the specified path.
             - The file format is inferred from the file extension of `output_path`. If the extension
             is not recognized, the data is saved as a Parquet file by default.
+
+        Raises:
+            ImportError: If the input data formats are not supported or if required data is missing.
         """
+        if isinstance(output_path, str):
+            output_path = Path(output_path)
+
         if self.assessment_type == "raster":
-            return xr.open_rasterio(self.exposure_data)
+            return xr.open_rasterio(self.exposure_data)  # ty:ignore[unresolved-attribute]
 
         elif self.assessment_type == "vector":
             # specificy essential data input characteristics
@@ -169,7 +176,7 @@ class DamageScanner(object):
             # save output when exposed assets are empty
             if output_path:
                 # Determine the file format based on the file extension
-                file_extension = output_path.split(".")[-1].lower()
+                file_extension = output_path.suffix[1:].lower()
                 format_mapping = {
                     "parquet": exposed_assets.to_parquet,
                     "csv": exposed_assets.to_csv,
@@ -186,6 +193,8 @@ class DamageScanner(object):
                 print(f"Exposure data saved to {output_path}")
 
             return exposed_assets
+        else:
+            raise ImportError("Please prepare the input data first")
 
     def calculate(
         self,
@@ -450,91 +459,3 @@ class DamageScanner(object):
             return largest_rp[
                 ["osm_id", "object_type", "geometry"] + list(multi_curves.keys())
             ]
-
-
-if __name__ == "__main__":
-    ####################################################################################################
-
-    # Kampen
-    data_path = Path("..") / ".." / "data" / "kampen"
-
-    # define the input data
-    exposure = data_path / "exposure" / "landuse_map.tif"
-    hazard = data_path / "hazard" / "1in100_inundation_map.tif"
-    curves = data_path / "vulnerability" / "curves.csv"
-    maxdam = data_path / "vulnerability" / "maxdam.csv"
-
-    # initiate the damage scanner and calculate the damages
-    # print(DamageScanner(hazard, exposure, curves, maxdam).calculate()[0])
-
-    # define the input data
-    exposure = data_path / "exposure" / "landuse.shp"
-    hazard = data_path / "hazard" / "1in100_inundation_map.tif"
-    curves = data_path / "vulnerability" / "curves_osm.csv"
-    maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
-
-    # initiate the damage scanner and calculate the damages
-    # print(DamageScanner(hazard, exposure, curves, maxdam).calculate())
-
-    ####################################################################################################
-    # Kampen risk assessment
-    data_path = Path("..") / ".." / "data" / "kampen"
-
-    # define the input data
-    hazard_dict = {
-        10: data_path / "hazard" / "1in10_inundation_map.tif",
-        50: data_path / "hazard" / "1in50_inundation_map.tif",
-        100: data_path / "hazard" / "1in100_inundation_map.tif",
-        500: data_path / "hazard" / "1in500_inundation_map.tif",
-        1000: data_path / "hazard" / "1in1000_inundation_map.tif",
-    }
-
-    exposure = data_path / "exposure" / "landuse_map.tif"
-    curves = data_path / "vulnerability" / "curves.csv"
-    maxdam = data_path / "vulnerability" / "maxdam.csv"
-
-    # calculate the risk
-    # print(DamageScanner.risk(hazard_dict, exposure, curves, maxdam))
-
-    ####################################################################################################
-    # Jamaica
-
-    data_path = Path("..") / ".." / "data" / "jamaica"
-
-    # define the input data
-    features = data_path / "exposure" / "jamaica-latest.osm.pbf"
-    hazard = data_path / "hazard" / "FD_1in1000.tif"
-    curves = data_path / "vulnerability" / "curves_osm.csv"
-    maxdam = data_path / "vulnerability" / "maxdam_osm.csv"
-
-    # estimate exposure
-    asset_types = [
-        "main_roads",
-        "rail",
-        "air",
-        "telecom",
-        "water_supply",
-        "waste_solid",
-        "waste_water",
-        "education",
-        "healthcare",
-        "power",
-        "gas",
-        "oil",
-        "buildings",
-    ]
-
-    for asset_type in asset_types:
-        exposed_features = DamageScanner(hazard, features, curves, maxdam).exposure(
-            asset_type=asset_type
-        )
-
-        # exposed_features.to_parquet("main_roads.parquet")
-        print(exposed_features[["object_type", "coverage", "values"]])
-
-    # #initiate the damage scanner and calculate the damages
-    print(
-        DamageScanner(hazard, features, curves, maxdam)
-        .calculate(asset_type="main_roads")
-        .damage.sum()
-    )

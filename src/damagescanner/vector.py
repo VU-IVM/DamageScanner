@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pyproj
 import rasterio
+import rasterio.sample
 import shapely
 import xarray as xr
 from exactextract import exact_extract
@@ -525,7 +526,7 @@ def _overlay_vector_vector(
         warnings.warn(
             "Hazard CRS is not correctly defined. We will now assume it is EPSG:4326"
         )
-        hazard = hazard.set_crs("EPSG:4326")
+        hazard = hazard.set_crs("EPSG:4326")  # ty:ignore[invalid-assignment]
 
     hazard_crs = hazard.crs
 
@@ -751,7 +752,7 @@ def VectorExposure(
     | rasterio.DatasetReader
     | gpd.GeoDataFrame,
     feature_file: Path | gpd.GeoDataFrame | pd.DataFrame | str,
-    asset_type: str = "roads",
+    asset_type: str | None = "roads",
     object_col: str = "object_type",
     hazard_value_col: str = "band_data",
     disable_progress: bool = False,
@@ -780,7 +781,7 @@ def VectorExposure(
         ValueError: If input files are not in expected formats or if geometry types are unsupported.
     """
     # load exposure data
-    if isinstance(feature_file, PurePath):
+    if isinstance(feature_file, Path):
         # if exposure_file is a shapefile, geopackage or parquet file
         if feature_file.suffix in [".shp", ".gpkg"]:
             features = gpd.read_file(feature_file)
@@ -788,15 +789,17 @@ def VectorExposure(
             features = gpd.read_parquet(feature_file)
         # if exposure_file is an osm.pbf file
         elif feature_file.suffix == ".pbf":
+            if asset_type is None:
+                raise ValueError(
+                    "When using an OSM file as exposure, you need to specify the asset type (e.g. 'roads' or 'buildings')"
+                )
             features = read_osm_data(feature_file, asset_type)
         else:
             raise ValueError(
                 "exposure data should either be a shapefile, geopackage, parquet or osm.pbf file"
             )
 
-    elif isinstance(feature_file, gpd.GeoDataFrame) | isinstance(
-        feature_file, pd.DataFrame
-    ):
+    elif isinstance(feature_file, (gpd.GeoDataFrame, pd.DataFrame)):
         features = gpd.GeoDataFrame(feature_file.copy())
 
     else:
@@ -976,7 +979,11 @@ def VectorScanner(
     elif isinstance(maxdam_path, pd.DataFrame):
         maxdam = dict(zip(maxdam_path[object_col], maxdam_path["damage"]))
     elif isinstance(maxdam_path, np.ndarray):
-        maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))
+        if not isinstance(maxdam_path, np.ndarray) or maxdam_path.shape[1] != 2:
+            raise ValueError(
+                "If maximum damage is provided as a numpy array, it should be a 2D array with two columns: object type and damage value."
+            )
+        maxdam = dict(zip(maxdam_path[:, 0], maxdam_path[:, 1]))  # ty:ignore[invalid-argument-type]
     elif isinstance(maxdam_path, dict):
         maxdam = maxdam_path
 

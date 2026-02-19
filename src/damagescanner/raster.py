@@ -61,19 +61,19 @@ def match_and_load_rasters(
         data1 = src1.read(
             1,
             window=Window(
-                col_off=left_delta,
-                row_off=top_delta,
-                width=src1.width - left_delta + right_delta,
-                height=src1.height - top_delta + bottom_delta,
+                col_off=left_delta,  # ty:ignore[unknown-argument]
+                row_off=top_delta,  # ty:ignore[unknown-argument]
+                width=src1.width - left_delta + right_delta,  # ty:ignore[unknown-argument]
+                height=src1.height - top_delta + bottom_delta,  # ty:ignore[unknown-argument]
             ),
         )
         data2 = src2.read(
             1,
             window=Window(
-                col_off=abs(min(left_delta, 0)),
-                row_off=abs(min(top_delta, 0)),
-                width=max(src1.width, src2.width) - abs(left_delta) - abs(right_delta),
-                height=max(src1.height, src2.height)
+                col_off=abs(min(left_delta, 0)),  # ty:ignore[unknown-argument]
+                row_off=abs(min(top_delta, 0)),  # ty:ignore[unknown-argument]
+                width=max(src1.width, src2.width) - abs(left_delta) - abs(right_delta),  # ty:ignore[unknown-argument]
+                height=max(src1.height, src2.height)  # ty:ignore[unknown-argument]
                 - abs(top_delta)
                 - abs(bottom_delta),
             ),
@@ -232,50 +232,95 @@ def RasterScanner(
     if isinstance(hazard_file, str):
         hazard_file = Path(hazard_file)
 
+    # Initialize metadata
+    has_raster_metadata = isinstance(exposure_file, Path) or (
+        isinstance(hazard_file, Path) and hazard_file.suffix.lower() in [".tif", ".tiff"]
+    ) or isinstance(hazard_file, xr.Dataset)
+
+    if has_raster_metadata:
+        if "cellsize" in kwargs or "transform" in kwargs:
+            raise ValueError(
+                "cellsize and transform are loaded from the raster files or datasets, please do not set them as keyword arguments."
+            )
+        cellsize = None
+        transform = None
+    else:
+        cellsize = kwargs.get("cellsize")
+        transform = kwargs.get("transform")
+        if cellsize is None:
+            raise ValueError(
+                "When using array inputs for exposure and hazard, you must provide the cell size (in m²) as a keyword argument."
+            )
+        if transform is None:
+            raise ValueError(
+                "When using array inputs for exposure and hazard, you must provide an affine transform as a keyword argument."
+            )
+
+    crs = kwargs.get("crs")
+    resolution = kwargs.get("resolution")
+
     # load land-use map
-    if isinstance(exposure_file, PurePath):
+    if isinstance(exposure_file, Path):
         with rasterio.open(exposure_file) as src:
             landuse = src.read()[0, :, :]
-            transform = src.transform
-            resolution = src.res[0]
-            cellsize = src.res[0] * src.res[1]
+            if transform is None:
+                transform = src.transform
+            if resolution is None:
+                resolution = src.res[0]
+            if cellsize is None:
+                cellsize = abs(src.res[0] * src.res[1])
+            if crs is None:
+                crs = src.crs
     else:
         landuse = exposure_file.copy()
 
     landuse_in = landuse.copy()
 
     # Load hazard map
-    if isinstance(hazard_file, PurePath):
-        if hazard_file.parts[-1].endswith(".tif") | hazard_file.parts[-1].endswith(
-            ".tiff"
-        ):
-            with rasterio.open(hazard_file) as src:
-                hazard = src.read()[0, :, :]
-                transform = src.transform
+    if isinstance(hazard_file, Path):
+        if hazard_file.suffix.lower() in [".tif", ".tiff"]:
+            with rasterio.open(hazard_file) as src_haz:
+                hazard = src_haz.read()[0, :, :]
+                if transform is None:
+                    transform = src_haz.transform
+                if crs is None:
+                    crs = src_haz.crs
+                if cellsize is None:
+                    cellsize = abs(src_haz.res[0] * src_haz.res[1])
 
-        elif hazard_file.parts[-1].endswith(".nc"):
-            # Open the hazard netcdf file and store it in the hazard variable
+        elif hazard_file.suffix.lower() == ".nc":
             hazard = xr.open_dataset(hazard_file)
-
-            # Open the landuse geotiff file and store it in the landuse variable
-            landuse = xr.open_dataset(exposure_file, engine="rasterio")
-
-            # Match raster to vector
-            hazard, landuse = _match_raster_to_vector(
-                hazard, landuse, lu_crs, haz_crs, resolution, hazard_col
-            )
-
-    elif isinstance(hazard_file, xr.Dataset):
-        # Open the landuse geotiff file and store it in the landuse variable
-        landuse = xr.open_dataset(exposure_file, engine="rasterio")
-
-        # Match raster to vector
-        hazard, landuse = _match_raster_to_vector(
-            hazard_file, landuse, lu_crs, haz_crs, resolution, hazard_col
-        )
-
     else:
         hazard = hazard_file.copy()
+
+    # Extract metadata from hazard if it is an xarray dataset
+    if isinstance(hazard, xr.Dataset):
+        try:
+            if resolution is None:
+                resolution = hazard.rio.resolution()[0]
+            if cellsize is None:
+                res = hazard.rio.resolution()
+                cellsize = abs(res[0] * res[1])
+            if transform is None:
+                transform = hazard.rio.transform()
+            if crs is None:
+                crs = hazard.rio.crs
+        except Exception:
+            # If rioxarray fails to get metadata (e.g. non-spatial NC), continue
+            pass
+
+    # Align hazard and land-use if hazard is an xarray dataset
+    if isinstance(hazard, xr.Dataset):
+        # Open land-use as dataset if it isn't one already for aligning
+        if isinstance(exposure_file, Path):
+            landuse_ds = xr.open_dataset(exposure_file, engine="rasterio")
+        else:
+            landuse_ds = landuse
+
+        # Match hazard and land-use
+        hazard, landuse = _match_raster_to_vector(
+            hazard, landuse_ds, lu_crs, haz_crs, resolution, hazard_col
+        )
 
     # check if land-use and hazard map have the same shape.
     if landuse.shape != hazard.shape:
@@ -288,25 +333,22 @@ def RasterScanner(
         )
 
         # create the right affine for saving the output
-        transform = Affine(
-            transform[0],
-            transform[1],
-            intersection[0],
-            transform[3],
-            transform[4],
-            intersection[1],
-        )
+        if transform is not None:
+            transform = Affine(
+                transform[0],
+                transform[1],
+                intersection[0],
+                transform[3],
+                transform[4],
+                intersection[1],
+            )
 
     # set cellsize:
-    if isinstance(exposure_file, PurePath) | isinstance(hazard_file, PurePath):
-        cellsize = src.res[0] * src.res[1]
-    else:
-        try:
-            cellsize = kwargs["cellsize"]
-        except KeyError:
-            raise ValueError("Required `cellsize` not given.")
+    if cellsize is None:
+        raise ValueError("Required `cellsize` not given.")
 
     # Load curves
+    curves: np.ndarray
     if isinstance(curve_path, pd.DataFrame):
         curves: np.ndarray = curve_path.values
     elif isinstance(curve_path, np.ndarray):
@@ -375,9 +417,6 @@ def RasterScanner(
     )
 
     if save:
-        crs = kwargs.get("crs", src.crs)
-        transform = kwargs.get("transform", transform)
-
         # requires adding output_path and scenario_name to function call
         # If output path is not defined, will place file in current directory
         output_path = _check_output_path(kwargs)
