@@ -51,8 +51,12 @@ def match_and_load_rasters(
         bottom_delta: int = round(
             (src2.bounds.bottom - src1.bounds.bottom) / src1.transform.e
         )
-        left_delta: int = round((src2.bounds.left - src1.bounds.left) / src1.transform.a)
-        right_delta: int = round((src2.bounds.right - src1.bounds.right) / src1.transform.a)
+        left_delta: int = round(
+            (src2.bounds.left - src1.bounds.left) / src1.transform.a
+        )
+        right_delta: int = round(
+            (src2.bounds.right - src1.bounds.right) / src1.transform.a
+        )
 
         data1 = src1.read(
             1,
@@ -310,7 +314,9 @@ def RasterScanner(
     elif curve_path.parts[-1].endswith(".csv"):
         curves: np.ndarray = pd.read_csv(curve_path).values
     else:
-        raise ValueError("Invalid curve file format. Must be DataFrame, ndarray, or CSV.")
+        raise ValueError(
+            "Invalid curve file format. Must be DataFrame, ndarray, or CSV."
+        )
 
     if ((curves > 1).all()) or ((curves < 0).all()):
         raise ValueError("Stage-damage curve values must be between 0 and 1")
