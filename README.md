@@ -22,7 +22,7 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 ## Installation
 To use `DamageScanner` in your project:
 
-### Using `uv` (Recommended)
+### Using `uv` (recommended)
 ```bash
 uv add damagescanner
 ```
@@ -35,7 +35,7 @@ pip install damagescanner
 ## Development & Testing
 To set up a local environment for development or to run tests:
 
-### Using `uv` (ecommended)
+### Using `uv` (recommended)
 [uv](https://github.com/astral-sh/uv) is an extremely fast Python package manager and is the preferred way to set up the development environment.
 
 ```bash
