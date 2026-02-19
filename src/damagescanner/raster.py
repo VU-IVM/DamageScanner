@@ -219,6 +219,15 @@ def RasterScanner(
             - Reprojected land-use map.
             - Reprojected hazard map.
     """
+    if isinstance(curve_path, str):
+        curve_path = Path(curve_path)
+    if isinstance(maxdam_path, str):
+        maxdam_path = Path(maxdam_path)
+    if isinstance(exposure_file, str):
+        exposure_file = Path(exposure_file)
+    if isinstance(hazard_file, str):
+        hazard_file = Path(hazard_file)
+
     # load land-use map
     if isinstance(exposure_file, PurePath):
         with rasterio.open(exposure_file) as src:
@@ -295,11 +304,13 @@ def RasterScanner(
 
     # Load curves
     if isinstance(curve_path, pd.DataFrame):
-        curves = curve_path.values
+        curves: np.ndarray = curve_path.values
     elif isinstance(curve_path, np.ndarray):
-        curves = curve_path
+        curves: np.ndarray = curve_path
     elif curve_path.parts[-1].endswith(".csv"):
-        curves = pd.read_csv(curve_path).values
+        curves: np.ndarray = pd.read_csv(curve_path).values
+    else:
+        raise ValueError("Invalid curve file format. Must be DataFrame, ndarray, or CSV.")
 
     if ((curves > 1).all()) or ((curves < 0).all()):
         raise ValueError("Stage-damage curve values must be between 0 and 1")

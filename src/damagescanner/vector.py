@@ -896,7 +896,7 @@ def VectorExposure(
 
 
 def VectorScanner(
-    hazard_file: Path | xr.Dataset | xr.DataArray | gpd.GeoDataFrame,
+    hazard_file: Path | xr.Dataset | xr.DataArray | gpd.GeoDataFrame | str,
     feature_file: Path | gpd.GeoDataFrame | str,
     curve_path: Path | pd.DataFrame | str,
     maxdam_path: Path | pd.DataFrame | dict | None = None,
@@ -933,6 +933,15 @@ def VectorScanner(
         ValueError: If input files are of unsupported formats or if geometry types are not supported.
         KeyError: If object types in exposure are not covered by maximum damage data.
     """
+    if isinstance(feature_file, str):
+        feature_file = Path(feature_file)
+    if isinstance(hazard_file, str):
+        hazard_file = Path(hazard_file)
+    if isinstance(curve_path, str):
+        curve_path = Path(curve_path)
+    if isinstance(maxdam_path, str):
+        maxdam_path = Path(maxdam_path)
+
     # Load hazard and exposure data, and perform the overlay
     features: gpd.GeoDataFrame
     features, object_col, hazard_crs, cell_area_m2 = VectorExposure(

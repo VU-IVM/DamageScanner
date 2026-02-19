@@ -5,7 +5,6 @@ import operator
 import re
 from pathlib import Path
 from typing import Any
-
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -301,7 +300,7 @@ def _remove_contained_points(gdf_p_mp: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     Returns:
         GeoDataFrame without contained points.
     """
-    gdf_p_mp = gdf_p_mp.reset_index(drop=True)
+    gdf_p_mp: gpd.GeoDataFrame = gdf_p_mp.reset_index(drop=True)  # ty:ignore[invalid-assignment]
 
     ind_dupl = np.unique(
         gpd.sjoin(
@@ -314,7 +313,7 @@ def _remove_contained_points(gdf_p_mp: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
         ).index
     )
 
-    return gdf_p_mp.drop(index=ind_dupl).reset_index(drop=True)
+    return gdf_p_mp.drop(index=ind_dupl).reset_index(drop=True)  # ty:ignore[invalid-return-type]
 
 
 def _remove_contained_polys(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
