@@ -120,8 +120,9 @@ risk_results = scanner.risk(hazard_dict)
 
 ## 📚 Next Steps
 
-- 📦 [Raster-based approach](raster.md)
-- 📦 [Vector-based approach](vector.md)
-- 🧭 [Coupling with OSM](osm.md)
+- 📦 [Package overview](../how-to/overview.md)
+- 📦 [Raster-based approach](../how-to/raster.md)
+- 📦 [Vector-based approach](../how-to/vector.md)
+- 🧭 [Coupling with OSM](../how-to/osm.md)
 
 

@@ -45,7 +45,7 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 This work has been supported by the following organizations and research programs:
 
 - [**Global Facility for Disaster Reduction and Recovery (GFDRR)**](https://www.gfdrr.org/en)  
-- [**MIRACA Project**](www.miraca-project.eu) – Grant Agreement No. 101093854  
+- [**MIRACA Project**](https://www.miraca-project.eu) – Grant Agreement No. 101093854  
 - [**Dutch Research Council (NWO)**](https://www.nwo.nl/en) – Veni Grant No. VI.Veni.194.033
 
 

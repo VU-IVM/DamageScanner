@@ -5,7 +5,6 @@ Raster specific functions
 
 import warnings
 from pathlib import Path, PurePath
-from typing import Any
 
 import geopandas as gpd
 import numpy as np
@@ -185,7 +184,15 @@ def RasterScanner(
     hazard_col: str = "FX",
     dtype: type = np.int32,
     save: bool = False,
-    **kwargs: Any,
+    *,
+    nan_value: float | int | None = None,
+    cellsize: float | int | None = None,
+    resolution: float | int | None = None,
+    output_path: str | Path | None = None,
+    scenario_name: str | None = None,
+    in_millions: bool = False,
+    crs: int | None = None,
+    transform: Affine | None = None,
 ) -> tuple[pd.DataFrame, np.ndarray, np.ndarray, xr.Dataset | np.ndarray]:
     """
     Run a raster-based direct damage assessment using hazard and exposure layers.
@@ -200,15 +207,12 @@ def RasterScanner(
         hazard_col: Column containing hazard intensity (default "FX").
         dtype: Output dtype for damage raster.
         save: If True, saves damage results to file.
-        kwargs: Additional keyword arguments for saving output and other options.
-
-    Keyword Args:
         nan_value: Replace this value in the hazard raster with 0.
         cellsize: Cell size (m²) if exposure and hazard are arrays.
         resolution: Resolution in target projection (used for reprojection).
         output_path: Output directory for saving results.
         scenario_name: Scenario name used for filenames.
-        in_millions: Convert results to millions.
+        in_millions: If True, convert results to millions.
         crs: CRS for saving output raster (optional).
         transform: Affine transform for saving raster (optional).
 
@@ -243,15 +247,11 @@ def RasterScanner(
     )
 
     if has_raster_metadata:
-        if "cellsize" in kwargs or "transform" in kwargs:
+        if cellsize is not None or transform is not None:
             raise ValueError(
                 "cellsize and transform are loaded from the raster files or datasets, please do not set them as keyword arguments."
             )
-        cellsize = None
-        transform = None
     else:
-        cellsize = kwargs.get("cellsize")
-        transform = kwargs.get("transform")
         if cellsize is None:
             raise ValueError(
                 "When using array inputs for exposure and hazard, you must provide the cell size (in m²) as a keyword argument."
@@ -260,9 +260,6 @@ def RasterScanner(
             raise ValueError(
                 "When using array inputs for exposure and hazard, you must provide an affine transform as a keyword argument."
             )
-
-    crs = kwargs.get("crs")
-    resolution = kwargs.get("resolution")
 
     # load land-use map
     if isinstance(exposure_file, Path):
@@ -382,8 +379,7 @@ def RasterScanner(
         )
 
     # Speed up calculation by only considering feasible points
-    if kwargs.get("nan_value"):
-        nan_value = kwargs.get("nan_value")
+    if nan_value:
         hazard[hazard == nan_value] = 0
 
     haz = hazard * (hazard >= 0) + 0
@@ -424,8 +420,8 @@ def RasterScanner(
     if save:
         # requires adding output_path and scenario_name to function call
         # If output path is not defined, will place file in current directory
-        output_path = _check_output_path(kwargs)
-        scenario_name = _check_scenario_name(kwargs)
+        output_path = _check_output_path(output_path)
+        scenario_name = _check_scenario_name(scenario_name)
         path_prefix = PurePath(output_path, scenario_name)
 
         damage_fn = "{}_damages.csv".format(path_prefix)
@@ -445,7 +441,7 @@ def RasterScanner(
         with rasterio.open(dmap_fn, "w", **rst_opts) as dst:
             dst.write(damagemap, 1)
 
-    if "in_millions" in kwargs:
+    if in_millions:
         damage_df = damage_df / 1e6
 
     # return output

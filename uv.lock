@@ -390,7 +390,7 @@ wheels = [
 
 [[package]]
 name = "damagescanner"
-version = "1.0.0b3"
+version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "exactextract" },
@@ -432,7 +432,7 @@ requires-dist = [
     { name = "exactextract", specifier = ">=0.3.0" },
     { name = "geopandas", specifier = ">=1.0.0" },
     { name = "matplotlib", specifier = ">=3.10.0" },
-    { name = "numpy", specifier = ">=2.4.0" },
+    { name = "numpy", specifier = ">=2.3.0" },
     { name = "openpyxl", specifier = ">=2.0.0" },
     { name = "pyproj", specifier = ">=3.7.2" },
     { name = "rasterio", specifier = ">=1.5.0" },
