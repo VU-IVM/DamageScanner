@@ -44,3 +44,27 @@
 [data-md-color-scheme="slate"] .only-dark {
   display: block;
 }
+
+/* Scale down the entire API doc section */
+.doc-contents {
+  font-size: 0.75rem !important;
+}
+
+/* Function/class name heading */
+.doc-heading {
+  font-size: 0.9rem !important;
+}
+
+/* Function signature - the big code block */
+.doc-signature {
+  font-size: 0.85rem !important;
+}
+
+/* Make Name, Type, Default code match description text size */
+.doc-contents td code {
+  font-size: 0.6rem !important;
+}
+
+.doc-contents td {
+  font-size: 0.75rem !important;
+}
