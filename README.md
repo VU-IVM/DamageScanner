@@ -2,15 +2,13 @@
 
 <img align="right" width="200" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/main/docs/images/logo-dark.png">
 
-
-[![github repo badge](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/ElcoK/DamageScanner)
-[![github license badge](https://img.shields.io/github/license/ElcoK/DamageScanner)](https://github.com/ElcoK/DamageScanner)
 [![fair-software badge](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
-[![Documentation Status](https://readthedocs.org/projects/damagescanner/badge/?version=latest)](https://damagescanner.readthedocs.io/en/latest/?badge=latest) 
-[![PyPI version](https://badge.fury.io/py/damagescanner.svg)](https://badge.fury.io/py/damagescanner) 
+[![github license badge](https://img.shields.io/github/license/ElcoK/DamageScanner)](https://github.com/ElcoK/DamageScanner)
+[![Tests](https://github.com/VU-IVM/DamageScanner/actions/workflows/pytest.yml/badge.svg)](https://github.com/VU-IVM/DamageScanner/actions/workflows/pytest.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2551015.svg)](https://doi.org/10.5281/zenodo.2551015) 
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://vu-ivm.github.io/DamageScanner/)
+[![PyPI version](https://badge.fury.io/py/damagescanner.svg)](https://badge.fury.io/py/damagescanner) 
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/damagescanner?color=yellow&label=Downloads)](https://pypistats.org/packages/damagescanner)
-
 
 A python toolkit for direct damage assessments for natural hazards. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
 
