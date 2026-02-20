@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "damagescanner"
-version = "1.0.0b3"
+version = "1.0.0"
 authors = [
     {name = "Elco Koks", email = "elco.koks@vu.nl"},
     {name = "Jens de Bruijn", email = "jens.de.bruijn@vu.nl"},
