@@ -3,16 +3,14 @@
 from pathlib import Path
 
 
-def _check_output_path(given_args: dict) -> Path | str:
+def _check_output_path(output_path: str | Path | None = "") -> Path | str:
     """Ensures the output directory exists and returns its path.
 
     Returns:
         A Path object for the output directory, or an empty string if no path is provided.
     """
-    output_path = given_args.get("output_path", "")
-
-    if output_path == "":
-        return output_path
+    if output_path == "" or output_path is None:
+        return ""
 
     # Convert to Path if it's a string
     output_path = Path(output_path)
@@ -23,19 +21,18 @@ def _check_output_path(given_args: dict) -> Path | str:
     return output_path
 
 
-def _check_scenario_name(given_args: dict) -> str:
+def _check_scenario_name(scenario_name: str | None = None) -> str:
     """Validates that a scenario name is provided in the arguments.
 
     Args:
-        given_args: Dictionary of keyword arguments, expected to contain 'scenario_name'.
+        scenario_name: Name of the scenario.
 
     Returns:
         The scenario name.
 
     Raises:
-        ValueError: If 'scenario_name' is missing from the arguments.
+        ValueError: If 'scenario_name' is missing or False.
     """
-    scenario_name = given_args.get("scenario_name", False)
     if not scenario_name:
         raise ValueError("Required `scenario_name` not defined.")
 

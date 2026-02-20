@@ -73,3 +73,7 @@ This returns a `GeoDataFrame` where each grid cell contains an estimated direct 
 - [Overview](./overview.md)
 - [Vector-based approach](./vector.md)
 - [Coupling with OSM](./osm.md)
+
+## API Documentation
+
+::: damagescanner.raster

@@ -120,7 +120,9 @@ class DamageScanner(object):
         self,
         disable_progress: bool = False,
         output_path: Path | str | None = None,
-        **kwargs: Any,
+        *,
+        asset_type: str = "landuse",
+        return_full: bool = True,
     ) -> gpd.GeoDataFrame | xr.DataArray:
         """
         Run the exposure analysis to identify features affected by the hazard footprint.
@@ -134,10 +136,9 @@ class DamageScanner(object):
             output_path: The file path to save the exposure data. The file format
                 is determined by the file extension (e.g., '.parquet', '.csv', '.gpkg', '.shp').
                 If None, the data is not saved.
-            **kwargs: Optional keyword arguments:
-                - asset_type (str): The type of asset to evaluate (only for vector data).
-                - return_full (bool): Whether to return all features, even those with no hazard intersection.
-                    Defaults to True.
+            asset_type: The type of asset to evaluate (only for vector data).
+            return_full: Whether to return all features, even those with no hazard intersection.
+                Defaults to True.
 
         Returns:
             A GeoDataFrame containing the affected assets if the input data is vector,
@@ -159,17 +160,14 @@ class DamageScanner(object):
 
         elif self.assessment_type == "vector":
             # specificy essential data input characteristics
-            if "asset_type" in kwargs:
-                self.asset_type = kwargs.get("asset_type")
-            else:  ## DO WE WANT THIS?!?! or should this always be defined?!
-                self.asset_type = "landuse"
+            self.asset_type = asset_type
 
             exposed_assets = VectorExposure(
                 hazard_file=self.hazard_data,
                 feature_file=self.feature_data,
                 asset_type=self.asset_type,
                 disable_progress=disable_progress,
-                return_full=kwargs.get("return_full", True),
+                return_full=return_full,
             )[0]
 
             # save output when exposed assets are empty
@@ -199,7 +197,18 @@ class DamageScanner(object):
         self,
         disable_progress: bool = False,
         output_path: str | None = None,
-        **kwargs: Any,
+        *,
+        object_col: str = "object_type",
+        asset_type: str | None = None,
+        multi_curves: dict | None = None,
+        return_full: bool = True,
+        nan_value: float | int | None = None,
+        cellsize: float | int | None = None,
+        resolution: float | int | None = None,
+        scenario_name: str | None = None,
+        in_millions: bool = False,
+        crs: int | None = None,
+        transform: Any | None = None,
     ) -> (
         pd.DataFrame
         | tuple[pd.DataFrame, np.ndarray, np.ndarray, xr.Dataset | np.ndarray]
@@ -215,13 +224,19 @@ class DamageScanner(object):
             output_path: Path to save the calculation results. The file format
                 is determined by the file extension (e.g., '.csv', '.parquet' for vector data,
                 '.tif' for raster data). If None, the data is not saved.
-            **kwargs:
-                object_col (str): Column name containing object/landuse types.
+            object_col: Column name containing object/landuse types.
                 Defaults to "object_type". (vector only)
-                asset_type (str, optional): Infrastructure class to evaluate.
-                multi_curves (dict, optional): Mapping of asset types to curve sets.
-                return_full (bool): Whether to return all features, even those with no hazard intersection.
-                    Defaults to True. (vector only)
+            asset_type: Infrastructure class to evaluate (OSM-based vector only).
+            multi_curves: Mapping of asset types to curve sets.
+            return_full: Whether to return all features, even those with no hazard intersection.
+                Defaults to True. (vector only)
+            nan_value: Replace this value in the hazard raster with 0. (raster only)
+            cellsize: Cell size (m²) if exposure and hazard are arrays. (raster only)
+            resolution: Resolution in target projection (used for reprojection). (raster only)
+            scenario_name: Scenario name used for filenames. (raster only)
+            in_millions: If True, convert results to millions. (raster only)
+            crs: CRS for saving output raster. (raster only)
+            transform: Affine transform for saving raster. (raster only)
 
         Returns:
             For vector: DataFrame with damages.
@@ -240,6 +255,14 @@ class DamageScanner(object):
                 hazard_file=self.hazard_data,
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
+                nan_value=nan_value,
+                cellsize=cellsize,
+                resolution=resolution,
+                output_path=output_path,
+                scenario_name=scenario_name,
+                in_millions=in_millions,
+                crs=crs,
+                transform=transform,
             )
 
             damage_df = ds_results[0]
@@ -268,10 +291,7 @@ class DamageScanner(object):
 
         elif self.assessment_type == "vector":
             # Specify essential data input characteristics
-            if "asset_type" in kwargs:
-                self.asset_type = kwargs.get("asset_type")
-            else:
-                self.asset_type = None
+            self.asset_type = asset_type
 
             damage_df = VectorScanner(
                 hazard_file=self.hazard_data,
@@ -279,10 +299,10 @@ class DamageScanner(object):
                 curve_path=self.curves,
                 maxdam_path=self.maxdam,
                 asset_type=self.asset_type,
-                multi_curves=kwargs.get("multi_curves", None),
-                object_col=kwargs.get("object_col", "object_type"),
+                multi_curves=multi_curves if multi_curves is not None else {},
+                object_col=object_col,
                 disable_progress=disable_progress,
-                return_full=kwargs.get("return_full", True),
+                return_full=return_full,
             )
 
             # For vector data, CRS and transform are not directly applicable
@@ -297,7 +317,7 @@ class DamageScanner(object):
                     "parquet": damage_df.to_parquet,
                 }
                 save_function = format_mapping.get(file_extension, damage_df.to_csv)
-                save_function(output_path, **kwargs)
+                save_function(output_path)
 
             elif self.assessment_type == "raster":
                 # Save the damage_df as CSV
@@ -330,7 +350,18 @@ class DamageScanner(object):
         self,
         hazard_dict: dict[int | float, str | Path],
         output_path: str | None = None,
-        **kwargs: Any,
+        *,
+        object_col: str = "object_type",
+        asset_type: str | None = None,
+        multi_curves: dict | None = None,
+        return_full: bool = True,
+        nan_value: float | int | None = None,
+        cellsize: float | int | None = None,
+        resolution: float | int | None = None,
+        scenario_name: str | None = None,
+        in_millions: bool = False,
+        crs: int | None = None,
+        transform: Any | None = None,
     ) -> pd.DataFrame | None:
         """
         Perform a risk assessment across multiple hazard return periods.
@@ -342,9 +373,19 @@ class DamageScanner(object):
             hazard_dict: Dictionary mapping return periods to hazard raster paths.
             output_path: Path to save the risk assessment results. The file format
                 is determined by the file extension (e.g., '.csv', '.parquet'). If None, the data is not saved.
-            **kwargs:
-                asset_type (str, optional): Infrastructure class to evaluate.
-                multi_curves (dict, optional): Mapping of asset types to curve sets.
+            object_col: Column name containing object/landuse types.
+                Defaults to "object_type". (vector only)
+            asset_type: Infrastructure class to evaluate (OSM-based vector only).
+            multi_curves: Mapping of asset types to curve sets.
+            return_full: Whether to return all features, even those with no hazard intersection.
+                Defaults to True. (vector only)
+            nan_value: Replace this value in the hazard raster with 0. (raster only)
+            cellsize: Cell size (m²) if exposure and hazard are arrays. (raster only)
+            resolution: Resolution in target projection (used for reprojection). (raster only)
+            scenario_name: Scenario name used for filenames. (raster only)
+            in_millions: If True, convert results to millions. (raster only)
+            crs: CRS for saving output raster. (raster only)
+            transform: Affine transform for saving raster. (raster only)
 
         Returns:
             A GeoDataFrame with risk values for each asset, or None if no results.
@@ -355,14 +396,27 @@ class DamageScanner(object):
         for key, hazard_map in tqdm(
             hazard_dict.items(), total=len(hazard_dict), desc="Risk Calculation"
         ):
+            res = DamageScanner(
+                hazard_map, self.feature_data, self.curves, self.maxdam
+            ).calculate(
+                disable_progress=True,
+                object_col=object_col,
+                asset_type=asset_type,
+                multi_curves=multi_curves,
+                return_full=return_full,
+                nan_value=nan_value,
+                cellsize=cellsize,
+                resolution=resolution,
+                scenario_name=scenario_name,
+                in_millions=in_millions,
+                crs=crs,
+                transform=transform,
+            )
+
             if self.assessment_type == "raster":
-                risk[key] = DamageScanner(
-                    hazard_map, self.feature_data, self.curves, self.maxdam
-                ).calculate(disable_progress=True, **kwargs)[0]
+                risk[key] = res[0]
             else:
-                risk[key] = DamageScanner(
-                    hazard_map, self.feature_data, self.curves, self.maxdam
-                ).calculate(disable_progress=True, **kwargs)
+                risk[key] = res
 
         # Collect the risk for each RP
         df_risk = pd.concat(risk, axis=1)
@@ -373,7 +427,7 @@ class DamageScanner(object):
         # Get the dataframe of the largest RP
         largest_rp = df_risk.loc[:, pd.IndexSlice[RP_list[-1], :]]
 
-        if kwargs.get("multi_curves", None) is None:
+        if multi_curves is None:
             # only keep the damage values
             df_risk = df_risk.loc[:, pd.IndexSlice[RP_list, "damage"]].fillna(0)
 
@@ -414,8 +468,6 @@ class DamageScanner(object):
                 return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
 
         else:
-            multi_curves = kwargs.get("multi_curves")
-
             # only keep the damage values
             df_risk = df_risk.loc[
                 :, pd.IndexSlice[RP_list, multi_curves.keys()]

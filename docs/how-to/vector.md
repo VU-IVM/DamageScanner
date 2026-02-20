@@ -73,3 +73,7 @@ The result is a `GeoDataFrame` of features with estimated direct damage values p
 - [Overview](./overview.md)
 - [Raster-based approach](./raster.md)
 - [Coupling with OSM](./osm.md)
+
+## API Documentation
+
+::: damagescanner.vector
