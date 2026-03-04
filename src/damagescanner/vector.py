@@ -92,7 +92,9 @@ def _convert_to_meters(feature: pd.Series) -> list[float]:
     return coverage_meters
 
 
-def _get_cell_area_m2(features: gpd.GeoDataFrame, hazard_crs: pyproj.CRS, hazard_resolution: float) -> float:
+def _get_cell_area_m2(
+    features: gpd.GeoDataFrame, hazard_crs: pyproj.CRS, hazard_resolution: float
+) -> float:
     """
     Estimate the area (m²) of a raster grid cell using the feature centroid and resolution.
 
@@ -108,7 +110,9 @@ def _get_cell_area_m2(features: gpd.GeoDataFrame, hazard_crs: pyproj.CRS, hazard
 
     asset_point = features.geometry.iloc[0]
     if features.crs is not None and features.crs != hazard_crs:
-        asset_point = gpd.GeoSeries([asset_point], crs=features.crs).to_crs(hazard_crs).iloc[0]
+        asset_point = (
+            gpd.GeoSeries([asset_point], crs=features.crs).to_crs(hazard_crs).iloc[0]
+        )
 
     new_geom = asset_point.centroid.buffer(hazard_resolution, cap_style="square")
 
@@ -122,7 +126,7 @@ def _get_cell_area_m2(features: gpd.GeoDataFrame, hazard_crs: pyproj.CRS, hazard
     )
 
     resolution = geod.geometry_length(new_for_length)
-    
+
     return resolution * resolution
 
 
@@ -868,8 +872,8 @@ def VectorExposure(
         hazard = hazard_file.copy()
         hazard_crs = hazard.crs
         cell_area_m2 = _get_cell_area_m2(
-                    features, hazard_crs, abs(hazard.rio.resolution()[0])
-                )
+            features, hazard_crs, abs(hazard.rio.resolution()[0])
+        )
     elif isinstance(hazard_file, (xr.Dataset, xr.DataArray)):
         hazard = hazard_file.copy()
         hazard_crs = hazard.rio.crs
@@ -883,8 +887,8 @@ def VectorExposure(
         # if not, extract it more cumbersome
         else:
             cell_area_m2 = _get_cell_area_m2(
-                    features, hazard_crs, abs(hazard.rio.resolution()[0])
-                )
+                features, hazard_crs, abs(hazard.rio.resolution()[0])
+            )
 
     elif isinstance(hazard_file, gpd.GeoDataFrame):
         hazard = hazard_file.copy()
