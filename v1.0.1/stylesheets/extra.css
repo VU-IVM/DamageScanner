@@ -1,0 +1,70 @@
+@media screen and (min-width: 76.25em) {
+  /* Sidebar is shown or hidden based on class — we keep that logic */
+  .md-sidebar--primary {
+    display: none !important;
+  }
+
+  body.show-sidebar .md-sidebar--primary {
+    display: block !important;
+  }
+
+  /* Unified layout: apply padding & width on ALL pages */
+  .md-content,
+  .md-main__inner {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 1500px;  /* feel free to tweak this */
+    padding-left: 3rem;  /* creates breathing space from sidebar */
+    padding-right: 3rem;
+  }
+
+  /* Even when sidebar is shown, keep centered layout */
+  body.show-sidebar .md-content,
+  body.show-sidebar .md-main__inner {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    max-width: 1800px;
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+/* Light theme: show dark logo */
+.only-light {
+  display: block;
+}
+.only-dark {
+  display: none;
+}
+
+/* Dark theme: swap them */
+[data-md-color-scheme="slate"] .only-light {
+  display: none;
+}
+[data-md-color-scheme="slate"] .only-dark {
+  display: block;
+}
+
+/* Scale down the entire API doc section */
+.doc-contents {
+  font-size: 0.75rem !important;
+}
+
+/* Function/class name heading */
+.doc-heading {
+  font-size: 0.9rem !important;
+}
+
+/* Function signature - the big code block */
+.doc-signature {
+  font-size: 0.85rem !important;
+}
+
+/* Make Name, Type, Default code match description text size */
+.doc-contents td code {
+  font-size: 0.6rem !important;
+}
+
+.doc-contents td {
+  font-size: 0.75rem !important;
+}
