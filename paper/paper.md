@@ -16,9 +16,6 @@ authors:
     surname: Moel
     orcid: 0000-0002-6826-1974
     affiliation: 1 # (Multiple affiliations must be quoted)
-  - name: Sadhana Nirandjan
-    orcid: 0000-0002-2967-7782
-    affiliation: 1
   - given-names: Jens
     dropping-particle: de
     surname: Bruijn
@@ -29,51 +26,48 @@ affiliations:
    index: 1
  - name: International Institute for Applied Systems Analysis (IIASA), Laxenburg, Austria
    index: 2
-date: 20 March 2025
+date: 1 March 2026
 bibliography: paper.bib
 
-# Optional fields if submitting to a AAS journal too, see this blog post:
-# https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
 ---
-
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+Due to a global increase in the severity and frequency of a wide-range of natural hazards, easy-to-use tools are required to properly understand the potential impacts from such events. This could either be a local rainfall event, to a large-scale earthquake event. While the magnitude and intensity of such events differ greatly, the computational workflow to estimate those impact do not. As such, the `DamageScanner` has been developed a simply and ready-to-use framework to allow exposure, damage and risk assesments either through user-defined input, or simply using public data as a starting point. 
 
 # Statement of need
 
-`DamageScanner` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `DamageScanner` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `DamageScanner` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+`DamageScanner` is a Python package to perform exposure, damage and risk assessments for natural hazards and climate extremes. It allows users to easily perform a risk assessment for both vector and raster data through a single computational framework.     
 
-`DamageScanner` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `DamageScanner` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+The `DamageScanner` is designed to be used by both researchers, risk modellers, and by students in introductory courses on geospatial analysis and natural hazard risk modelling. It has already been used in a number of scientific publications [@Koksetal2019 ; @KoksHaer2020], European projects [@MIRACA:2026] and integrated into other python packages (e.g., `GEB`).   
+
+# State of the field                                                                                                                  
+
+Several tools exist for natural hazard risk assessments, of which the `climada` framework [@Aznar2019; @Bresch2021] is most well-known. The `climada` framework is a widely-used Python ecosystem to perform large-scale risk assessment for various hazards. It allows for a multitude use cases and contains a wide range of submodules to tailor specific needs within the natural hazard risk domain [@Muhlhofer2023 ; @Riedel2024]. All of which is maintained by dedicated softwareengineers. While the `climada` framework is commendable and is used widely, the large ecosystem and the many dependencies within the several submodules also make it less flexible for integration within our own use cases. 
+
+As such, the `DamageScanner` was built rather than contributing to existing projects for several reasons. Firstly, the `DamageScanner` has been developed organically to tailor specific use cases within a multitude of projects. For example, the original `DamageScanner` was built to perform raster-based damage asssessment, mostly using land use information, in combination with flood hazard maps [@DeMoel]. 
+
+Secondly, with the rise of publicly-available object-based data, in particular due to OpenStreetMap (OSM), a need arose to efficiently perform object-based damage calculations [@VanGinkel2023; @Koksetal2019]. These object-based damage and risk assessment are, however, much more computational intensive. The `DamageScanner` fills a gap hhere, to provide an open-access approach to easily perform such risk assessment on top of object information.
+
+Thirdly, geospatial information of natural hazards and climate extremes are stored in a range of different formats. Ranging from GeoTiffs and netCDFs, to vector-based representations of earthquake intensities and flood depths. To model the impacts across those hazards within the same modelling framework, a tool was needed that can readily read and use different storage formats. 
+
+# Software design
+
+The `DamageScanner`'s core design philosophy is focused on simplicity. 
+
+# Research impact statement
+
+The `DamageScanner` has demonstrated significant research impact and grown both its user base
+and contributor community since its initial release in 2019. 
+
+While the `DamageScanner` started as a tool primarily to support the core developer's
+research, it has expanded organically to support a range of applications 
+
+
+# AI usage disclosure
+
+Generative AI tools were used to develop the test environment for the `DamageScanner`.
 
 # Acknowledgements
-
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+This project has received funding from the European Union’s Horizon Europe research and innovation programme (Grant Agreement No. 101093854). 
 
 # References
-
