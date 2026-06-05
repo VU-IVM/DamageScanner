@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 603.19">
+  <defs>
+    <style>
+      .cls-1 {
+        stroke-dasharray: 4 3;
+      }
+
+      .cls-1, .cls-2 {
+        fill: none;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke: #854f0b;
+      }
+
+      .cls-4 {
+        letter-spacing: 0em;
+      }
+
+      .cls-4, .cls-5, .cls-6, .cls-7, .cls-8 {
+        font-size: 18px;
+      }
+
+      .cls-4, .cls-6, .cls-7, .cls-8 {
+        fill: #3c3489;
+      }
+
+      .cls-5, .cls-9, .cls-10, .cls-11, .cls-12, .cls-13, .cls-14, .cls-15, .cls-16, .cls-17, .cls-18 {
+        isolation: isolate;
+      }
+
+      .cls-5, .cls-10, .cls-12 {
+        font-family: LMSansQuot8-Bold, LMSansQuot8;
+        font-weight: 700;
+      }
+
+      .cls-5, .cls-10, .cls-19, .cls-18 {
+        fill: #5f5e5a;
+      }
+
+      .cls-20 {
+        fill: #e6f1fb;
+        stroke: #185fa5;
+      }
+
+      .cls-20, .cls-21, .cls-13, .cls-22, .cls-23, .cls-24, .cls-25, .cls-3, .cls-26 {
+        stroke-width: .5px;
+      }
+
+      .cls-27 {
+        letter-spacing: .04em;
+      }
+
+      .cls-9 {
+        fill: #085041;
+      }
+
+      .cls-9, .cls-11, .cls-14, .cls-15, .cls-16, .cls-17, .cls-18 {
+        font-family: LMSansQuot8-Regular, LMSansQuot8;
+      }
+
+      .cls-9, .cls-14, .cls-15, .cls-16, .cls-17 {
+        font-size: 14px;
+      }
+
+      .cls-10, .cls-19 {
+        font-size: 15px;
+      }
+
+      .cls-21 {
+        fill: #fec77c;
+        opacity: .6;
+      }
+
+      .cls-21, .cls-23 {
+        stroke: #fff;
+      }
+
+      .cls-11 {
+        fill: #0c447c;
+        font-size: 12.76px;
+      }
+
+      .cls-13, .cls-25 {
+        fill: #f1efe8;
+        stroke: #888780;
+      }
+
+      .cls-28 {
+        letter-spacing: -.03em;
+      }
+
+      .cls-29 {
+        letter-spacing: .04em;
+      }
+
+      .cls-14 {
+        fill: #444441;
+      }
+
+      .cls-22 {
+        fill: #faece7;
+        stroke: #993c1d;
+      }
+
+      .cls-7 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-23 {
+        fill: #b6d994;
+        opacity: .5;
+      }
+
+      .cls-15 {
+        fill: #27500a;
+      }
+
+      .cls-30 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-31 {
+        letter-spacing: .03em;
+      }
+
+      .cls-16 {
+        fill: #712b13;
+      }
+
+      .cls-19 {
+        letter-spacing: 0em;
+      }
+
+      .cls-17 {
+        fill: #633806;
+      }
+
+      .cls-24 {
+        fill: #e1f5ee;
+        stroke: #0f6e56;
+      }
+
+      .cls-32 {
+        fill: #854f0b;
+      }
+
+      .cls-8 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-33 {
+        letter-spacing: 0em;
+      }
+
+      .cls-34 {
+        letter-spacing: -.03em;
+      }
+
+      .cls-3 {
+        fill: #faeeda;
+      }
+
+      .cls-26 {
+        fill: #eeedfe;
+        stroke: #534ab7;
+      }
+
+      .cls-18 {
+        font-size: 12px;
+      }
+
+      .cls-35 {
+        letter-spacing: -.04em;
+      }
+    </style>
+  </defs>
+  <text class="cls-5" transform="translate(283.06 19.81)"><tspan x="0" y="0">User inputs</tspan></text>
+  <rect class="cls-25" x="13" y="27.81" width="110" height="62.57" rx="6" ry="6"/>
+  <text class="cls-14" transform="translate(43.23 55.78)"><tspan x="0" y="0">Haz</tspan><tspan class="cls-28" x="27.17" y="0">a</tspan><tspan x="34.94" y="0">rd</tspan><tspan x="9.46" y="16.8">map</tspan></text>
+  <rect class="cls-25" x="138" y="27.81" width="110" height="62.57" rx="6" ry="6"/>
+  <text class="cls-14" transform="translate(148.95 54.57)"><tspan class="cls-35" x="0" y="0">V</tspan><tspan x="10.79" y="0">ulnerabili</tspan><tspan class="cls-35" x="74.49" y="0">t</tspan><tspan x="80.32" y="0">y</tspan><tspan x="21.73" y="16.8">curves</tspan></text>
+  <rect class="cls-25" x="262" y="27.81" width="110" height="62.57" rx="6" ry="6"/>
+  <text class="cls-14" transform="translate(281.9 54.57)"><tspan x="0" y="0">Maximum</tspan><tspan x="4.04" y="16.8">damages</tspan></text>
+  <rect class="cls-13" x="386" y="27.81" width="265" height="207.57" rx="10" ry="10"/>
+  <text class="cls-10" transform="translate(465.56 45.81) scale(.87 1)"><tspan x="0" y="0">Ex</tspan><tspan class="cls-27" x="21.87" y="0">p</tspan><tspan x="32.65" y="0">osure data</tspan></text>
+  <rect class="cls-24" x="392.85" y="152.66" width="79.88" height="57.28" rx="6" ry="6"/>
+  <text class="cls-9" transform="translate(400.42 176.78)"><tspan x="0" y="0">Land-use</tspan><tspan x="16.58" y="16.8">data</tspan></text>
+  <rect class="cls-22" x="483.29" y="152.66" width="153.21" height="57.28" rx="6" ry="6"/>
+  <text class="cls-16" transform="translate(505.2 185.18)"><tspan class="cls-35" x="0" y="0">V</tspan><tspan x="10.79" y="0">ect</tspan><tspan class="cls-28" x="32.68" y="0">o</tspan><tspan x="40.94" y="0">r features</tspan></text>
+  <text class="cls-18" transform="translate(495.04 70.09)"><tspan x="0" y="0">Optional acquisition</tspan></text>
+  <rect class="cls-20" x="483.29" y="82.09" width="86.67" height="44" rx="6" ry="6"/>
+  <text class="cls-11" transform="translate(493.08 99.05) scale(1.1 1)"><tspan x="0" y="0">d</tspan><tspan class="cls-30" x="7.98" y="0">o</tspan><tspan x="15.5" y="0">wnload</tspan></text>
+  <text class="cls-18" transform="translate(517.66 116.09)"><tspan x="0" y="0">.</tspan><tspan class="cls-34" x="4.16" y="0">p</tspan><tspan x="11.24" y="0">y</tspan></text>
+  <rect class="cls-3" x="588.39" y="82.09" width="48.11" height="44" rx="6" ry="6"/>
+  <text class="cls-17" transform="translate(597.92 100.09)"><tspan x="0" y="0">osm</tspan></text>
+  <text class="cls-18" transform="translate(603.49 116.09)"><tspan x="0" y="0">.</tspan><tspan class="cls-34" x="4.16" y="0">p</tspan><tspan x="11.24" y="0">y</tspan></text>
+  <rect class="cls-26" x="30" y="261.81" width="620" height="80" rx="14" ry="14"/>
+  <text class="cls-12" transform="translate(210.61 289.81)"><tspan class="cls-6" x="0" y="0">c</tspan><tspan class="cls-7" x="11" y="0">o</tspan><tspan class="cls-6" x="22.7" y="0">re.</tspan><tspan class="cls-8" x="49.05" y="0">p</tspan><tspan class="cls-6" x="60.62" y="0">y </tspan><tspan class="cls-19" x="79.74" y="0">-</tspan><tspan class="cls-4" x="86.61" y="0" xml:space="preserve"> DamageScanner</tspan></text>
+  <text class="cls-10" transform="translate(198.46 319.63)"><tspan x="0" y="0">.calculate() - .ex</tspan><tspan class="cls-29" x="140.34" y="0">p</tspan><tspan x="151.12" y="0">osure() - .risk()</tspan></text>
+  <text class="cls-18" transform="translate(123.37 367.87)"><tspan x="0" y="0">Raster</tspan><tspan x="12.22" y="14.4">path</tspan></text>
+  <text class="cls-18" transform="translate(518.5 367.87)"><tspan class="cls-34" x="0" y="0">V</tspan><tspan class="cls-33" x="9.25" y="0">ect</tspan><tspan class="cls-34" x="28.01" y="0">o</tspan><tspan x="35.09" y="0">r</tspan><tspan x="0" y="14.4">path</tspan></text>
+  <rect class="cls-21" x="40" y="404.81" width="260" height="100" rx="12" ry="12"/>
+  <text class="cls-9" transform="translate(139.18 436.81)"><tspan x="0" y="0">raster.</tspan><tspan class="cls-28" x="45.6" y="0">p</tspan><tspan x="53.86" y="0">y</tspan></text>
+  <text class="cls-18" transform="translate(125.77 458.81)"><tspan x="0" y="0">RasterScanner</tspan></text>
+  <rect class="cls-23" x="380" y="404.81" width="260" height="100" rx="12" ry="12"/>
+  <text class="cls-16" transform="translate(477.67 432.81)"><tspan x="0" y="0">vect</tspan><tspan class="cls-35" x="29.67" y="0">o</tspan><tspan x="37.93" y="0">r.</tspan><tspan class="cls-28" x="48.62" y="0">p</tspan><tspan x="56.88" y="0">y</tspan></text>
+  <text class="cls-18" transform="translate(465.58 454.81)"><tspan class="cls-34" x="0" y="0">V</tspan><tspan class="cls-33" x="9.25" y="0">ect</tspan><tspan class="cls-34" x="28.01" y="0">o</tspan><tspan x="35.09" y="0">rScanner</tspan></text>
+  <text class="cls-18" transform="translate(461.78 474.81)"><tspan class="cls-34" x="0" y="0">V</tspan><tspan class="cls-33" x="9.25" y="0">ect</tspan><tspan class="cls-34" x="28.01" y="0">o</tspan><tspan x="35.09" y="0">rEx</tspan><tspan class="cls-31" x="56.1" y="0">p</tspan><tspan x="64.02" y="0">osure</tspan></text>
+  <rect class="cls-21" x="40" y="539.81" width="260" height="56" rx="12" ry="12"/>
+  <text class="cls-15" transform="translate(116.75 559.81)"><tspan x="0" y="0">Raster outputs</tspan></text>
+  <text class="cls-18" transform="translate(66.21 577.81)"><tspan x="0" y="0">Damage maps · Summ</tspan><tspan class="cls-34" x="148.49" y="0">a</tspan><tspan x="155.15" y="0">ry tables</tspan></text>
+  <rect class="cls-23" x="380" y="539.81" width="260" height="56" rx="12" ry="12"/>
+  <text class="cls-15" transform="translate(456.53 559.81)"><tspan class="cls-35" x="0" y="0">V</tspan><tspan x="10.79" y="0">ect</tspan><tspan class="cls-28" x="32.68" y="0">o</tspan><tspan x="40.94" y="0">r outputs</tspan></text>
+  <text class="cls-18" transform="translate(416.27 577.81)"><tspan x="0" y="0">GeoData</tspan><tspan class="cls-34" x="54.41" y="0">F</tspan><tspan x="62.9" y="0">rames · Risk tables</tspan></text>
+  <g>
+    <line class="cls-2" x1="571.4" y1="104.09" x2="580.34" y2="104.09"/>
+    <polygon class="cls-32" points="587.4 104.09 577.45 108.16 579.81 104.09 577.45 100.03 587.4 104.09"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="606.5" y1="127.28" x2="606.5" y2="145.6"/>
+    <polygon class="cls-32" points="606.5 152.66 602.43 142.71 606.5 145.07 610.56 142.71 606.5 152.66"/>
+  </g>
+  <line class="cls-1" x1="434.4" y1="210.47" x2="434.4" y2="235.9"/>
+  <line class="cls-1" x1="579.02" y1="209.94" x2="579.02" y2="235.38"/>
+  <g>
+    <line class="cls-2" x1="434.4" y1="235.9" x2="434.4" y2="254.23"/>
+    <polygon class="cls-32" points="434.4 261.29 430.34 251.34 434.4 253.7 438.47 251.34 434.4 261.29"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="579.02" y1="235.38" x2="579.02" y2="253.71"/>
+    <polygon class="cls-32" points="579.02 260.77 574.95 250.82 579.02 253.18 583.08 250.82 579.02 260.77"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="68" y1="90.38" x2="68" y2="254.75"/>
+    <polygon class="cls-32" points="68 261.81 63.93 251.86 68 254.22 72.06 251.86 68 261.81"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="193" y1="90.38" x2="193" y2="254.75"/>
+    <polygon class="cls-32" points="193 261.81 188.93 251.86 193 254.22 197.06 251.86 193 261.81"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="317.2" y1="90.38" x2="317.2" y2="254.75"/>
+    <polygon class="cls-32" points="317.2 261.81 313.14 251.86 317.2 254.22 321.27 251.86 317.2 261.81"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="170" y1="341.81" x2="170" y2="397.75"/>
+    <polygon class="cls-32" points="170 404.81 165.93 394.86 170 397.22 174.06 394.86 170 404.81"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="513.87" y1="341.81" x2="513.87" y2="397.75"/>
+    <polygon class="cls-32" points="513.87 404.81 509.8 394.86 513.87 397.22 517.93 394.86 513.87 404.81"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="170" y1="504.81" x2="170" y2="532.3"/>
+    <polygon class="cls-32" points="170 539.36 165.93 529.41 170 531.77 174.06 529.41 170 539.36"/>
+  </g>
+  <g>
+    <line class="cls-2" x1="513.87" y1="504.81" x2="513.87" y2="532.3"/>
+    <polygon class="cls-32" points="513.87 539.36 509.8 529.41 513.87 531.77 517.93 529.41 513.87 539.36"/>
+  </g>
+</svg>
