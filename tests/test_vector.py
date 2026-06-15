@@ -135,7 +135,9 @@ class TestGetCellAreaM2:
     ) -> None:
         """Test that cell area is positive."""
         resolution = 0.001  # degrees
-        area = _get_cell_area_m2(sample_geodataframe, pyproj.CRS.from_epsg(4326), resolution)
+        area = _get_cell_area_m2(
+            sample_geodataframe, pyproj.CRS.from_epsg(4326), resolution
+        )
 
         assert area > 0
 
@@ -143,8 +145,12 @@ class TestGetCellAreaM2:
         self, sample_geodataframe: gpd.GeoDataFrame
     ) -> None:
         """Test that area scales with resolution squared."""
-        area_small = _get_cell_area_m2(sample_geodataframe, pyproj.CRS.from_epsg(4326), 0.001)
-        area_large = _get_cell_area_m2(sample_geodataframe, pyproj.CRS.from_epsg(4326), 0.002)
+        area_small = _get_cell_area_m2(
+            sample_geodataframe, pyproj.CRS.from_epsg(4326), 0.001
+        )
+        area_large = _get_cell_area_m2(
+            sample_geodataframe, pyproj.CRS.from_epsg(4326), 0.002
+        )
 
         # Area should scale approximately with resolution squared
         ratio = area_large / area_small

@@ -218,6 +218,7 @@ class TestRiskCalculation:
         assert "object_type" not in result.columns
         assert "landuse" in result.columns
 
+
 class TestOSMExposure:
     """Tests for OSM-based exposure analysis."""
 
