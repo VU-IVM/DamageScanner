@@ -15,8 +15,6 @@ authors:
 
 A python toolkit for direct damage assessments for natural hazards. Even though the method is initially developed for flood damage assessments, it can calculate damages for any hazard for which you just require a vulnerability curve (i.e. a one-dimensional relation). 
 
-**Please note:** This package is still in development phase. In case of any problems, or if you have any suggestions for improvements, please raise an *issue*. 
-
 ## 🔑 Key Features
 
 - ⚡ **Modular design** — Choose between raster-based or vector-based workflows
