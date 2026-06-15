@@ -465,7 +465,7 @@ class DamageScanner(object):
             if self.assessment_type == "raster":
                 return largest_rp
             else:
-                return largest_rp[["osm_id", "object_type", "geometry", "risk"]]
+                return largest_rp[["osm_id", object_col, "geometry", "risk"]]
 
         else:
             # only keep the damage values
@@ -508,5 +508,5 @@ class DamageScanner(object):
 
             # return the risk in a concise dataframe
             return largest_rp[
-                ["osm_id", "object_type", "geometry"] + list(multi_curves.keys())
+                ["osm_id", object_col, "geometry"] + list(multi_curves.keys())
             ]

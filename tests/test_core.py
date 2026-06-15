@@ -201,6 +201,22 @@ class TestRiskCalculation:
         # Result could be None if no damages, or a DataFrame
         assert result is None or isinstance(result, pd.DataFrame)
 
+    def test_risk_vector_columns_with_custom_object_col(
+        self, vector_inputs: dict, hazard_dict: dict
+    ) -> None:
+        """Test that custom object col is correctly used in risk calculation."""
+        ds = DamageScanner(
+            hazard_data=vector_inputs["hazard"],
+            feature_data=vector_inputs["exposure"],
+            curves=vector_inputs["curves"],
+            maxdam=vector_inputs["maxdam"],
+        )
+
+        result = ds.risk(hazard_dict, object_col="landuse")
+
+        assert isinstance(result, pd.DataFrame)
+        assert "object_type" not in result.columns
+        assert "landuse" in result.columns
 
 class TestOSMExposure:
     """Tests for OSM-based exposure analysis."""
