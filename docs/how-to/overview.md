@@ -35,86 +35,32 @@ The `DamageScanner` class requires four key inputs:
 - CSV or `pandas.DataFrame`
 - Relates hazard intensity to damage (as fraction of max damage)
 
+| Intensity | residential | industrial | farmland |
+|-----------|-------------|------------|----------|
+| 0.0       | 0.00        | 0.00       | 0.00     |
+| 0.5       | 0.25        | 0.15       | 0.10     |
+| 1.0       | 0.50        | 0.35       | 0.25     |
+
 > ⚠️ **Important:** The unit of the first column/index must match the unit of the hazard layer (e.g., meters for flood depth).
 
 ### 4. **Maximum Damage Values**
 - Specifies the max value per asset type (e.g., €/m² or €/asset)
 - Provided as `dict`, CSV, or DataFrame
 
----
-
-## Example: Running DamageScanner
-
-```python
-from damagescanner import DamageScanner
-import pandas as pd
-
-# Paths to input files
-hazard = "path/to/hazard_data.tif"
-feature_data = "path/to/exposure_data.shp"
-curves = "path/to/vulnerability_curves.csv"
-maxdam = "path/to/maxdam.csv"
-
-# Initialize
-scanner = DamageScanner(hazard, feature_data, curves, maxdam)
-```
+| landuse     | damage |
+|-------------|--------|
+| residential | 1000   |
+| industrial  | 5000   |
+| farmland    | 50     |
 
 ---
 
-## Step-by-Step Usage
+## Interactive Examples
 
-### 1. `exposure()`
-Identify which features overlap with the hazard.
+To see `DamageScanner` in action with real-world data, explore our interactive Jupyter Notebook examples:
 
-```python
-# Curves and maxdam must be empty DataFrames for exposure-only
-scanner = DamageScanner(hazard, feature_data, pd.DataFrame(), pd.DataFrame())
-exposed = scanner.exposure()
-```
-
-- Works with both vector and raster feature data
-- Results in a GeoDataFrame with assets intersecting the hazard
-
----
-
-### 2. `calculate()`
-Applies vulnerability curves to estimate damage.
-
-```python
-results = scanner.calculate()
-print(results.head())
-```
-
-- Requires valid curves and `maxdam`
-- Damage is computed per asset, based on overlap and intensity
-
----
-
-### 3. `risk()`
-Calculates risk over multiple return periods.
-
-```python
-hazard_dict = {
-    10: "hazard_10.tif",
-    50: "hazard_50.tif",
-    100: "hazard_100.tif"
-}
-
-risk_results = scanner.risk(hazard_dict)
-```
-
-- Computes **Expected Annual Damages (EAD)** using return periods
-- Supports asset-specific curves and max damages
-
----
-
-## Tips for Working with Geometry
-
-> ⚠️ **Important:** Make sure each asset type uses one geometry type (Point or Polygon). Options:
->
-> 1. Convert all assets to the same geometry
-> 2. Split the damage calc by geometry type
-> 3. Use custom object names like `substation_point` vs `substation_polygon`
+- 📊 **[Vector-based assessment](../examples/vector-based.ipynb)** — Demonstrates how to use OSM polygons and points (e.g., land use, buildings) with raster hazard maps.
+- 🗺️ **[Raster-based assessment](../examples/raster-based.ipynb)** — Shows how to perform rapid large-scale analysis using land-use rasters.
 
 ---
 

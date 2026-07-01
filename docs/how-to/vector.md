@@ -24,25 +24,7 @@ As described in the [Overview](./overview.md), you need:
 3. **Vulnerability curves** (CSV or DataFrame)
 4. **Maximum damage values** (CSV, dict, or DataFrame)
 
-> ⚠️ Your exposure data must include a **column specifying asset type**, matching the keys used in the vulnerability curves and max damage data.
-
----
-
-## Minimal Working Example
-
-```python
-from damagescanner import DamageScanner
-
-hazard = "data/hazard_flood_depth.tif"
-feature_data = "data/infrastructure_osm.gpkg"
-curves = "data/vulnerability_curves.csv"
-maxdam = "data/maxdam.csv"
-
-scanner = DamageScanner(hazard, feature_data, curves, maxdam)
-damage = scanner.calculate()
-```
-
-The result is a `GeoDataFrame` of features with estimated direct damage values per asset.
+> For a detailed walkthrough with real data and visualizations, see our **[Vector-based example notebook](../examples/vector-based.ipynb)**.
 
 ---
 
@@ -53,18 +35,7 @@ The result is a `GeoDataFrame` of features with estimated direct damage values p
 - It then samples the hazard value and looks up the damage fraction from the corresponding vulnerability curve
 - The damage is calculated as:
 
-  \
   `exposure_area * damage_fraction * max_damage`
-
----
-
-## ⚠️ Geometry Handling Tips
-
-> ⚠️ **Mixed Geometry Types** — Avoid mixing Points and Polygons for the same asset type.
->
-> ⚠️ **CRS Alignment** — Both hazard and vector data must be in the same coordinate reference system.
->
-> ⚠️ **Object Column** — You must define a column that links each object to a vulnerability curve and max damage.
 
 ---
 

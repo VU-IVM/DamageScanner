@@ -30,9 +30,12 @@ This package is (loosely) based on the original DamageScanner, which calculated 
 
 ## 🚀 Quickstart
 
-1. Open the python environment in your command prompt or bash in which you want to install this package.
-2. Type ``pip install damagescanner`` and it should install itself into your python environment.
-3. Now you can import the package like any other package!
+1. Install the package:
+   ```bash
+   pip install damagescanner
+   ```
+2. Explore our **[interactive examples](examples/overview.md)** to see how to run assessments with real-world data.
+3. Check the **[How-it-works](how-to/overview.md)** section for a deep dive into the methodology.
 
 ## 📄 License
 

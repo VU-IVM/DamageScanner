@@ -15,7 +15,7 @@ copyright:
 plugins:
   - search
   - mkdocs-jupyter:
-      execute: true
+      execute: false
   - mike:
       alias_type: copy
   - mkdocstrings:

@@ -24,25 +24,7 @@ You still need the same four key inputs as explained in the [Overview](./overvie
 3. **Vulnerability curves** (CSV or DataFrame)
 4. **Maximum damage values** (CSV, dict, or DataFrame)
 
-> ⚠️ Ensure both hazard and exposure rasters are in the **same CRS** and **aligned spatially** (same resolution and extent) for optimal performance.
-
----
-
-## Minimal Working Example
-
-```python
-from damagescanner import DamageScanner
-
-hazard = "data/hazard_flood_depth.tif"
-feature_data = "data/exposure_population_density.tif"
-curves = "data/vulnerability_curves.csv"
-maxdam = "data/maxdam.csv"
-
-scanner = DamageScanner(hazard, feature_data, curves, maxdam)
-damage = scanner.calculate()
-```
-
-This returns a `GeoDataFrame` where each grid cell contains an estimated direct damage value.
+> For a detailed walkthrough with real data and visualizations, see our **[Raster-based example notebook](../examples/raster-based.ipynb)**.
 
 ---
 
