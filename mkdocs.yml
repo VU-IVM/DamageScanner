@@ -14,7 +14,8 @@ copyright:
 
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: true
   - mike:
       alias_type: copy
   - mkdocstrings:
@@ -39,8 +40,8 @@ nav:
       - Coupling with OSM: how-to/osm.md
   - Examples:
       - Overview: examples/overview.md
-      - Vector-based example: examples/vector-based.md
-      - Raster-based example: examples/raster-based.md
+      - Vector-based example: examples/vector-based.ipynb
+      - Raster-based example: examples/raster-based.ipynb
   - API Reference: api.md
 
 markdown_extensions:
