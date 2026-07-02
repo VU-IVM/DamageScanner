@@ -64,26 +64,6 @@ Save to file if needed:
 gdf.to_file("data/cleaned_osm_roads.gpkg", driver="GPKG")
 ```
 
----
-
-## Example Usage with DamageScanner
-
-```python
-from damagescanner import DamageScanner
-
-hazard = "data/flood_depth_100yr.tif"
-osm_exposure = "data/cleaned_osm_roads.gpkg"
-curves = "data/vulnerability_curves.csv"
-maxdam = "data/maxdam.csv"
-
-scanner = DamageScanner(hazard, osm_exposure, curves, maxdam)
-damage = scanner.calculate()
-```
-
-This calculates direct damages using cleaned vector infrastructure data from OSM.
-
----
-
 ## Tips for Reproducibility
 
 - Document the OSM extract date and source (e.g. Geofabrik region)
