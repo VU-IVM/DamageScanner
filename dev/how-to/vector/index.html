@@ -579,32 +579,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#minimal-working-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Minimal Working Example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#key-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
         Key Behavior
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#geometry-handling-tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ⚠️ Geometry Handling Tips
       
     </span>
   </a>
@@ -943,32 +921,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#minimal-working-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Minimal Working Example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#key-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
         Key Behavior
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#geometry-handling-tips" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ⚠️ Geometry Handling Tips
       
     </span>
   </a>
@@ -1107,21 +1063,8 @@
 <li><strong>Maximum damage values</strong> (CSV, dict, or DataFrame)</li>
 </ol>
 <blockquote>
-<p>⚠️ Your exposure data must include a <strong>column specifying asset type</strong>, matching the keys used in the vulnerability curves and max damage data.</p>
+<p>For a detailed walkthrough with real data and visualizations, see our <strong><a href="../../examples/vector-based/">Vector-based example notebook</a></strong>.</p>
 </blockquote>
-<hr />
-<h2 id="minimal-working-example">Minimal Working Example</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">damagescanner</span><span class="w"> </span><span class="kn">import</span> <span class="n">DamageScanner</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">hazard</span> <span class="o">=</span> <span class="s2">&quot;data/hazard_flood_depth.tif&quot;</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">feature_data</span> <span class="o">=</span> <span class="s2">&quot;data/infrastructure_osm.gpkg&quot;</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">curves</span> <span class="o">=</span> <span class="s2">&quot;data/vulnerability_curves.csv&quot;</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">maxdam</span> <span class="o">=</span> <span class="s2">&quot;data/maxdam.csv&quot;</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">DamageScanner</span><span class="p">(</span><span class="n">hazard</span><span class="p">,</span> <span class="n">feature_data</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">maxdam</span><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">damage</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">calculate</span><span class="p">()</span>
-</span></code></pre></div>
-<p>The result is a <code>GeoDataFrame</code> of features with estimated direct damage values per asset.</p>
 <hr />
 <h2 id="key-behavior">Key Behavior</h2>
 <ul>
@@ -1130,15 +1073,7 @@
 <li>It then samples the hazard value and looks up the damage fraction from the corresponding vulnerability curve</li>
 <li>The damage is calculated as:</li>
 </ul>
-<p>\
-  <code>exposure_area * damage_fraction * max_damage</code></p>
-<hr />
-<h2 id="geometry-handling-tips">⚠️ Geometry Handling Tips</h2>
-<blockquote>
-<p>⚠️ <strong>Mixed Geometry Types</strong> — Avoid mixing Points and Polygons for the same asset type.</p>
-<p>⚠️ <strong>CRS Alignment</strong> — Both hazard and vector data must be in the same coordinate reference system.</p>
-<p>⚠️ <strong>Object Column</strong> — You must define a column that links each object to a vulnerability curve and max damage.</p>
-</blockquote>
+<p><code>exposure_area * damage_fraction * max_damage</code></p>
 <hr />
 <h2 id="see-also">📚 See Also</h2>
 <ul>

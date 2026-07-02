@@ -551,17 +551,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#minimal-working-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Minimal Working Example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#notes-on-raster-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -943,17 +932,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#minimal-working-example" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Minimal Working Example
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#notes-on-raster-behavior" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1107,21 +1085,8 @@
 <li><strong>Maximum damage values</strong> (CSV, dict, or DataFrame)</li>
 </ol>
 <blockquote>
-<p>⚠️ Ensure both hazard and exposure rasters are in the <strong>same CRS</strong> and <strong>aligned spatially</strong> (same resolution and extent) for optimal performance.</p>
+<p>For a detailed walkthrough with real data and visualizations, see our <strong><a href="../../examples/raster-based/">Raster-based example notebook</a></strong>.</p>
 </blockquote>
-<hr />
-<h2 id="minimal-working-example">Minimal Working Example</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">damagescanner</span><span class="w"> </span><span class="kn">import</span> <span class="n">DamageScanner</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">hazard</span> <span class="o">=</span> <span class="s2">&quot;data/hazard_flood_depth.tif&quot;</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">feature_data</span> <span class="o">=</span> <span class="s2">&quot;data/exposure_population_density.tif&quot;</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">curves</span> <span class="o">=</span> <span class="s2">&quot;data/vulnerability_curves.csv&quot;</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">maxdam</span> <span class="o">=</span> <span class="s2">&quot;data/maxdam.csv&quot;</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">DamageScanner</span><span class="p">(</span><span class="n">hazard</span><span class="p">,</span> <span class="n">feature_data</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">maxdam</span><span class="p">)</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">damage</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">calculate</span><span class="p">()</span>
-</span></code></pre></div>
-<p>This returns a <code>GeoDataFrame</code> where each grid cell contains an estimated direct damage value.</p>
 <hr />
 <h2 id="notes-on-raster-behavior">Notes on Raster Behavior</h2>
 <ul>

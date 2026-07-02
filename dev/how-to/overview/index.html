@@ -573,71 +573,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-running-damagescanner" class="md-nav__link">
+  <a href="#interactive-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: Running DamageScanner
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-by-step-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step-by-Step Usage
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Step-by-Step Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-exposure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. exposure()
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-calculate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. calculate()
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-risk" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. risk()
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-for-working-with-geometry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips for Working with Geometry
+        Interactive Examples
       
     </span>
   </a>
@@ -1026,71 +965,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#example-running-damagescanner" class="md-nav__link">
+  <a href="#interactive-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example: Running DamageScanner
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#step-by-step-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Step-by-Step Usage
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Step-by-Step Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#1-exposure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. exposure()
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#2-calculate" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. calculate()
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#3-risk" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. risk()
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#tips-for-working-with-geometry" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Tips for Working with Geometry
+        Interactive Examples
       
     </span>
   </a>
@@ -1161,6 +1039,36 @@
 <li>CSV or <code>pandas.DataFrame</code></li>
 <li>Relates hazard intensity to damage (as fraction of max damage)</li>
 </ul>
+<table>
+<thead>
+<tr>
+<th>Intensity</th>
+<th>residential</th>
+<th>industrial</th>
+<th>farmland</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0.0</td>
+<td>0.00</td>
+<td>0.00</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>0.5</td>
+<td>0.25</td>
+<td>0.15</td>
+<td>0.10</td>
+</tr>
+<tr>
+<td>1.0</td>
+<td>0.50</td>
+<td>0.35</td>
+<td>0.25</td>
+</tr>
+</tbody>
+</table>
 <blockquote>
 <p>⚠️ <strong>Important:</strong> The unit of the first column/index must match the unit of the hazard layer (e.g., meters for flood depth).</p>
 </blockquote>
@@ -1169,67 +1077,35 @@
 <li>Specifies the max value per asset type (e.g., €/m² or €/asset)</li>
 <li>Provided as <code>dict</code>, CSV, or DataFrame</li>
 </ul>
+<table>
+<thead>
+<tr>
+<th>landuse</th>
+<th>damage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>residential</td>
+<td>1000</td>
+</tr>
+<tr>
+<td>industrial</td>
+<td>5000</td>
+</tr>
+<tr>
+<td>farmland</td>
+<td>50</td>
+</tr>
+</tbody>
+</table>
 <hr />
-<h2 id="example-running-damagescanner">Example: Running DamageScanner</h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">damagescanner</span><span class="w"> </span><span class="kn">import</span> <span class="n">DamageScanner</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Paths to input files</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">hazard</span> <span class="o">=</span> <span class="s2">&quot;path/to/hazard_data.tif&quot;</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">feature_data</span> <span class="o">=</span> <span class="s2">&quot;path/to/exposure_data.shp&quot;</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">curves</span> <span class="o">=</span> <span class="s2">&quot;path/to/vulnerability_curves.csv&quot;</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">maxdam</span> <span class="o">=</span> <span class="s2">&quot;path/to/maxdam.csv&quot;</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Initialize</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">DamageScanner</span><span class="p">(</span><span class="n">hazard</span><span class="p">,</span> <span class="n">feature_data</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">maxdam</span><span class="p">)</span>
-</span></code></pre></div>
-<hr />
-<h2 id="step-by-step-usage">Step-by-Step Usage</h2>
-<h3 id="1-exposure">1. <code>exposure()</code></h3>
-<p>Identify which features overlap with the hazard.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Curves and maxdam must be empty DataFrames for exposure-only</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">scanner</span> <span class="o">=</span> <span class="n">DamageScanner</span><span class="p">(</span><span class="n">hazard</span><span class="p">,</span> <span class="n">feature_data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(),</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">())</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">exposed</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">exposure</span><span class="p">()</span>
-</span></code></pre></div>
+<h2 id="interactive-examples">Interactive Examples</h2>
+<p>To see <code>DamageScanner</code> in action with real-world data, explore our interactive Jupyter Notebook examples:</p>
 <ul>
-<li>Works with both vector and raster feature data</li>
-<li>Results in a GeoDataFrame with assets intersecting the hazard</li>
+<li>📊 <strong><a href="../../examples/vector-based/">Vector-based assessment</a></strong> — Demonstrates how to use OSM polygons and points (e.g., land use, buildings) with raster hazard maps.</li>
+<li>🗺️ <strong><a href="../../examples/raster-based/">Raster-based assessment</a></strong> — Shows how to perform rapid large-scale analysis using land-use rasters.</li>
 </ul>
-<hr />
-<h3 id="2-calculate">2. <code>calculate()</code></h3>
-<p>Applies vulnerability curves to estimate damage.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">results</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">calculate</span><span class="p">()</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
-</span></code></pre></div>
-<ul>
-<li>Requires valid curves and <code>maxdam</code></li>
-<li>Damage is computed per asset, based on overlap and intensity</li>
-</ul>
-<hr />
-<h3 id="3-risk">3. <code>risk()</code></h3>
-<p>Calculates risk over multiple return periods.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">hazard_dict</span> <span class="o">=</span> <span class="p">{</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="mi">10</span><span class="p">:</span> <span class="s2">&quot;hazard_10.tif&quot;</span><span class="p">,</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="mi">50</span><span class="p">:</span> <span class="s2">&quot;hazard_50.tif&quot;</span><span class="p">,</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="mi">100</span><span class="p">:</span> <span class="s2">&quot;hazard_100.tif&quot;</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">}</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">risk_results</span> <span class="o">=</span> <span class="n">scanner</span><span class="o">.</span><span class="n">risk</span><span class="p">(</span><span class="n">hazard_dict</span><span class="p">)</span>
-</span></code></pre></div>
-<ul>
-<li>Computes <strong>Expected Annual Damages (EAD)</strong> using return periods</li>
-<li>Supports asset-specific curves and max damages</li>
-</ul>
-<hr />
-<h2 id="tips-for-working-with-geometry">Tips for Working with Geometry</h2>
-<blockquote>
-<p>⚠️ <strong>Important:</strong> Make sure each asset type uses one geometry type (Point or Polygon). Options:</p>
-<ol>
-<li>Convert all assets to the same geometry</li>
-<li>Split the damage calc by geometry type</li>
-<li>Use custom object names like <code>substation_point</code> vs <code>substation_polygon</code></li>
-</ol>
-</blockquote>
 <hr />
 <h2 id="next-steps">📚 Next Steps</h2>
 <ul>
