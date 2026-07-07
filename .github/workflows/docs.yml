@@ -1,4 +1,5 @@
 name: Docs
+
 on:
   push:
     branches:
@@ -6,32 +7,41 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+
+# Required permissions for deploying via git push to a branch
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0 # Required by mike to navigate git history
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           version: "latest"
+
       - name: Set up Python
         run: uv python install
+
       - name: Install dependencies
         run: uv sync --group docs
-      - name: Deploy documentation
+
+      - name: Deploy documentation via mike
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
             VERSION=${GITHUB_REF#refs/tags/}
-            uv run mike deploy --push --update-aliases $VERSION latest
+            uv run mike deploy --push --update-aliases "$VERSION" latest
             uv run mike set-default --push latest
           else
             uv run mike deploy --push --update-aliases dev
