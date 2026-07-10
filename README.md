@@ -2,6 +2,7 @@
 
 <img align="right" width="200" alt="Logo" src="https://raw.githubusercontent.com/ElcoK/DamageScanner/main/docs/images/logo-dark.png">
 
+[![status](https://joss.theoj.org/papers/63be196aaeb52c85296f82937e4f90ed/status.svg)](https://joss.theoj.org/papers/63be196aaeb52c85296f82937e4f90ed)
 [![fair-software badge](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 [![github license badge](https://img.shields.io/github/license/ElcoK/DamageScanner)](https://github.com/ElcoK/DamageScanner)
 [![Tests](https://github.com/VU-IVM/DamageScanner/actions/workflows/pytest.yml/badge.svg)](https://github.com/VU-IVM/DamageScanner/actions/workflows/pytest.yml)
