@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+title: 'DamageScanner: A Python package for natural hazard risk assessments'
+type: software
+authors:
+- given-names: Elco E.
+  family-names: Koks
+  orcid: https://orcid.org/0000-0002-4953-4527
+repository-code: https://github.com/VU-IVM/DamageScanner
+license: MIT
