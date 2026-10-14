@@ -78,11 +78,7 @@ scanner = DamageScanner(hazard, feature_data, curves, maxdam)
 damage_results = scanner.calculate()
 
 # Calculate risk using multiple hazard maps
-hazard_dict = {
-    10: "hazard_10.tif",
-    50: "hazard_50.tif",
-    100: "hazard_100.tif"
-}
+hazard_dict = {10: "hazard_10.tif", 50: "hazard_50.tif", 100: "hazard_100.tif"}
 
 risk_results = scanner.risk(hazard_dict)
 
@@ -90,7 +86,6 @@ risk_results = scanner.risk(hazard_dict)
 # Curves and maxdam must be empty DataFrames for exposure-only
 scanner = DamageScanner(hazard, feature_data, pd.DataFrame(), pd.DataFrame())
 exposed = scanner.exposure()
-
 ```
 
 When running the `DamageScanner`, it is important to be aware of several potential issues. The first, and most common issue when running the `DamageScanner` is consistency in the Coordinate Reference System (CRS). To reduce the risk of a potentially unsuccessful completion, it is recommended to ensure that both hazard and exposure information is stored in the same CRS.  The second common issue relates to multiple geometries of the same object type. For example, when using OSM data, school facilities can be stored as both Points or Polygons. However, the maximum damages for a specific asset type can only refer to one geometry type (i.e., either damages per square meter, or per entire asset). As such, one either needs to convert all assets of the same object type into the same geometry type, or one should make unique object types for the different geometry types (and match maximum damages accordingly).
