@@ -430,6 +430,40 @@ class TestNetCDFExposure:
         assert hazard is not None
         hazard.close()
 
+class TestNetCDFExposure:  # existing class, shown only for placement
+ 
+    def test_netcdf_building_exposure_matches_footprint(
+        self, netcdf_inputs: dict
+    ) -> None:
+        """Exposed polygon area on a geographic raster equals the true footprint.
+ 
+        Regression test for issues #82 and #83: the old cell area overstated
+        building exposure in Kampen (52.5 N) by about 64 percent.
+        """
+        from pyproj import Geod
+ 
+        ds = DamageScanner(
+            hazard_data=netcdf_inputs["hazard"],
+            feature_data=netcdf_inputs["exposure"],
+            curves=netcdf_inputs["curves"],
+            maxdam=netcdf_inputs["maxdam"],
+        )
+        result = ds.exposure(asset_type="buildings", disable_progress=True)
+        poly = result[result.geom_type.isin(["Polygon", "MultiPolygon"])]
+        poly = poly[poly["coverage"].apply(len) > 0]
+        assert len(poly) > 0
+ 
+        geod = Geod(ellps="WGS84")
+        exposed = poly["coverage"].apply(sum).sum()
+ 
+        def footprint(g):
+            # sum parts separately: pyproj areas are signed by ring orientation,
+            # so parts of an OSM multipolygon wound in opposite directions cancel
+            parts = g.geoms if g.geom_type == "MultiPolygon" else [g]
+            return sum(abs(geod.geometry_area_perimeter(p)[0]) for p in parts)
+ 
+        true = poly.to_crs(4326).geometry.apply(footprint).sum()
+        assert exposed / true == pytest.approx(1, abs=0.005)
 
 # class TestOSMAllAssetTypes:
 #     """Tests for all OSM asset types (slower, comprehensive tests)."""

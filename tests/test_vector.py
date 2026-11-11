@@ -15,6 +15,7 @@ from damagescanner.vector import (
     VectorScanner,
     _create_grid,
     _get_cell_area_m2,
+    _overlay_raster_vector,
     _overlay_vector_vector,
     _remove_duplicates,
 )
@@ -644,3 +645,51 @@ class TestExtractStrategy:
             f"Feature-sequential ({total_feature:,.2f}) and raster-sequential ({total_raster:,.2f}) "
             "should produce equal results"
         )
+
+class TestExposedAreaInvariant:
+    """Exposed polygon area must equal the polygon's own area (issues #82, #83)."""
+ 
+    @staticmethod
+    def _raster(x0, y0, res, n, crs):
+        import rioxarray  # noqa: F401
+        import xarray as xr
+ 
+        xs = x0 + res / 2 + np.arange(n) * res
+        ys = y0 + n * res - res / 2 - np.arange(n) * res
+        return xr.DataArray(
+            np.ones((n, n), dtype="float32"), coords={"y": ys, "x": xs}, dims=("y", "x")
+        ).rio.write_crs(crs)
+ 
+    @pytest.mark.parametrize("gridded", [True, False])
+    def test_projected_tiles_not_aligned_with_cells(self, gridded):
+        """90 m cells do not divide the 50 km tiles; boundary cells must count once."""
+        res, x0, y0 = 90.0, 3_000_000.0, 2_000_000.0
+        hazard = self._raster(x0, y0, res, 1300, "EPSG:3035")
+        polys = [
+            shapely.box(x0 + 45_000, y0 + 10_000, x0 + 55_000, y0 + 20_000),
+            shapely.box(x0 + 49_900, y0 + 1_000, x0 + 50_100, y0 + 110_000),
+        ]
+        feats = gpd.GeoDataFrame(geometry=polys, crs="EPSG:3035")
+        out = _overlay_raster_vector(
+            hazard, feats, pyproj.CRS(3035), gridded=gridded, disable_progress=True
+        )
+        for cov, poly in zip(out["coverage"], polys):
+            assert np.sum(cov) * res * res / poly.area == pytest.approx(1, abs=0.002)
+ 
+    @pytest.mark.parametrize("lat0", [-60, -40, 0, 40, 60])
+    def test_geographic_polygon_area_in_m2(self, lat0):
+        """Polygon coverage on a geographic raster is converted per cell to m².
+ 
+        Both hemispheres: the area depends on distance from the equator only.
+        """
+        from pyproj import Geod
+ 
+        res = 1 / 120
+        hazard = self._raster(10.0, lat0, res, 400, "EPSG:4326")
+        poly = shapely.box(10.5, lat0 + 0.5, 12.6, lat0 + 2.9)
+        feats = gpd.GeoDataFrame(geometry=[poly], crs="EPSG:4326")
+        out = _overlay_raster_vector(
+            hazard, feats, pyproj.CRS(4326), gridded=True, disable_progress=True
+        )
+        true_area = abs(Geod(ellps="WGS84").geometry_area_perimeter(poly)[0])
+        assert np.sum(out["coverage"].iloc[0]) / true_area == pytest.approx(1, abs=0.002)
