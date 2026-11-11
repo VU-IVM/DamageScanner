@@ -25,6 +25,12 @@ def _drop_intermediate_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     Works for any exposure data: OSM data keeps its osm_id, other data keeps
     whatever identifier columns it has, without requiring a column name (#65).
+
+    Args:
+        df: Risk result with feature columns and intermediate columns.
+
+    Returns:
+        The same DataFrame without the intermediate columns.
     """
     return df.drop(columns=[c for c in _INTERMEDIATE_COLUMNS if c in df.columns])
 
