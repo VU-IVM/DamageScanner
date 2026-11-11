@@ -1,7 +1,8 @@
 """Vector-based damage estimation functions for DamageScanner."""
 
-import traceback
+import itertools
 import warnings
+from collections.abc import Iterator
 from pathlib import Path, PurePath
 
 import geopandas as gpd
@@ -114,20 +115,78 @@ def _get_cell_area_m2(
             gpd.GeoSeries([asset_point], crs=features.crs).to_crs(hazard_crs).iloc[0]
         )
 
-    new_geom = asset_point.centroid.buffer(hazard_resolution, cap_style="square")
+    # geodesic area of one cell centred on the asset; east-west extent shrinks
+    # with cos(latitude), so squaring a single edge length overstates it (#82)
+    cell = asset_point.centroid.buffer(hazard_resolution / 2, cap_style="square")
+    return abs(geod.geometry_area_perimeter(cell)[0])
 
-    line_string = shapely.shortest_line(
-        Point(shapely.get_coordinates(new_geom)[0]),
-        Point(shapely.get_coordinates(new_geom)[1]),
-    )
 
-    new_for_length = LineString(
-        [Point(line_string.coords[0]), line_string.interpolate(hazard_resolution)]
-    )
+def _tile_slices(n: int, k: int) -> list[slice]:
+    """Split ``n`` cells into consecutive index slices of about ``k`` cells.
 
-    resolution = geod.geometry_length(new_for_length)
+    A trailing sliver narrower than two cells is merged into the previous
+    slice, because rioxarray cannot derive a resolution from one coordinate.
 
-    return resolution * resolution
+    Args:
+        n: Number of cells along the axis.
+        k: Target number of cells per slice.
+
+    Returns:
+        Consecutive slices that together cover range(n) exactly once.
+    """
+    k = max(int(k), 2)
+    starts = list(range(0, n, k))
+    if len(starts) > 1 and n - starts[-1] < 2:
+        starts.pop()
+    ends = starts[1:] + [n]
+    return [slice(a, b) for a, b in zip(starts, ends)]
+
+
+def _iter_raster_tiles(
+    hazard: xr.Dataset | xr.DataArray, tile_size: float
+) -> Iterator[xr.Dataset | xr.DataArray]:
+    """Yield tiles that partition the raster cells exactly.
+
+    Tiling by array index (rather than by coordinates with ``rio.clip_box``)
+    guarantees every cell belongs to exactly one tile, so results from
+    neighbouring tiles can be concatenated without double counting.
+
+    Args:
+        hazard: Hazard raster.
+        tile_size: Tile edge length in the units of the hazard CRS.
+
+    Yields:
+        Subsets of the hazard raster, one per tile.
+    """
+    res_x, res_y = (abs(r) for r in hazard.rio.resolution())
+    x_dim, y_dim = hazard.rio.x_dim, hazard.rio.y_dim
+    for xs in _tile_slices(hazard.sizes[x_dim], round(tile_size / res_x)):
+        for ys in _tile_slices(hazard.sizes[y_dim], round(tile_size / res_y)):
+            yield hazard.isel({x_dim: xs, y_dim: ys})
+
+
+def _geographic_cell_area_m2(
+    center_y: np.ndarray, res_x: float, res_y: float
+) -> np.ndarray:
+    """Geodesic area (m²) of geographic raster cells, given their centre latitudes.
+
+    Args:
+        center_y: Latitude of each cell centre, in degrees.
+        res_x: Cell width in degrees.
+        res_y: Cell height in degrees.
+
+    Returns:
+        Area of each cell in m², in the order of ``center_y``.
+    """
+    geod = Geod(ellps="WGS84")
+    center_y = np.asarray(center_y, dtype=float)
+    unique_lat, inverse = np.unique(np.round(center_y, 9), return_inverse=True)
+    areas = np.empty(len(unique_lat))
+    for i, lat in enumerate(unique_lat):
+        lats = [lat - res_y / 2, lat - res_y / 2, lat + res_y / 2, lat + res_y / 2]
+        lons = [-res_x / 2, res_x / 2, res_x / 2, -res_x / 2]
+        areas[i] = abs(geod.polygon_area_perimeter(lons, lats)[0])
+    return areas[inverse]
 
 
 def _create_grid(bbox: shapely.Geometry, height: float) -> np.ndarray:
@@ -182,40 +241,31 @@ def _create_grid(bbox: shapely.Geometry, height: float) -> np.ndarray:
 
 def _remove_duplicates(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Merge duplicate features by concatenating coverage and values.
+    Merge the per tile results of features that span several tiles.
+
+    Tiles partition the raster cells exactly (see ``_iter_raster_tiles``), so
+    the cell lists of different tiles never overlap and can be concatenated.
 
     Args:
-        df: DataFrame with possible duplicate index entries.
+        df: DataFrame of list columns, possibly with repeated index entries.
 
     Returns:
-        De-duplicated DataFrame.
+        DataFrame with one row per feature.
     """
-    no_duplicates = []
-    for row in df.groupby(level=0):
-        if len(row[1]) == 1:
-            no_duplicates.append(
-                [
-                    row[0],
-                    row[1]["coverage"].values[0],
-                    row[1]["values"].values[0],
-                ]
+    if not df.index.has_duplicates:
+        return df
+    # only features that span several tiles need merging
+    dup = df.index.duplicated(keep=False)
+    merged = (
+        df[dup]
+        .groupby(level=0)
+        .agg(
+            lambda col: list(
+                itertools.chain.from_iterable(_ensure_list(v) for v in col)
             )
-        elif len(row[1]) > 1:
-            # concatenate coverage column lists
-            import itertools
-
-            cov_all = list(itertools.chain.from_iterable(row[1]["coverage"].values))
-            # concatenate values column lists
-            val_all = list(itertools.chain.from_iterable(row[1]["values"].values))
-
-            # append to no_duplicates with new cov_sum and val_sum
-            no_duplicates.append([row[0], cov_all, val_all])
-
-    df_no_duplicates = pd.DataFrame(
-        no_duplicates, columns=["index", "coverage", "values"]
-    ).set_index("index")
-
-    return df_no_duplicates
+        )
+    )
+    return pd.concat([df[~dup], merged]).sort_index()
 
 
 def _reproject(
@@ -364,12 +414,16 @@ def _overlay_raster_vector(
     output_type: str = "pandas"
     include_geom: bool = False
 
+    # ask exactextract for each cell's latitude on geographic rasters
+    geographic = not _crs_is_meters(hazard_crs)
+    extract_ops = ["coverage", "values"] + (["center_y"] if geographic else [])
+
     if not gridded:
         if area_and_line_objects.sum() > 0:
             values_and_coverage_per_area_and_line_object = exact_extract(
                 hazard,
                 features[area_and_line_objects][["geometry"]],  # only pass the geometry
-                ["coverage", "values"],
+                extract_ops,
                 include_geom=include_geom,
                 output=output_type,
                 strategy=extract_strategy,
@@ -396,6 +450,14 @@ def _overlay_raster_vector(
             features.loc[area_and_line_objects, "values"] = (
                 values_and_coverage_per_area_and_line_object["values"]
             )
+            # CHANGED (#82): carry cell latitudes onto the features
+            if geographic:
+                features["center_y"] = pd.Series(
+                    [None] * len(features), index=features.index, dtype=object
+                )
+                features.loc[area_and_line_objects, "center_y"] = (
+                    values_and_coverage_per_area_and_line_object["center_y"]
+                )
 
     elif gridded:
         if area_and_line_objects.sum() > 0:
@@ -404,78 +466,40 @@ def _overlay_raster_vector(
             else:
                 grid_cell_size = 0.5  # in degrees
 
-            # create grid
-            bbox = shapely.box(
-                hazard.rio.bounds()[0],
-                hazard.rio.bounds()[1],
-                hazard.rio.bounds()[2],
-                hazard.rio.bounds()[3],
-            )
-
-            grid = _create_grid(bbox, grid_cell_size)
-
-            # get all bounds
-            all_bounds = gpd.GeoDataFrame(grid, columns=["geometry"]).bounds
-
+            # CHANGED (#83): tiles by array index replace _create_grid + rio.clip_box
             collect_overlay = []
+            tiles = list(_iter_raster_tiles(hazard, grid_cell_size))
 
-            # loop over all grids
-            for bounds in tqdm(
-                all_bounds.itertuples(),
-                total=len(all_bounds),
+            for subset_hazard in tqdm(
+                tiles,
+                total=len(tiles),
                 desc="Overlay raster with vector",
                 disable=disable_progress,
             ):
-                try:
-                    # subset hazard
-                    subset_hazard = hazard.rio.clip_box(
-                        minx=bounds.minx,
-                        miny=bounds.miny,
-                        maxx=bounds.maxx,
-                        maxy=bounds.maxy,
-                    )
+                sub_bbox = shapely.box(*subset_hazard.rio.bounds())
 
-                    sub_bbox = shapely.box(
-                        bounds.minx, bounds.miny, bounds.maxx, bounds.maxy
-                    )
-
-                    # subset features
-                    # subset_features = gpd.clip(features, sub_bbox)  # list(bounds)[1:])
-
-                    candidate_idx = features.sindex.query(
-                        sub_bbox, predicate="intersects"
-                    )
-                    subset_features = features.iloc[candidate_idx]
-
-                    subset_area_and_line_objects = subset_features.geom_type.isin(
+                candidate_idx = features.sindex.query(sub_bbox, predicate="intersects")
+                subset_features = features.iloc[candidate_idx]
+                subset_features = subset_features[
+                    subset_features.geom_type.isin(
                         ["Polygon", "MultiPolygon", "LineString", "MultiLineString"]
-                    ).values
-
-                    if len(subset_features) == 0:
-                        continue
-
-                    values_and_coverage_per_area_and_line_object = exact_extract(
-                        subset_hazard,
-                        subset_features[subset_area_and_line_objects][
-                            ["geometry"]
-                        ],  # only pass the geometry
-                        ["coverage", "values"],
-                        include_geom=include_geom,
-                        output=output_type,
-                        strategy=extract_strategy,
                     )
+                ]
+                if len(subset_features) == 0:
+                    continue
 
-                    # make sure we can connect the results with the features
-                    values_and_coverage_per_area_and_line_object.index = (
-                        subset_features[subset_area_and_line_objects].index
-                    )
-                    collect_overlay.append(values_and_coverage_per_area_and_line_object)
-
-                except Exception:
-                    get_error = traceback.format_exc()
-                    error_to_ignore = "At least one of the clipped raster x,y coordinates has only one point."
-                    if error_to_ignore not in get_error:
-                        traceback.print_exc()
+                values_and_coverage_per_area_and_line_object = exact_extract(
+                    subset_hazard,
+                    subset_features[["geometry"]],
+                    extract_ops,
+                    include_geom=include_geom,
+                    output=output_type,
+                    strategy=extract_strategy,
+                )
+                values_and_coverage_per_area_and_line_object.index = (
+                    subset_features.index
+                )
+                collect_overlay.append(values_and_coverage_per_area_and_line_object)
 
             if len(collect_overlay) == 0:
                 df: pd.DataFrame = pd.DataFrame(
@@ -493,6 +517,15 @@ def _overlay_raster_vector(
             ]
 
             features.loc[df_no_duplicates.index, "values"] = df_no_duplicates["values"]
+            # CHANGED (#82): carry cell latitudes onto the features
+            if geographic:
+                features["center_y"] = pd.Series(
+                    [None] * len(features), index=features.index, dtype=object
+                )
+                if "center_y" in df_no_duplicates:
+                    features.loc[df_no_duplicates.index, "center_y"] = df_no_duplicates[
+                        "center_y"
+                    ]
 
     # Sometimes, with large datasets, a feature may have been excluded from the bbox
     # this has resulted in a null value for the coverage and values. We remove these features.
@@ -506,6 +539,26 @@ def _overlay_raster_vector(
         # If we return all features, ensure values and coverage are at least empty lists
         features["values"] = features["values"].apply(_ensure_list)
         features["coverage"] = features["coverage"].apply(_ensure_list)
+
+    # convert polygon coverage (fraction of a cell) to m² using the geodesic
+    # area of each individual cell, which shrinks with cos(latitude)
+    if geographic and "center_y" in features:
+        res_x, res_y = (abs(r) for r in hazard.rio.resolution())
+        is_polygon = features.geom_type.isin(["Polygon", "MultiPolygon"]).to_numpy()
+        poly_idx = features.index[is_polygon]
+        cov = [_ensure_list(c) for c in features.loc[poly_idx, "coverage"]]
+        lat = [_ensure_list(y) for y in features.loc[poly_idx, "center_y"]]
+        lengths = np.fromiter((len(c) for c in cov), dtype=int, count=len(cov))
+        if lengths.sum() > 0:
+            # flatten all cells, compute each distinct row area once, split back
+            flat_cov = np.fromiter(itertools.chain.from_iterable(cov), dtype=float)
+            flat_lat = np.fromiter(itertools.chain.from_iterable(lat), dtype=float)
+            flat_m2 = flat_cov * _geographic_cell_area_m2(flat_lat, res_x, res_y)
+            parts = np.split(flat_m2, np.cumsum(lengths)[:-1])
+            features.loc[poly_idx, "coverage"] = pd.Series(
+                [p.tolist() for p in parts], index=poly_idx, dtype=object
+            )
+        features = features.drop(columns="center_y")
 
     # convert coverage to meters, only do this if the crs is not in meters
     if not _crs_is_meters(hazard_crs):
@@ -718,15 +771,23 @@ def _estimate_damage(
         object_col: Name of the object type column.
         cell_area_m2: Area per grid cell in m² (for polygons).
 
+    Features whose object type has no column in ``curves`` are not assessed
+    with this curve set and get NaN damage, which is distinct from a damage
+    of 0 for an asset that is covered but undamaged (#58).
+
     Returns:
         Exposure data with added `damage` column.
     """
-    features["damage"] = features.progress_apply(
-        lambda _object: _get_damage_per_object(
-            _object, curves, object_col, cell_area_m2
-        ),
-        axis=1,
-    )
+    applicable = features[object_col].isin(curves.columns)
+    damage = pd.Series(np.nan, index=features.index, dtype=float)
+    if applicable.any():
+        damage[applicable] = features[applicable].progress_apply(
+            lambda _object: _get_damage_per_object(
+                _object, curves, object_col, cell_area_m2
+            ),
+            axis=1,
+        )
+    features["damage"] = damage
 
     return features
 
@@ -852,9 +913,8 @@ def VectorExposure(
                     * (hazard.y[0].values - hazard.y[1].values)
                 )
             else:
-                cell_area_m2: int | float = _get_cell_area_m2(
-                    features, hazard_crs, abs(hazard.rio.resolution()[0])
-                )
+                # CHANGED (#82): polygon coverage is converted to m² per cell during the overlay
+                cell_area_m2 = 1
 
         elif hazard_file.suffix in [".shp", ".gpkg"]:
             hazard = gpd.read_file(hazard_file)
@@ -886,9 +946,8 @@ def VectorExposure(
             )
         # if not, extract it more cumbersome
         else:
-            cell_area_m2 = _get_cell_area_m2(
-                features, hazard_crs, abs(hazard.rio.resolution()[0])
-            )
+            # CHANGED (#82): polygon coverage is converted to m² per cell during the overlay
+            cell_area_m2 = 1
 
     elif isinstance(hazard_file, gpd.GeoDataFrame):
         hazard = hazard_file.copy()
@@ -947,7 +1006,9 @@ def VectorScanner(
         curve_path: Vulnerability curve(s).
         maxdam_path: Maximum damage values.
         asset_type: Infrastructure class (only for OSM).
-        multi_curves: Multiple curve sets.
+        multi_curves: Multiple curve sets, as {curve_id: DataFrame}. Each DataFrame
+            only needs columns for the object types that curve set applies to;
+            other object types get NaN in that curve set's damage column.
         object_col: Column name with object type.
         hazard_value_col: Column name in vector hazard containing intensity values.
         disable_progress: Whether to suppress progress bars.
@@ -1042,6 +1103,23 @@ def VectorScanner(
             )
 
     tqdm.pandas(desc="Calculating damage", disable=disable_progress)
+
+    # Check curve coverage of the object types in the exposure
+    object_types = set(features[object_col].dropna().unique())
+    if not multi_curves:
+        missing = sorted(object_types - set(curves.columns), key=str)
+        if missing:
+            raise KeyError(
+                f"Not all object types in the exposure have a vulnerability curve: {missing}"
+            )
+    else:
+        # a curve set only needs columns for the object types it applies to (#58)
+        covered = set().union(*(set(c.columns) for c in multi_curves.values()))
+        uncovered = sorted(object_types - covered, key=str)
+        if uncovered:
+            warnings.warn(
+                f"These object types have no curve in any curve set and get NaN damage: {uncovered}"
+            )
 
     # Calculate damage
     if not multi_curves:

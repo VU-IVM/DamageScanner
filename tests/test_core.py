@@ -5,6 +5,7 @@ import pathlib
 import geopandas as gpd
 import pandas as pd
 import pytest
+import shapely
 
 from damagescanner import DamageScanner
 
@@ -429,6 +430,117 @@ class TestNetCDFExposure:
 
         assert hazard is not None
         hazard.close()
+
+    def test_netcdf_building_exposure_matches_footprint(
+        self, netcdf_inputs: dict
+    ) -> None:
+        """Exposed polygon area on a geographic raster equals the true footprint.
+
+        Regression test for issues #82 and #83: the old cell area overstated
+        building exposure in Kampen (52.5 N) by about 64 percent.
+        """
+        from pyproj import Geod
+
+        ds = DamageScanner(
+            hazard_data=netcdf_inputs["hazard"],
+            feature_data=netcdf_inputs["exposure"],
+            curves=netcdf_inputs["curves"],
+            maxdam=netcdf_inputs["maxdam"],
+        )
+        result = ds.exposure(asset_type="buildings", disable_progress=True)
+        poly = result[result.geom_type.isin(["Polygon", "MultiPolygon"])]
+        poly = poly[poly["coverage"].apply(len) > 0]
+        assert len(poly) > 0
+
+        geod = Geod(ellps="WGS84")
+        exposed = poly["coverage"].apply(sum).sum()
+
+        def footprint(g: shapely.Geometry) -> float:
+            # sum parts separately: pyproj areas are signed by ring orientation,
+            # so parts of an OSM multipolygon wound in opposite directions cancel
+            parts = g.geoms if g.geom_type == "MultiPolygon" else [g]
+            return sum(abs(geod.geometry_area_perimeter(p)[0]) for p in parts)
+
+        true = poly.to_crs(4326).geometry.apply(footprint).sum()
+        assert exposed / true == pytest.approx(1, abs=0.005)
+
+
+class TestRiskMultiCurves:
+    """Risk keeps NaN where a curve set does not apply (#58)."""
+
+    def test_risk_with_partial_curve_sets(self) -> None:
+        """Risk per curve set matches hand calculation; NaN where not applicable."""
+        from tests.test_vector import _multi_curve_case
+
+        haz_10, features, flood, collapse, maxdam = _multi_curve_case(1.0)
+        haz_100 = _multi_curve_case(2.0)[0]
+        maxdam_df = pd.DataFrame(
+            {"object_type": list(maxdam), "damage": list(maxdam.values())}
+        )
+
+        ds = DamageScanner(haz_10, features, flood, maxdam_df)
+        out = ds.risk(
+            {10: haz_10, 100: haz_100},
+            multi_curves={"flood": flood, "collapse": collapse},
+        )
+
+        # trapezoid between exceedance probabilities 0.1 and 0.01
+        def ead(d10: float, d100: float) -> float:
+            return (d10 + d100) / 2 * (0.1 - 0.01)
+
+        assert out.loc[0, "flood"] == pytest.approx(ead(8_000_000, 16_000_000))
+        assert out.loc[1, "flood"] == pytest.approx(ead(10, 20))
+        assert out.loc[1, "collapse"] == pytest.approx(ead(50, 100))
+        assert pd.isna(out.loc[0, "collapse"])
+
+
+class TestRiskWithoutOsmId:
+    """risk() works for exposure data without an osm_id column (#65)."""
+
+    @staticmethod
+    def _case() -> tuple:
+        from tests.test_vector import _multi_curve_case
+
+        haz_10, features, flood, collapse, maxdam = _multi_curve_case(1.0)
+        haz_100 = _multi_curve_case(2.0)[0]
+        # shapefile style: own identifier, type column name within 10 characters
+        features = features.drop(columns="osm_id").rename(
+            columns={"object_type": "obj_type"}
+        )
+        features.insert(0, "asset_id", ["P1", "T1", "T2"])
+        maxdam_df = pd.DataFrame(
+            {"obj_type": list(maxdam), "damage": list(maxdam.values())}
+        )
+        return {10: haz_10, 100: haz_100}, features, flood, collapse, maxdam_df
+
+    def test_single_curve(self) -> None:
+        """Single curve risk on data without osm_id keeps the input's columns."""
+        hazards, features, flood, _, maxdam = self._case()
+        ds = DamageScanner(hazards[10], features, flood, maxdam)
+        out = ds.risk(hazards, object_col="obj_type")
+
+        assert list(out.columns) == ["asset_id", "obj_type", "geometry", "risk"]
+        # plant: damage 8,000,000 at 1/10 and 16,000,000 at 1/100, trapezoid over 0.09
+        assert out.loc[0, "risk"] == pytest.approx((8_000_000 + 16_000_000) / 2 * 0.09)
+
+    def test_multi_curves(self) -> None:
+        """Multi curve risk on data without osm_id keeps the input's columns."""
+        hazards, features, flood, collapse, maxdam = self._case()
+        ds = DamageScanner(hazards[10], features, flood, maxdam)
+        out = ds.risk(
+            hazards,
+            object_col="obj_type",
+            multi_curves={"flood": flood, "collapse": collapse},
+        )
+
+        assert list(out.columns) == [
+            "asset_id",
+            "obj_type",
+            "geometry",
+            "flood",
+            "collapse",
+        ]
+        assert out.loc[1, "collapse"] == pytest.approx((50 + 100) / 2 * 0.09)
 
 
 # class TestOSMAllAssetTypes:

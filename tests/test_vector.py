@@ -9,12 +9,14 @@ import pyproj
 import pytest
 import rasterio
 import shapely
+import xarray as xr
 
 from damagescanner.vector import (
     VectorExposure,
     VectorScanner,
     _create_grid,
     _get_cell_area_m2,
+    _overlay_raster_vector,
     _overlay_vector_vector,
     _remove_duplicates,
 )
@@ -644,3 +646,138 @@ class TestExtractStrategy:
             f"Feature-sequential ({total_feature:,.2f}) and raster-sequential ({total_raster:,.2f}) "
             "should produce equal results"
         )
+
+
+class TestExposedAreaInvariant:
+    """Exposed polygon area must equal the polygon's own area (issues #82, #83)."""
+
+    @staticmethod
+    def _raster(x0: float, y0: float, res: float, n: int, crs: str) -> xr.DataArray:
+        import rioxarray  # noqa: F401
+        import xarray as xr
+
+        xs = x0 + res / 2 + np.arange(n) * res
+        ys = y0 + n * res - res / 2 - np.arange(n) * res
+        return xr.DataArray(
+            np.ones((n, n), dtype="float32"), coords={"y": ys, "x": xs}, dims=("y", "x")
+        ).rio.write_crs(crs)
+
+    @pytest.mark.parametrize("gridded", [True, False])
+    def test_projected_tiles_not_aligned_with_cells(self, gridded: bool) -> None:
+        """90 m cells do not divide the 50 km tiles; boundary cells must count once."""
+        res, x0, y0 = 90.0, 3_000_000.0, 2_000_000.0
+        hazard = self._raster(x0, y0, res, 1300, "EPSG:3035")
+        polys = [
+            shapely.box(x0 + 45_000, y0 + 10_000, x0 + 55_000, y0 + 20_000),
+            shapely.box(x0 + 49_900, y0 + 1_000, x0 + 50_100, y0 + 110_000),
+        ]
+        feats = gpd.GeoDataFrame(geometry=polys, crs="EPSG:3035")
+        out = _overlay_raster_vector(
+            hazard, feats, pyproj.CRS(3035), gridded=gridded, disable_progress=True
+        )
+        for cov, poly in zip(out["coverage"], polys):
+            assert np.sum(cov) * res * res / poly.area == pytest.approx(1, abs=0.002)
+
+    @pytest.mark.parametrize("lat0", [-60, -40, 0, 40, 60])
+    def test_geographic_polygon_area_in_m2(self, lat0: float) -> None:
+        """Polygon coverage on a geographic raster is converted per cell to m².
+
+        Both hemispheres: the area depends on distance from the equator only.
+        """
+        from pyproj import Geod
+
+        res = 1 / 120
+        hazard = self._raster(10.0, lat0, res, 400, "EPSG:4326")
+        poly = shapely.box(10.5, lat0 + 0.5, 12.6, lat0 + 2.9)
+        feats = gpd.GeoDataFrame(geometry=[poly], crs="EPSG:4326")
+        out = _overlay_raster_vector(
+            hazard, feats, pyproj.CRS(4326), gridded=True, disable_progress=True
+        )
+        true_area = abs(Geod(ellps="WGS84").geometry_area_perimeter(poly)[0])
+        assert np.sum(out["coverage"].iloc[0]) / true_area == pytest.approx(
+            1, abs=0.002
+        )
+
+
+def _multi_curve_case(hazard_value: float = 2.0) -> tuple:
+    """A 200 x 200 m power plant and two power tower points on a uniform hazard.
+
+    Values are chosen so every damage can be checked by hand.
+
+    Args:
+        hazard_value: Uniform hazard intensity over the whole raster.
+
+    Returns:
+        Tuple of hazard raster, features, flood curves, tower only collapse
+        curves and maximum damage per object type.
+    """
+    import rioxarray  # noqa: F401  # noqa: F401
+    import xarray as xr
+
+    res, n, x0, y0 = 100.0, 50, 500_000.0, 5_600_000.0
+    xs = x0 + res / 2 + np.arange(n) * res
+    ys = (y0 + res / 2 + np.arange(n) * res)[::-1]
+    hazard = xr.DataArray(
+        np.full((n, n), hazard_value, dtype="float32"),
+        coords={"y": ys, "x": xs},
+        dims=("y", "x"),
+    ).rio.write_crs("EPSG:32632")
+    features = gpd.GeoDataFrame(
+        {"osm_id": [1, 2, 3], "object_type": ["plant", "tower", "tower"]},
+        geometry=[
+            shapely.box(x0 + 1000, y0 + 1000, x0 + 1200, y0 + 1200),
+            shapely.Point(x0 + 2050, y0 + 2050),
+            shapely.Point(x0 + 3050, y0 + 3050),
+        ],
+        crs="EPSG:32632",
+    )
+    depth = [0, 1, 2, 3]
+    flood = pd.DataFrame(
+        {"plant": [0, 0.2, 0.4, 0.6], "tower": [0, 0.1, 0.2, 0.3]}, index=depth
+    )
+    collapse = pd.DataFrame({"tower": [0, 0.5, 1.0, 1.0]}, index=depth)  # towers only
+    maxdam = {"plant": 1000, "tower": 100}
+    return hazard, features, flood, collapse, maxdam
+
+
+class TestMultiCurves:
+    """A curve set only needs curves for the object types it applies to (#58)."""
+
+    def test_partial_curve_sets(self) -> None:
+        """Damage per curve set matches hand calculation; NaN where not applicable."""
+        hazard, features, flood, collapse, maxdam = _multi_curve_case()
+        out = VectorScanner(
+            hazard,
+            features,
+            flood,
+            maxdam,
+            multi_curves={"flood": flood, "collapse": collapse},
+            disable_progress=True,
+        )
+        # plant: 0.4 damage fraction x 40,000 m2 x 1000 per m2
+        assert out.loc[0, "flood"] == pytest.approx(16_000_000)
+        # towers: 0.2 x 100 for flood, 1.0 x 100 for collapse
+        assert list(out.loc[[1, 2], "flood"]) == pytest.approx([20, 20])
+        assert list(out.loc[[1, 2], "collapse"]) == pytest.approx([100, 100])
+        # collapse does not apply to the plant: NaN, not 0
+        assert np.isnan(out.loc[0, "collapse"])
+
+    def test_object_type_in_no_curve_set_warns(self) -> None:
+        """An object type covered by no curve set gives a warning naming it."""
+        hazard, features, flood, collapse, maxdam = _multi_curve_case()
+        with pytest.warns(UserWarning, match="plant"):
+            out = VectorScanner(
+                hazard,
+                features,
+                flood,
+                maxdam,
+                multi_curves={"collapse": collapse},
+                disable_progress=True,
+            )
+        assert np.isnan(out.loc[0, "collapse"])
+
+    def test_single_curve_missing_object_type_raises(self) -> None:
+        """With a single curve set, a missing object type raises a clear KeyError."""
+        hazard, features, _, collapse, maxdam = _multi_curve_case()
+        with pytest.raises(KeyError, match="plant"):
+            VectorScanner(hazard, features, collapse, maxdam, disable_progress=True)

@@ -16,6 +16,24 @@ from tqdm import tqdm
 from damagescanner.raster import RasterScanner
 from damagescanner.vector import VectorExposure, VectorScanner
 
+# per feature working columns of the damage calculation, not part of a risk result
+_INTERMEDIATE_COLUMNS = ["coverage", "values", "maximum_damage"]
+
+
+def _drop_intermediate_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep the user's own feature columns plus the risk columns.
+
+    Works for any exposure data: OSM data keeps its osm_id, other data keeps
+    whatever identifier columns it has, without requiring a column name (#65).
+
+    Args:
+        df: Risk result with feature columns and intermediate columns.
+
+    Returns:
+        The same DataFrame without the intermediate columns.
+    """
+    return df.drop(columns=[c for c in _INTERMEDIATE_COLUMNS if c in df.columns])
+
 
 class DamageScanner(object):
     """
@@ -465,7 +483,7 @@ class DamageScanner(object):
             if self.assessment_type == "raster":
                 return largest_rp
             else:
-                return largest_rp[["osm_id", object_col, "geometry", "risk"]]
+                return _drop_intermediate_columns(largest_rp)
 
         else:
             # only keep the damage values
@@ -495,6 +513,11 @@ class DamageScanner(object):
             largest_rp = largest_rp.drop(multi_curves.keys(), axis=1)
             largest_rp.loc[:, multi_curves.keys()] = all_risks.values
 
+            # keep NaN for object types a curve set does not apply to (#58)
+            for curve, curve_df in multi_curves.items():
+                not_applicable = ~largest_rp[object_col].isin(curve_df.columns)
+                largest_rp.loc[not_applicable, curve] = np.nan
+
             # Save the results if output_path is provided
             if output_path:
                 file_extension = output_path.split(".")[-1].lower()
@@ -507,6 +530,4 @@ class DamageScanner(object):
                 print(f"Risk assessment results saved to {output_path}")
 
             # return the risk in a concise dataframe
-            return largest_rp[
-                ["osm_id", object_col, "geometry"] + list(multi_curves.keys())
-            ]
+            return _drop_intermediate_columns(largest_rp)
