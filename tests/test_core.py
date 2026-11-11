@@ -429,8 +429,6 @@ class TestNetCDFExposure:
 
         assert hazard is not None
         hazard.close()
-
-class TestNetCDFExposure:  # existing class, shown only for placement
  
     def test_netcdf_building_exposure_matches_footprint(
         self, netcdf_inputs: dict
@@ -464,6 +462,64 @@ class TestNetCDFExposure:  # existing class, shown only for placement
  
         true = poly.to_crs(4326).geometry.apply(footprint).sum()
         assert exposed / true == pytest.approx(1, abs=0.005)
+
+class TestRiskMultiCurves:
+    """Risk keeps NaN where a curve set does not apply (#58)."""
+ 
+    def test_risk_with_partial_curve_sets(self) -> None:
+        from tests.test_vector import _multi_curve_case
+ 
+        haz_10, features, flood, collapse, maxdam = _multi_curve_case(1.0)
+        haz_100 = _multi_curve_case(2.0)[0]
+        maxdam_df = pd.DataFrame({"object_type": list(maxdam), "damage": list(maxdam.values())})
+ 
+        ds = DamageScanner(haz_10, features, flood, maxdam_df)
+        out = ds.risk(
+            {10: haz_10, 100: haz_100},
+            multi_curves={"flood": flood, "collapse": collapse},
+        )
+        # trapezoid between exceedance probabilities 0.1 and 0.01
+        def ead(d10, d100):
+            return (d10 + d100) / 2 * (0.1 - 0.01)
+ 
+        assert out.loc[0, "flood"] == pytest.approx(ead(8_000_000, 16_000_000))
+        assert out.loc[1, "flood"] == pytest.approx(ead(10, 20))
+        assert out.loc[1, "collapse"] == pytest.approx(ead(50, 100))
+        assert pd.isna(out.loc[0, "collapse"])
+
+class TestRiskWithoutOsmId:
+    """risk() works for exposure data without an osm_id column (#65)."""
+
+    @staticmethod
+    def _case():
+        from tests.test_vector import _multi_curve_case
+
+        haz_10, features, flood, collapse, maxdam = _multi_curve_case(1.0)
+        haz_100 = _multi_curve_case(2.0)[0]
+        # shapefile style: own identifier, type column name within 10 characters
+        features = features.drop(columns="osm_id").rename(columns={"object_type": "obj_type"})
+        features.insert(0, "asset_id", ["P1", "T1", "T2"])
+        maxdam_df = pd.DataFrame({"obj_type": list(maxdam), "damage": list(maxdam.values())})
+        return {10: haz_10, 100: haz_100}, features, flood, collapse, maxdam_df
+
+    def test_single_curve(self) -> None:
+        hazards, features, flood, _, maxdam = self._case()
+        ds = DamageScanner(hazards[10], features, flood, maxdam)
+        out = ds.risk(hazards, object_col="obj_type")
+
+        assert list(out.columns) == ["asset_id", "obj_type", "geometry", "risk"]
+        # plant: damage 8,000,000 at 1/10 and 16,000,000 at 1/100, trapezoid over 0.09
+        assert out.loc[0, "risk"] == pytest.approx((8_000_000 + 16_000_000) / 2 * 0.09)
+
+    def test_multi_curves(self) -> None:
+        hazards, features, flood, collapse, maxdam = self._case()
+        ds = DamageScanner(hazards[10], features, flood, maxdam)
+        out = ds.risk(
+            hazards, object_col="obj_type", multi_curves={"flood": flood, "collapse": collapse}
+        )
+
+        assert list(out.columns) == ["asset_id", "obj_type", "geometry", "flood", "collapse"]
+        assert out.loc[1, "collapse"] == pytest.approx((50 + 100) / 2 * 0.09)
 
 # class TestOSMAllAssetTypes:
 #     """Tests for all OSM asset types (slower, comprehensive tests)."""

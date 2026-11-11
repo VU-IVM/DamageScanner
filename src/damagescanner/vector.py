@@ -730,23 +730,31 @@ def _estimate_damage(
 ) -> gpd.GeoDataFrame:
     """
     Estimate total damage per asset using vulnerability curves.
-
+ 
     Args:
         features: Exposure with hazard info.
         curves: Vulnerability curve per asset type.
         object_col: Name of the object type column.
         cell_area_m2: Area per grid cell in m² (for polygons).
-
+ 
+    Features whose object type has no column in ``curves`` are not assessed
+    with this curve set and get NaN damage, which is distinct from a damage
+    of 0 for an asset that is covered but undamaged (#58).
+ 
     Returns:
         Exposure data with added `damage` column.
     """
-    features["damage"] = features.progress_apply(
-        lambda _object: _get_damage_per_object(
-            _object, curves, object_col, cell_area_m2
-        ),
-        axis=1,
-    )
-
+    applicable = features[object_col].isin(curves.columns)
+    damage = pd.Series(np.nan, index=features.index, dtype=float)
+    if applicable.any():
+        damage[applicable] = features[applicable].progress_apply(
+            lambda _object: _get_damage_per_object(
+                _object, curves, object_col, cell_area_m2
+            ),
+            axis=1,
+        )
+    features["damage"] = damage
+ 
     return features
 
 
@@ -964,7 +972,9 @@ def VectorScanner(
         curve_path: Vulnerability curve(s).
         maxdam_path: Maximum damage values.
         asset_type: Infrastructure class (only for OSM).
-        multi_curves: Multiple curve sets.
+        multi_curves: Multiple curve sets, as {curve_id: DataFrame}. Each DataFrame
+            only needs columns for the object types that curve set applies to;
+            other object types get NaN in that curve set's damage column.
         object_col: Column name with object type.
         hazard_value_col: Column name in vector hazard containing intensity values.
         disable_progress: Whether to suppress progress bars.
@@ -1059,6 +1069,23 @@ def VectorScanner(
             )
 
     tqdm.pandas(desc="Calculating damage", disable=disable_progress)
+
+    # Check curve coverage of the object types in the exposure
+    object_types = set(features[object_col].dropna().unique())
+    if not multi_curves:
+        missing = sorted(object_types - set(curves.columns), key=str)
+        if missing:
+            raise KeyError(
+                f"Not all object types in the exposure have a vulnerability curve: {missing}"
+            )
+    else:
+        # a curve set only needs columns for the object types it applies to (#58)
+        covered = set().union(*(set(c.columns) for c in multi_curves.values()))
+        uncovered = sorted(object_types - covered, key=str)
+        if uncovered:
+            warnings.warn(
+                f"These object types have no curve in any curve set and get NaN damage: {uncovered}"
+            )
 
     # Calculate damage
     if not multi_curves:

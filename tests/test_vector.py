@@ -693,3 +693,68 @@ class TestExposedAreaInvariant:
         )
         true_area = abs(Geod(ellps="WGS84").geometry_area_perimeter(poly)[0])
         assert np.sum(out["coverage"].iloc[0]) / true_area == pytest.approx(1, abs=0.002)
+
+def _multi_curve_case(hazard_value: float = 2.0):
+    """A 200 x 200 m power plant and two power tower points on a uniform hazard.
+ 
+    Values are chosen so every damage can be checked by hand.
+    """
+    import rioxarray  # noqa: F401
+    import xarray as xr
+ 
+    res, n, x0, y0 = 100.0, 50, 500_000.0, 5_600_000.0
+    xs = x0 + res / 2 + np.arange(n) * res
+    ys = (y0 + res / 2 + np.arange(n) * res)[::-1]
+    hazard = xr.DataArray(
+        np.full((n, n), hazard_value, dtype="float32"),
+        coords={"y": ys, "x": xs},
+        dims=("y", "x"),
+    ).rio.write_crs("EPSG:32632")
+    features = gpd.GeoDataFrame(
+        {"osm_id": [1, 2, 3], "object_type": ["plant", "tower", "tower"]},
+        geometry=[
+            shapely.box(x0 + 1000, y0 + 1000, x0 + 1200, y0 + 1200),
+            shapely.Point(x0 + 2050, y0 + 2050),
+            shapely.Point(x0 + 3050, y0 + 3050),
+        ],
+        crs="EPSG:32632",
+    )
+    depth = [0, 1, 2, 3]
+    flood = pd.DataFrame({"plant": [0, 0.2, 0.4, 0.6], "tower": [0, 0.1, 0.2, 0.3]}, index=depth)
+    collapse = pd.DataFrame({"tower": [0, 0.5, 1.0, 1.0]}, index=depth)  # towers only
+    maxdam = {"plant": 1000, "tower": 100}
+    return hazard, features, flood, collapse, maxdam
+ 
+ 
+class TestMultiCurves:
+    """A curve set only needs curves for the object types it applies to (#58)."""
+ 
+    def test_partial_curve_sets(self) -> None:
+        hazard, features, flood, collapse, maxdam = _multi_curve_case()
+        out = VectorScanner(
+            hazard, features, flood, maxdam,
+            multi_curves={"flood": flood, "collapse": collapse},
+            disable_progress=True,
+        )
+        # plant: 0.4 damage fraction x 40,000 m2 x 1000 per m2
+        assert out.loc[0, "flood"] == pytest.approx(16_000_000)
+        # towers: 0.2 x 100 for flood, 1.0 x 100 for collapse
+        assert list(out.loc[[1, 2], "flood"]) == pytest.approx([20, 20])
+        assert list(out.loc[[1, 2], "collapse"]) == pytest.approx([100, 100])
+        # collapse does not apply to the plant: NaN, not 0
+        assert np.isnan(out.loc[0, "collapse"])
+ 
+    def test_object_type_in_no_curve_set_warns(self) -> None:
+        hazard, features, flood, collapse, maxdam = _multi_curve_case()
+        with pytest.warns(UserWarning, match="plant"):
+            out = VectorScanner(
+                hazard, features, flood, maxdam,
+                multi_curves={"collapse": collapse},
+                disable_progress=True,
+            )
+        assert np.isnan(out.loc[0, "collapse"])
+ 
+    def test_single_curve_missing_object_type_raises(self) -> None:
+        hazard, features, _, collapse, maxdam = _multi_curve_case()
+        with pytest.raises(KeyError, match="plant"):
+            VectorScanner(hazard, features, collapse, maxdam, disable_progress=True)
